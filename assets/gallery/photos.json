@@ -80,5 +80,29 @@
     "original": "assets/gallery/10-rooftop-tent.jpg",
     "unedited": true,
     "alt": "Family member beside the rooftop tent on the Land Cruiser in 2019"
+  },
+  {
+    "id": "11-mechanic-lines",
+    "title": "A closer look at the lines.",
+    "caption": "Unretouched photo supplied by the mechanic, showing lines, hoses and surrounding wear. The owner reports that the mechanic suspects the photographed area is related to the EVAP codes. The exact cause and repair scope still need confirmation.",
+    "src": "assets/gallery/11-mechanic-lines.JPG",
+    "original": "assets/gallery/11-mechanic-lines.JPG",
+    "unedited": true,
+    "sourceLabel": "MECHANIC PHOTO · UNRETOUCHED",
+    "alt": "Mechanic close-up of several lines with visible surface wear, nearby hoses and corroded surrounding hardware",
+    "width": 1153,
+    "height": 2048
+  },
+  {
+    "id": "12-mechanic-corrosion",
+    "title": "The close-up belongs in the listing.",
+    "caption": "Unretouched mechanic photo showing visible corrosion around clamps and adjacent hardware. The owner reports a body shop/welder was recommended for assessment. This is a suspected lead on P2418, P0442 and P0446, not a confirmed diagnosis or repair estimate.",
+    "src": "assets/gallery/12-mechanic-corrosion.JPG",
+    "original": "assets/gallery/12-mechanic-corrosion.JPG",
+    "unedited": true,
+    "sourceLabel": "MECHANIC PHOTO · UNRETOUCHED",
+    "alt": "Mechanic close-up of hoses and heavily corroded clamps and adjacent hardware",
+    "width": 2048,
+    "height": 1153
   }
 ]
