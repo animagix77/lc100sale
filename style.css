@@ -95,3 +95,12 @@
 
 /* Model name completes the opening headline without crowding the vehicle. */
 .launch h1>.model-name{display:block;font-size:.36em;line-height:1.1;letter-spacing:.045em;margin-top:.28em;white-space:nowrap}
+
+/* Keep white copy readable over every orbit frame, including bright surf. */
+.scene-shade::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(6,17,25,.82) 0%,rgba(6,17,25,.7) 36%,rgba(6,17,25,.32) 58%,transparent 80%)}
+.launch .intro,.immersive .tour-copy>p:not(.eyebrow){font-size:18px;line-height:1.5;text-shadow:0 1px 3px #000b}
+.launch .eyebrow,.immersive .tour-copy .eyebrow,.immersive .text-link{text-shadow:0 1px 3px #000b}
+@media(max-width:700px){
+ .scene-shade::after{background:linear-gradient(180deg,rgba(6,17,25,.7),rgba(6,17,25,.64) 42%,rgba(6,17,25,.12) 55%,transparent 64%)}
+ .launch .intro,.immersive .tour-copy>p:not(.eyebrow){font-size:16px;line-height:1.45}
+}
