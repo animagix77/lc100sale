@@ -1,6 +1,6 @@
 const chapterNotes=[
  {tag:'THE POWERTRAIN',title:'Big V8 energy.<br>Retiree schedule.',body:'A 4.7-liter V8 and about 220,000 miles. Currently driven around 400 miles a year or less. It now identifies as a driveway ornament with ambition.',label:'4.7L / V8',point:[350,400],crop:null,scale:1},
- {tag:'THE FUEL ECONOMY',title:'Enjoys the outdoors.<br>And gas stations.',body:'EPA stock rating: 12 city / 16 highway / 13 combined MPG. The lift, KM3s and spacers are on this truck; its actual MPG is still unconfirmed.',label:'MPG / STOCK EPA ESTIMATE',point:[800,460],crop:'83% 67%',scale:1.04},
+ {tag:'THE FUEL ECONOMY',title:'Thirsty. Capable.<br>A little smug.',body:'You don’t buy a V8 Land Cruiser to win at the pump. The owner reports trouble-free East Coast trips through rain and heavy snow. If a Wrangler or Rubicon is taking an unscheduled roadside break, try to wave politely. Fuel figures are below; Jeep rivalry is complimentary.',label:'MPG / STOCK EPA ESTIMATE',point:[800,460],crop:'83% 67%',scale:1.04},
  {tag:'THE STANCE',title:'A modest lift.<br>An immodest stance.',body:'Old Man Emu ~1.5-inch suspension and BFGoodrich KM3 tires, both fitted in 2019. 1.25-inch Bora spacers. Tire age and current condition still deserve a look.',label:'KM3 / 2019 INSTALL',point:[360,560],crop:'38% 83%',scale:1.09},
  {tag:'THE DIAGNOSTICS',title:'Three codes.<br>No subscription fee.',body:'Current owner-reported EVAP codes: P2418 / P0442 / P0446. Diagnosis and repair scope are unconfirmed.',label:'P2418 / P0442 / P0446',point:[520,340],crop:null,scale:1.02},
  {tag:'THE BODY',title:'The patina<br>has footnotes.',body:'Known rust and damage. Owner says it developed over the last seven years up here after ~200k miles in Maryland, despite light use. Owner reports a mechanic said no structural issues; no written inspection report has been provided. An independent inspection is encouraged.',label:'RUST / CLOSE-UP NEEDED',point:[720,515],crop:null,scale:1.08},
@@ -25,15 +25,24 @@ video.addEventListener('error',()=>{videoReady=false;video.hidden=true;poster.hi
 fetch('assets/orbit-media.json').then(r=>r.ok?r.json():null).then(m=>{if(m?.ready&&typeof m.src==='string'&&m.src.startsWith('assets/')){video.src=m.src;video.load()}}).catch(()=>{});
 fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{if(m?.ready&&Array.isArray(m.frames)&&m.frames.length>1&&m.frames.every(f=>typeof f.src==='string'&&f.src.startsWith('assets/'))){Promise.all(m.frames.map(f=>new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(f);im.onerror=()=>resolve(null);im.src=f.src}))).then(loaded=>{if(loaded.every(Boolean)){frames=loaded;render(progress)}})}}).catch(()=>{});
 function updateDetail(n){
- const detail=frames.length&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[930,672],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===3?{point:[1210,392],label:'NO SPOILER'}:n===5?{point:[1280,505],label:'HORN BUTTON',src:'assets/gallery/01-horn-button-source.jpg',size:'280%',position:'63% 25%'}:null):null;
+ const detail=frames.length&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===3?{point:[1210,392],label:'NO SPOILER'}:n===5?{point:[1280,505],label:'HORN BUTTON',src:'assets/gallery/01-horn-button-source.jpg',size:'280%',position:'63% 25%'}:null):null;
  $('inspection-detail').hidden=!detail;
+ $('inspection-detail').dataset.detail=String(n);
  if(!detail)return;
  const img=$('tour-image'),pin=$('orbit-pin'),r=img.getBoundingClientRect(),base=pin.getBoundingClientRect();
  const iw=img.naturalWidth,ih=img.naturalHeight;if(!iw||!ih)return;
  const scale=Math.max(r.width/iw,r.height/ih),left=r.left-base.left+(r.width-iw*scale)/2,top=r.top-base.top+(r.height-ih*scale)/2;
  const x=left+detail.point[0]*scale,y=top+detail.point[1]*scale;
- const bubble=$('bubble'),br=bubble.getBoundingClientRect(),bx=br.left-base.left+br.width/2,by=br.top-base.top+br.height;
- $('leader-path').setAttribute('d',`M ${x} ${y} L ${bx-25} ${by+20} L ${bx} ${by}`);
+ const bubble=$('bubble');
+ // Keep the tire detail near the rear wheel; the engine detail needs no tether.
+ ['left','top','right'].forEach(property=>bubble.style.removeProperty(property));
+ if(n===1){
+  const width=bubble.offsetWidth,height=bubble.offsetHeight,gap=innerWidth<=700?34:46;
+  bubble.style.left=`${Math.max(16,Math.min(base.width-width-16,x-width/2))}px`;
+  bubble.style.right='auto';bubble.style.top=`${Math.max(16,y-height-gap)}px`;
+ }
+ const br=bubble.getBoundingClientRect(),bx=br.left-base.left+br.width/2,by=br.top-base.top+br.height;
+ $('leader-path').setAttribute('d',n===1?`M ${x} ${y} L ${bx} ${by}`:`M ${x} ${y} L ${bx-25} ${by+20} L ${bx} ${by}`);
  $('leader-point').setAttribute('cx',x);$('leader-point').setAttribute('cy',y);
  const zoom=br.width/(n===1?240:330);
  if(detail.src){$('bubble-photo').style.backgroundImage=`url('${detail.src}')`;$('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;return}
