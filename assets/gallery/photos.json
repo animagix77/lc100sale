@@ -1,0 +1,58 @@
+[
+  {
+    "id": "05-front",
+    "title": "The face of very few regrets.",
+    "caption": "Current TOYOTA grille, bumper wear and fog-lamp haze. Plate characters and background clutter removed.",
+    "src": "assets/gallery/05-front.jpg",
+    "original": "assets/gallery/05-front-source.jpg"
+  },
+  {
+    "id": "06-engine",
+    "title": "Eight cylinders. Zero beauty filters for the dust.",
+    "caption": "4.7L V8 engine bay. Presentation edit; use the source photo for labels, fasteners and mechanical detail.",
+    "src": "assets/gallery/06-engine.jpg",
+    "original": "assets/gallery/06-engine-source.jpg"
+  },
+  {
+    "id": "01-horn-button",
+    "title": "The horn moved offices.",
+    "caption": "The normal horn control does not work. An added dashboard push button is the owner\u2019s workaround; operation should be demonstrated at viewing.",
+    "src": "assets/gallery/01-horn-button.jpg",
+    "original": "assets/gallery/01-horn-button-source.jpg"
+  },
+  {
+    "id": "03-rear-seats",
+    "title": "The rear seats have seen things.",
+    "caption": "Rear bench, seat belts and worn seatback pockets. Loose paper removed; creases and visible wear remain.",
+    "src": "assets/gallery/03-rear-seats.jpg",
+    "original": "assets/gallery/03-rear-seats-source.jpg"
+  },
+  {
+    "id": "02-cabin-roof",
+    "title": "Sky access: under negotiation.",
+    "caption": "Cabin and closed sunroof shade. The sunroof has known issues; this photo does not demonstrate operation.",
+    "src": "assets/gallery/02-cabin-roof.jpg",
+    "original": "assets/gallery/02-cabin-roof-source.jpg"
+  },
+  {
+    "id": "04-rear-door",
+    "title": "A door with a past.",
+    "caption": "Door trim, seat and sill wear. Loose items removed from the pocket and cabin.",
+    "src": "assets/gallery/04-rear-door.jpg",
+    "original": "assets/gallery/04-rear-door-source.jpg"
+  },
+  {
+    "id": "07-tire",
+    "title": "Plenty of personality in the tread.",
+    "caption": "BFGoodrich KM3 detail. Fitted in 2019; tread appearance does not establish tire age or roadworthiness.",
+    "src": "assets/gallery/07-tire.jpg",
+    "original": "assets/gallery/07-tire-source.jpg"
+  },
+  {
+    "id": "08-cargo",
+    "title": "Cargo sold separately. Character included.",
+    "caption": "Loose cargo and bike carrier removed. Stained carpet and hatch corrosion remain visible; previously covered areas are reconstructed. Compare the source photo before assessing condition.",
+    "src": "assets/gallery/08-cargo.jpg",
+    "original": "assets/gallery/08-cargo-source.jpg"
+  }
+]

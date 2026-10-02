@@ -1,0 +1,60 @@
+{
+  "version": 4,
+  "order": [
+    {
+      "file": "01-front-driver-quarter.png",
+      "width": 1672,
+      "height": 941,
+      "angle": 0
+    },
+    {
+      "file": "02-driver-profile.png",
+      "width": 1671,
+      "height": 941,
+      "angle": 45
+    },
+    {
+      "file": "03-rear-driver-quarter.png",
+      "width": 1672,
+      "height": 941,
+      "angle": 90
+    },
+    {
+      "file": "04-straight-rear.png",
+      "width": 1672,
+      "height": 941,
+      "angle": 135
+    },
+    {
+      "file": "05-rear-passenger-quarter.png",
+      "width": 1672,
+      "height": 941,
+      "angle": 180
+    },
+    {
+      "file": "06-passenger-profile.png",
+      "width": 1671,
+      "height": 941,
+      "angle": 225
+    },
+    {
+      "file": "07-front-passenger-quarter.png",
+      "width": 1672,
+      "height": 941,
+      "angle": 270
+    },
+    {
+      "file": "08-straight-front.png",
+      "width": 1672,
+      "height": 941,
+      "angle": 315
+    },
+    {
+      "file": "09-loop-close.png",
+      "width": 1672,
+      "height": 941,
+      "angle": 360
+    }
+  ],
+  "loop_close": "09 is an exact duplicate of 01"
+}

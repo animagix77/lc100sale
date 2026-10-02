@@ -1,0 +1,12 @@
+const galleryDialog=document.getElementById('photo-dialog');
+let galleryPhotos=[],galleryIndex=0,showSource=false;
+const el=id=>document.getElementById(id);
+function displayPhoto(){const p=galleryPhotos[galleryIndex];if(!p)return;el('photo-large').src=showSource?p.original:p.src;el('photo-large').alt=p.title+(showSource?' — source photo':' — presentation edit');el('photo-title').textContent=p.title;el('photo-description').textContent=p.caption;el('photo-count').textContent=`${galleryIndex+1} / ${galleryPhotos.length} · ${showSource?'SOURCE PHOTO':'PRESENTATION EDIT'}`;el('photo-toggle').textContent=showSource?'Show presentation edit':'Show source photo';el('photo-toggle').setAttribute('aria-pressed',String(showSource));}
+function movePhoto(delta){galleryIndex=(galleryIndex+delta+galleryPhotos.length)%galleryPhotos.length;showSource=false;displayPhoto();}
+const photosReady=fetch('assets/gallery/photos.json').then(r=>{if(!r.ok)throw new Error('Photo list unavailable');return r.json()}).then(p=>galleryPhotos=p);
+document.querySelectorAll('[data-photo]').forEach(button=>button.addEventListener('click',async()=>{try{await photosReady;galleryIndex=Number(button.dataset.photo);showSource=false;displayPhoto();galleryDialog.showModal();}catch{window.open(button.querySelector('img').src,'_blank','noopener');}}));
+el('photo-close').addEventListener('click',()=>galleryDialog.close());
+el('photo-toggle').addEventListener('click',()=>{showSource=!showSource;displayPhoto()});
+el('photo-previous').addEventListener('click',()=>movePhoto(-1));el('photo-next').addEventListener('click',()=>movePhoto(1));
+galleryDialog.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'){event.preventDefault();movePhoto(-1)}if(event.key==='ArrowRight'){event.preventDefault();movePhoto(1)}});
+galleryDialog.addEventListener('click',event=>{if(event.target===galleryDialog){const r=galleryDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)galleryDialog.close()}});
