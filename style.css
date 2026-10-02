@@ -137,3 +137,6 @@
 .launch h1>.model-name{color:var(--accent)}
 
 .camping{background:#15282c}.camping-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}.camping .photo-open img{aspect-ratio:auto;height:auto;width:100%;object-fit:contain}.camping-exclusion{border-left:3px solid var(--accent);padding-left:20px}.camping-exclusion strong{color:var(--accent)}#photo-toggle[hidden]{display:none}@media(max-width:700px){.camping-grid{grid-template-columns:1fr}}
+
+/* The owner's first-truck story, before the ownership timeline. */
+.owner-story{display:grid;grid-template-columns:1fr 1.3fr;gap:7vw;padding:42px 0 48px;margin-bottom:42px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.owner-story h3{font-size:clamp(28px,3vw,44px);line-height:1.12;letter-spacing:-1px}.owner-story-copy{max-width:680px}.owner-story-copy p{color:var(--ink);font-size:18px;line-height:1.7;margin:0 0 20px}.owner-story-copy .owner-signoff{color:var(--accent);font-size:15px;margin-bottom:0}@media(max-width:700px){.owner-story{grid-template-columns:1fr;gap:8px;padding:30px 0;margin-bottom:30px}.owner-story-copy p{font-size:17px}}
