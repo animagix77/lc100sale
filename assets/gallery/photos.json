@@ -54,5 +54,21 @@
     "caption": "Loose cargo and bike carrier removed. Stained carpet and hatch corrosion remain visible; previously covered areas are reconstructed. Compare the source photo before assessing condition.",
     "src": "assets/gallery/08-cargo.jpg",
     "original": "assets/gallery/08-cargo-source.jpg"
+  },
+  {
+    "id": "09-beach-family",
+    "title": "A room with a V8.",
+    "caption": "August 3, 2019. Family beach camping from the owner\u2019s album. Rooftop tent and camping equipment pictured are not included.",
+    "src": "assets/gallery/09-beach-family.jpg",
+    "original": "assets/gallery/09-beach-family.jpg",
+    "unedited": true
+  },
+  {
+    "id": "10-rooftop-tent",
+    "title": "The upstairs neighbors were us.",
+    "caption": "August 24, 2019. A past adventure, with the rooftop tent in use. Tent and camping equipment are not included; Malone crossbars are included.",
+    "src": "assets/gallery/10-rooftop-tent.jpg",
+    "original": "assets/gallery/10-rooftop-tent.jpg",
+    "unedited": true
   }
 ]

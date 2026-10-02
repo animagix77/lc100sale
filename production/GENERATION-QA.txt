@@ -1,0 +1,21 @@
+V6 generation QA — 2026-10-02
+Method: built-in imagegen only; eight distinct orbit images, plus an exact copied loop-closing frame.
+All V5 edit targets and four real references were viewed before generation.
+References: detail-photos-v1/04-reference.jpg (rectangular bar/clamp); detail-photos-v1/05-reference.jpg (grille); site/assets/side-2025.jpg (two bar stations, wheels, slight rear-high stance); detail-photos-v1/08-reference.jpg (receiver).
+All outputs visually inspected. 01 composition correction, plus authorized targeted corrections to 02/03/06/07. A final authorized pure vertical translation edit to 02 was accepted after it improved tire contact from y72% to y78.5%, largely preserving size and horizontal position. Candidates preserved under candidates/. No pixel editing, compositing or geometrical post-processing applied; originals from built-in generator retained.
+
+Approximate visible truck bounds as percentage of frame; manual visual estimates including roof fixture and nearest tire contact:
+01 x48.4–94, y39–79.5
+02 x48.7–90.3, y47–78.5
+03 x50–90, y40–78.5
+04 x61–84, y39–80
+05 x51–89, y41–80
+06 x52–95, y45–76.5
+07 x55–92.5, y44–78
+08 x62–83, y42–77
+09 exact copy of01
+
+Passed: no truck clipped; wide scenery-dominant framing; substantial clear left48–50%; expected angle order; straight front/rear narrower; stock-style five-spoke wheels; coast daylight; no people/cargo; roof bars generally lower with end-on profile geometry; no rear spoiler; rear receiver visible.
+Residual limitations: not a geometry-locked 3D render. Camera height/radius, vehicle size, coast/background, groundline and subtle body details can drift. Frame02 groundline is now78.5% after its final accepted edit, close to target80%; its roof is at47%, and profile physical sizing remains approximate versus quarters. Frames06–08 also slightly high. Frame01 begins48.4%, not target51%; site integration approved this clearance.
+Exactly two black transverse rectangular roof bars were explicitly required in every prompt with real photographic references. Thin gray/black lines, clamps and bar geometry remain generated approximations; some quarter views can still read as having dark longitudinal connecting rails. Do not claim hardware geometry perfectly exact. Rake is subtly rear-high but cannot be metrically verified from generated pixels. Badges/decals, wear, grille and tires are approximations, not factual inspection photographs. Missing roof-trim location was unknown and not invented.
+Prompts are persisted in generation-prompts.json; original source locations and per-frame notes in generation-outputs.json.

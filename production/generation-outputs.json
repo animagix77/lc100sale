@@ -1,0 +1,68 @@
+[
+  {
+    "frame": "01-front-driver-quarter.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-5c39182b-7395-4231-8f14-da7ac7c71e5c.png",
+    "method": "built-in imagegen",
+    "attempts": 2,
+    "qa": "Visually inspected. Truck bounds approximate x48.4–94%, y39–79.5%; left48% scenery; correction improved from x44%, but target x51% not fully met. Rear-high rake subtle. Roof fixtures remain generated approximations."
+  },
+  {
+    "frame": "02-driver-profile.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-8182c0ba-6521-45fe-9cfe-c683c6495c77.png",
+    "method": "built-in imagegen",
+    "attempts": 3,
+    "qa": "Accepted final pure vertical correction after visual inspection: approximate x48.7–90.3%, y47–78.5%; groundline improved from72% to78.5%, close to79.5–80% goal. Horizontal position/size largely preserved; rear-high rake subtle and end-on roof crossbars retained. No additional variants.",
+    "first_pass": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-88761208-2ca4-4881-9478-b1cbf3471714.png",
+    "previous_corrected_original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-18e36e23-2e1b-4742-8036-6446614ebb7b.png"
+  },
+  {
+    "frame": "03-rear-driver-quarter.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-97a089cd-51e1-4ded-b34b-657759b2ff1e.png",
+    "method": "built-in imagegen",
+    "attempts": 2,
+    "qa": "Final corrected: approximate x50–90%, y40–78.5%; left50% clear. Close usable master framing; smaller width than master. Rear-high stance subtle, receiver present; decals generated approximations.",
+    "first_pass": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-bcf408f5-0b8a-42bc-98e4-f7d10a6ad1c9.png"
+  },
+  {
+    "frame": "04-straight-rear.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-6fb42439-cf2a-4a73-9080-e820abd88257.png",
+    "method": "built-in imagegen",
+    "attempts": 1,
+    "qa": "Visually inspected: x61–84%, y39–80%; lefthalf clear and straight-rear correctly narrower. Rear receiver centered, decals approximate."
+  },
+  {
+    "frame": "05-rear-passenger-quarter.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-b7488f0c-1cc7-47ec-bf3a-53ddf575c469.png",
+    "method": "built-in imagegen",
+    "attempts": 1,
+    "qa": "Visually inspected: x51–89%, y41–80%; left50% clear; subject somewhat smaller than master. Rear receiver present. Roof and decals approximate."
+  },
+  {
+    "frame": "06-passenger-profile.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-624e8431-45c2-4c1a-8867-4e6ff3818fdf.png",
+    "method": "built-in imagegen",
+    "attempts": 2,
+    "qa": "Final corrected: approximate x52–95%, y45–76.5%; left50% clear. Moved down about3% instead of requested6%; residual groundline3.5% high. Clean short end-on crossbars; profile rake subtle.",
+    "first_pass": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-8725c3b8-70c3-47b5-a81a-bd90cafec910.png"
+  },
+  {
+    "frame": "07-front-passenger-quarter.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-386aa562-efe9-4a5c-a2a0-60444efd12b9.png",
+    "method": "built-in imagegen",
+    "attempts": 2,
+    "qa": "Final corrected: approximate x55–92.5%, y44–78%; left50% clear; groundline improved from73.5 to78%, residual2% high. Roof bars and grayscale rails generated approximations, rear-high rake subtle.",
+    "first_pass": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-15a1073e-6e05-46c7-9d32-7ebb2aea41e3.png"
+  },
+  {
+    "frame": "08-straight-front.png",
+    "original": "/Users/binhtran/.codex/generated_images/01a0fea7-b8e8-7611-a761-b5e3abf764a2/exec-4e2c4d0b-4beb-47c4-b10a-c2249072d13f.png",
+    "method": "built-in imagegen",
+    "attempts": 1,
+    "qa": "Visually inspected x62–83%, y42–77%; left50% clear, straight front properly narrower; slight smaller scale than straight rear."
+  },
+  {
+    "frame": "09-loop-close.png",
+    "method": "exact byte copy of 01-front-driver-quarter.png",
+    "original": "/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/orbit-keyframes-v6/01-front-driver-quarter.png"
+  }
+]

@@ -74,7 +74,7 @@
 .ownership{background:#182122}.ownership-note{font-size:13px;color:var(--muted);margin:22px 0 0;max-width:800px}
 
 /* The V2 orbit frames are the scene itself; the mobile surround extends its colors. */
-.keyframe-scene{--orbit-image:url('assets/orbit/01-front-driver-quarter-v5.jpg')}
+.keyframe-scene{--orbit-image:url('assets/orbit/01-front-driver-quarter-v6.jpg')}
 .orbit-backdrop{display:none}
 @media(max-width:700px){
  .keyframe-scene .orbit-backdrop{display:block;position:absolute;inset:-50px;background-image:var(--orbit-image);background-size:cover;background-position:center;filter:blur(45px);transform:scale(1.15)}
@@ -117,3 +117,23 @@
  @keyframes dialog-enter{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
 }
 @media(max-width:700px){.launch{top:12%}.launch .eyebrow{margin-bottom:16px}.launch .intro{margin:16px 0}.asking-note{font-size:14px;margin-top:10px}.buyer-banner{padding:34px 6vw}.buyer-banner>p:last-child{font-size:16px}}
+
+/* V6: preserve the wide scene's left copy space at every desktop ratio. */
+@media(min-width:701px){
+ .keyframe-scene .orbit-backdrop{display:block;position:absolute;inset:-45px;background-image:var(--orbit-image);background-size:cover;background-position:center;filter:blur(35px);transform:scale(1.08)}
+ .keyframe-scene .scene picture{inset:auto;left:auto;right:0;top:50%;width:min(100vw,177.7778svh);height:auto;aspect-ratio:16/9;transform:translateY(-50%)}
+ .keyframe-scene .scene picture img{object-fit:cover}
+ .launch{right:auto;width:42vw}
+ .launch h1{font-size:clamp(62px,7.3vw,125px)}
+ .immersive .tour-copy{width:39vw;max-width:510px}
+ .scene-shade::after{background:linear-gradient(90deg,rgba(6,17,25,.78),rgba(6,17,25,.64) 35%,rgba(6,17,25,.2) 50%,transparent 64%)}
+}
+@media(max-width:700px){
+ /* Crop the generous left scenery on phones so the full truck sits below copy. */
+ .keyframe-scene .scene picture{left:-86%;top:34%;width:185%;aspect-ratio:16/9}
+ .keyframe-scene .orbit-backdrop{background-position:75% center}
+}
+@media(max-width:700px) and (max-height:740px){.keyframe-scene .scene picture{top:36%}}
+.launch h1>.model-name{color:var(--accent)}
+
+.camping{background:#15282c}.camping-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}.camping .photo-open img{aspect-ratio:auto;height:auto;width:100%;object-fit:contain}.camping-exclusion{border-left:3px solid var(--accent);padding-left:20px}.camping-exclusion strong{color:var(--accent)}#photo-toggle[hidden]{display:none}@media(max-width:700px){.camping-grid{grid-template-columns:1fr}}

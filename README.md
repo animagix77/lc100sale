@@ -16,8 +16,8 @@ Run `node build.mjs` to create `dist/`. No package installation is required. Che
 
 - `assets/gallery/` contains presentation edits and corresponding source-photo JPEGs; the gallery offers a source comparison. Full original HEIC files remain in the owner's Photos Library and iCloud project folder.
 - Photo edits improve presentation and remove loose clutter. Generative retouching can reinterpret fine details; the source photos are the condition reference. The cargo edit reconstructs previously covered areas.
-- `assets/orbit/` contains the illustrated orbit keyframes used by the scroll tour. The V5 angles revise the roof hardware from the latest door/front photos, including straight transverse Malone bars and compact mounts; fine detail remains approximate. These are visualization references, not exact condition photos.
-- `production/` contains the V5 animation prompt, sequence and production notes. Full-resolution keyframes and their ZIP are in the iCloud project folder.
+- `assets/orbit/` contains the illustrated orbit keyframes used by the scroll tour. The V6 angles place a smaller truck on the right and leave the left side open for copy. Real photos guide the transverse Malone bars, compact mounts and slight rear-high stance; fine details remain approximate. These are visualization references, not exact condition photos.
+- `production/` contains the V6 animation prompt, sequence and production notes. Full-resolution keyframes and their ZIP are in the iCloud project folder.
 - `video-prompts.json` and `storyboard.html` describe later video production.
 
 ## Motion
