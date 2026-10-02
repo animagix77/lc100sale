@@ -1,1 +1,34 @@
-V4 corrects three front-facing grille views from the new real reference photo. Other V3 orbit angles are retained. Still illustrative keyframes: verify actual condition using the original owner photos. Missing roof trim location and body/underbody rust remain unverified.
+Orbit keyframes V5 — QA notes
+Created 2026-10-02 using built-in image_gen only.
+Eight separate edited PNGs; final selected outputs are the second pass.
+09-loop-close.png is an exact file copy of 01-front-driver-quarter.png.
+All eight final images visually inspected alongside the V4 targets and real reference photos.
+
+Improvements:
+- Lower, blockier roof mounts and straighter rectangular-section bar forms, most apparent in the profile and rear-quarter views.
+- Two transverse bar positions retained across the set; no baskets/cargo added.
+- Straight-front grille openings are coarser and more rectangular.
+- Existing camera composition, vehicle scale, beach geography and closed-hatch presentation remain visually close to V4.
+- Rear receiver retained.
+- No invented missing-trim damage location.
+
+Remaining fidelity limitations:
+- AI illustrations, not exact documentary photos or a measured 3D model.
+- Feet, bar overhang and bar projection still vary between angles. Profile views show the short bar projections more broadly than a truly end-on view may warrant.
+- Front-quarter grille patterns remain finer than the true reference, despite two prompts; straight-front view improved more clearly.
+- Some curved grey factory-rail mounting contours from V4 remain; exact rack silhouette is not guaranteed.
+- Minor decal, tire texture and surface-detail differences persist. Backgrounds are visually preserved, not pixel-identical.
+- Exact missing-trim location is unknown and was intentionally not guessed.
+
+Sources:
+- detail-photos-v1/04-reference.jpg: close-up of rectangular black bar, compact Malone clamp and grey longitudinal rail.
+- site/assets/side-2025.jpg: two-bar spacing, stance and wheels.
+- detail-photos-v1/05-reference.jpg: real black TOYOTA grille.
+- detail-photos-v1/08-reference.jpg: rear hitch/hatch context.
+
+Prompt history:
+- generation-prompts.json: first pass, eight original per-angle prompts.
+- generation-prompts-pass2.json: targeted corrective pass, eight per-angle prompts.
+- first-pass/: original first-pass outputs retained for comparison.
+No website code or Site tools used in this asset subtask.
+

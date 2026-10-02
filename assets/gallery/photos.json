@@ -3,7 +3,7 @@
     "id": "05-front",
     "title": "The face of very few regrets.",
     "caption": "Current TOYOTA grille, bumper wear and fog-lamp haze. Plate characters and background clutter removed.",
-    "src": "assets/gallery/05-front.jpg",
+    "src": "assets/gallery/05-front-v2.jpg",
     "original": "assets/gallery/05-front-source.jpg"
   },
   {
@@ -24,21 +24,21 @@
     "id": "03-rear-seats",
     "title": "The rear seats have seen things.",
     "caption": "Rear bench, seat belts and worn seatback pockets. Loose paper removed; creases and visible wear remain.",
-    "src": "assets/gallery/03-rear-seats.jpg",
+    "src": "assets/gallery/03-rear-seats-v2.jpg",
     "original": "assets/gallery/03-rear-seats-source.jpg"
   },
   {
     "id": "02-cabin-roof",
     "title": "Sky access: under negotiation.",
     "caption": "Cabin and closed sunroof shade. The sunroof has known issues; this photo does not demonstrate operation.",
-    "src": "assets/gallery/02-cabin-roof.jpg",
+    "src": "assets/gallery/02-cabin-roof-v2.jpg",
     "original": "assets/gallery/02-cabin-roof-source.jpg"
   },
   {
     "id": "04-rear-door",
     "title": "A door with a past.",
     "caption": "Door trim, seat and sill wear. Loose items removed from the pocket and cabin.",
-    "src": "assets/gallery/04-rear-door.jpg",
+    "src": "assets/gallery/04-rear-door-v2.jpg",
     "original": "assets/gallery/04-rear-door-source.jpg"
   },
   {

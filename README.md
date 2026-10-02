@@ -10,15 +10,19 @@ Serve this folder with any static web server. For example, run `python3 -m http.
 
 ## Build
 
-Run `node build.mjs` to create `dist/`. No package installation is required. Check JavaScript with `node --check app.js` and `node --check gallery.js`.
+Run `node build.mjs` to create `dist/`. No package installation is required. Check JavaScript with `node --check app.js` and `node --check gallery.js` and `node --check motion.js`.
 
 ## Photos and orbit
 
 - `assets/gallery/` contains presentation edits and corresponding source-photo JPEGs; the gallery offers a source comparison. Full original HEIC files remain in the owner's Photos Library and iCloud project folder.
 - Photo edits improve presentation and remove loose clutter. Generative retouching can reinterpret fine details; the source photos are the condition reference. The cargo edit reconstructs previously covered areas.
-- `assets/orbit/` contains the illustrated orbit keyframes used by the scroll tour. The V4 front angles reflect the current TOYOTA grille. These are visualization references, not exact condition photos.
-- `production/` contains the V4 animation prompt, sequence and production notes. Full-resolution keyframes and their ZIP are in the iCloud project folder.
+- `assets/orbit/` contains the illustrated orbit keyframes used by the scroll tour. The V5 angles revise the roof hardware from the latest door/front photos, including straight transverse Malone bars and compact mounts; fine detail remains approximate. These are visualization references, not exact condition photos.
+- `production/` contains the V5 animation prompt, sequence and production notes. Full-resolution keyframes and their ZIP are in the iCloud project folder.
 - `video-prompts.json` and `storyboard.html` describe later video production.
+
+## Motion
+
+Scroll-driven orbit keyframes use brief transitions. Headings, cards and service entries reveal on entry; buttons and gallery controls have subtle motion. Decorative animation respects reduced-motion preferences. Original photo comparison remains available.
 
 ## Publishing
 
@@ -26,4 +30,4 @@ Hosting remains on the existing private Sites project identified by `.openai/hos
 
 ## Listing status
 
-Price, title status, location, contact details and supporting inspection/service records still need owner confirmation. Mileage, faults and service history are owner-reported. The normal horn control is not working; an added dashboard push button is the owner's workaround.
+The private preview uses a proposed $11,000 asking price and prominent as-is positioning for mechanics, handy buyers and enthusiasts. Title status, location and contact details still need owner confirmation. There are no service receipts; care and maintenance are presented as the owner’s account. Mileage, faults and service history are owner-reported. The normal horn control is not working; an added dashboard push button is the owner's workaround.

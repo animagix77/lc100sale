@@ -1,0 +1,28 @@
+DETAIL PHOTOS V2 — 2026-10-02
+Built-in image_gen only. Original references and originals were not modified. No site files were modified.
+
+NEW SECOND-PASS EDITS
+02-cabin-roof-edited.png: Neutralized green cast, balanced exposure and tightened cabin framing. The headliner mark near the sunroof, amber dome light, hardware and visible leather creases remain.
+03-rear-seats-edited.png: Tighter, better balanced rear-bench composition. Removed single loose paper at bottom sill. Visible worn cushion edge, seat creases, sagging storage nets, belts, dusty mat and carpet remain.
+04-rear-door-edited.png: Tighter framing and balanced cabin exposure. Removed blue cloth in door pocket, red loose bag in footwell and background white drainpipe extension. Visible worn trim, dusty mat, speaker discoloration, sagging nets and body marks remain.
+05-front-edited.png: Selected restrained second candidate that better follows original camera angle. Tighter frame, neutral exposure/color balance. Removed plate characters, background trash bin and drainpipe. Visible cloudy fog lamps, black TOYOTA grille, roof hardware and body blemishes remain. First generated candidate was rejected for excessive reframing.
+
+RETAINED BYTE-FOR-BYTE FROM V1
+01-horn-button-edited.png: Existing correction already adequate; retained to avoid another generative pass on the small button and control labels.
+06-engine-edited.png: Existing balanced engine image retained; 2UZ-FE remains visible. Avoided another generative pass on component geometry and tiny labels.
+07-tire-edited.png: Existing close-up retained to avoid another generative pass on tread shape and wear.
+08-cargo-edited.png: Existing decluttered cargo image retained. IMPORTANT: Much of the cargo floor and lower seatback was hidden by bags/tools in the source. The earlier edit reconstructed those hidden areas. The exposed cargo-floor appearance is illustrative, not documentary evidence of the previously obscured condition. Keep the original available for inspection.
+
+VERIFICATION AND LIMITS
+All eight source/reference and v1 pairs were visually reviewed. All four new selected results were visually inspected. The edits preserve visible wear at ordinary viewing scale, but generative editing can reinterpret fine textures, tiny labels and precise geometry; exact pixel-level fidelity is not guaranteed. Original photographs remain the factual reference.
+Prompt log: prompt-log.json. Final front prompt: front-refinement-prompt.txt.
+
+FINAL FILES
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/01-horn-button-edited.png
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/02-cabin-roof-edited.png
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/03-rear-seats-edited.png
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/04-rear-door-edited.png
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/05-front-edited.png
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/06-engine-edited.png
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/07-tire-edited.png
+/Users/binhtran/Library/Mobile Documents/com~apple~CloudDocs/Land Cruiser Sale/detail-photos-v2/edited/08-cargo-edited.png
