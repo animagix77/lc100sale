@@ -4,56 +4,64 @@
     "title": "The face of very few regrets.",
     "caption": "Current TOYOTA grille, bumper wear and fog-lamp haze. Plate characters and background clutter removed.",
     "src": "assets/gallery/05-front-v2.jpg",
-    "original": "assets/gallery/05-front-source.jpg"
+    "original": "assets/gallery/05-front-source.jpg",
+    "alt": "Front of the grey Land Cruiser with TOYOTA grille, worn bumper and cloudy fog lamps"
   },
   {
     "id": "06-engine",
     "title": "Eight cylinders. Zero beauty filters for the dust.",
     "caption": "4.7L V8 engine bay. Presentation edit; use the source photo for labels, fasteners and mechanical detail.",
     "src": "assets/gallery/06-engine.jpg",
-    "original": "assets/gallery/06-engine-source.jpg"
+    "original": "assets/gallery/06-engine-source.jpg",
+    "alt": "Open hood showing the dusty 4.7-liter V8 engine bay"
   },
   {
     "id": "01-horn-button",
     "title": "The horn moved offices.",
     "caption": "The normal horn control does not work. An added dashboard push button is the owner’s workaround; operation should be demonstrated at viewing.",
     "src": "assets/gallery/01-horn-button.jpg",
-    "original": "assets/gallery/01-horn-button-source.jpg"
+    "original": "assets/gallery/01-horn-button-source.jpg",
+    "alt": "Added round horn push button on the lower dashboard beside the steering wheel"
   },
   {
     "id": "03-rear-seats",
     "title": "The rear seats have seen things.",
-    "caption": "Rear bench, seat belts and worn seatback pockets; loose paper removed, wear retained. DVD/entertainment system operation is unverified. It came with a Family Guy DVD when I bought it. I’ve never removed it, so it’s probably still there. A very committed residency.",
+    "caption": "Rear bench, seat belts and worn seatback pockets; loose paper removed, wear retained. DVD/entertainment system operation is unverified. The owner says a Family Guy DVD came with the truck and has never been removed, so it may still be inside. A very committed residency.",
     "src": "assets/gallery/03-rear-seats-v2.jpg",
-    "original": "assets/gallery/03-rear-seats-source.jpg"
+    "original": "assets/gallery/03-rear-seats-source.jpg",
+    "alt": "Grey leather rear bench, seat belts and worn front-seat back pockets"
   },
   {
     "id": "02-cabin-roof",
     "title": "Sky access: under negotiation.",
     "caption": "Cabin and closed sunroof shade. The sunroof has known issues; this photo does not demonstrate operation.",
     "src": "assets/gallery/02-cabin-roof-v2.jpg",
-    "original": "assets/gallery/02-cabin-roof-source.jpg"
+    "original": "assets/gallery/02-cabin-roof-source.jpg",
+    "alt": "Interior headliner and closed sunroof shade"
   },
   {
     "id": "04-rear-door",
     "title": "A door with a past.",
     "caption": "Door trim, seat and sill wear. Loose items removed from the pocket and cabin.",
     "src": "assets/gallery/04-rear-door-v2.jpg",
-    "original": "assets/gallery/04-rear-door-source.jpg"
+    "original": "assets/gallery/04-rear-door-source.jpg",
+    "alt": "Open rear door showing trim, sill and rear-seat wear"
   },
   {
     "id": "07-tire",
     "title": "Plenty of personality in the tread.",
     "caption": "BFGoodrich KM3 detail. Fitted in 2019; tread appearance does not establish tire age or roadworthiness.",
     "src": "assets/gallery/07-tire.jpg",
-    "original": "assets/gallery/07-tire-source.jpg"
+    "original": "assets/gallery/07-tire-source.jpg",
+    "alt": "Close-up of BFGoodrich KM3 tire tread and silver wheel"
   },
   {
     "id": "08-cargo",
     "title": "Cargo sold separately. Character included.",
     "caption": "Two functional rear jump seats are included. Loose cargo and bike carrier removed for this presentation edit. Stained carpet and hatch corrosion remain visible; previously covered areas are reconstructed. Compare the source photo before assessing condition.",
     "src": "assets/gallery/08-cargo.jpg",
-    "original": "assets/gallery/08-cargo-source.jpg"
+    "original": "assets/gallery/08-cargo-source.jpg",
+    "alt": "Open rear hatch and tailgate with stained cargo carpet and folded rear jump seats"
   },
   {
     "id": "09-beach-family",
@@ -61,7 +69,8 @@
     "caption": "August 3, 2019. Family beach camping from the owner’s album. Rooftop tent and camping equipment pictured are not included.",
     "src": "assets/gallery/09-beach-family.jpg",
     "original": "assets/gallery/09-beach-family.jpg",
-    "unedited": true
+    "unedited": true,
+    "alt": "Family on the rooftop-tent ladder above the Land Cruiser at the beach in 2019"
   },
   {
     "id": "10-rooftop-tent",
@@ -69,6 +78,7 @@
     "caption": "August 24, 2019. A past adventure, with the rooftop tent in use. Tent and camping equipment are not included; Malone crossbars are included.",
     "src": "assets/gallery/10-rooftop-tent.jpg",
     "original": "assets/gallery/10-rooftop-tent.jpg",
-    "unedited": true
+    "unedited": true,
+    "alt": "Family member beside the rooftop tent on the Land Cruiser in 2019"
   }
 ]
