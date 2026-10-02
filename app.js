@@ -5,7 +5,7 @@ const chapterNotes=[
  {tag:'THE DIAGNOSTICS',title:'Three codes.<br>Two close-ups.',body:'P2418 / P0442 / P0446. The owner says their mechanic suspects the photographed area is the culprit and recommended a body shop/welder for assessment. Cause, repair scope and cost remain unconfirmed.',label:'P2418 / P0442 / P0446',point:[520,340],crop:null,scale:1.02},
  {tag:'THE BODY',title:'The patina<br>has footnotes.',body:'Known rust and damage, shown here in unretouched mechanic photos. The owner reports a body shop/welder was recommended. An earlier mechanic assessment of no structural issues is owner-reported; no written report is available. Inspect in person.',label:'MECHANIC / CONDITION PHOTOS',point:[720,515],crop:null,scale:1.08},
  {tag:'THE ROOF',title:'The spoiler left.<br>The bars stayed.',body:'Rear spoiler no longer present. A piece of roof-rack paneling / trim is missing. Sunroof has issues. Malone crossbars stay included. A 2-inch hitch receiver remains out back. The exact missing trim location still needs a clearer photo.',label:'SPOILER / ABSENT',point:[600,100],crop:'57% 8%',scale:1.02},
- {tag:'THE CABIN',title:'Business class.<br>Passenger side only.',body:'Driver’s seat has a tear. Passenger heated seat works; driver’s does not. Radio works; bass does not. The normal horn control is out; an added dash button is the workaround.',label:'CABIN / PHOTOS NEEDED',point:[560,340],crop:null,scale:1},
+ {tag:'THE CABIN',title:'No running boards.<br>Plenty of commentary.',body:'No running boards to step on. My wife curses me out on the way up; the grab handle does the heavy lifting. Bring a stool, or ask Jesus to bless you with additional height. Passenger heated seat works. Consider it an apology.',label:'GRAB HANDLE / CLIMB ABOARD',point:[560,340],crop:null,scale:1},
  {tag:'THE NEXT CHAPTER',title:'A hobby.<br>With a VIN.',body:'Exhaust replaced in 2022; transmission cooler work around 2022. Differential and transfer case oil in 2020. Timing belt at 200k. Owner-reported care; no receipts available. Sold as is for mechanics, handy owners and enthusiasts. Your socket set deserves a purpose.',label:'OWNER HISTORY / NO RECEIPTS',point:[500,450],crop:'55% 76%',scale:1}
 ];
 const chapters=[0,2,4,5,3,6,1,7].map(i=>chapterNotes[i]);
@@ -25,18 +25,19 @@ video.addEventListener('error',()=>{videoReady=false;video.hidden=true;poster.hi
 fetch('assets/orbit-media.json').then(r=>r.ok?r.json():null).then(m=>{if(m?.ready&&typeof m.src==='string'&&m.src.startsWith('assets/')){video.src=m.src;video.load()}}).catch(()=>{});
 fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{if(m?.ready&&Array.isArray(m.frames)&&m.frames.length>1&&m.frames.every(f=>typeof f.src==='string'&&f.src.startsWith('assets/'))){Promise.all(m.frames.map(f=>new Promise(resolve=>{const im=new Image();im.onload=async()=>{try{await im.decode();resolve(f)}catch{resolve(null)}};im.onerror=()=>resolve(null);im.src=f.src}))).then(loaded=>{if(loaded.every(Boolean)){frames=loaded;render(progress)}})}}).catch(()=>{});
 function updateDetail(n){
- const detail=frames.length&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===3?{point:[1210,392],label:'NO SPOILER'}:n===5?{point:[1280,505],label:'HORN BUTTON',src:'assets/gallery/01-horn-button-source.jpg',size:'280%',position:'63% 25%'}:null):null;
+ const detail=frames.length&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===3?{point:[1210,392],label:'NO SPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/02-cabin-roof-source.jpg',size:'600%',position:'19% 38%'}:null):null;
  $('inspection-detail').hidden=!detail;
  $('inspection-detail').dataset.detail=String(n);
+ $('detail-open').hidden=n!==5||!detail;
  if(!detail)return;
  const img=$('tour-image'),pin=$('orbit-pin'),r=img.getBoundingClientRect(),base=pin.getBoundingClientRect();
  const iw=img.naturalWidth,ih=img.naturalHeight;if(!iw||!ih)return;
  const scale=Math.max(r.width/iw,r.height/ih),left=r.left-base.left+(r.width-iw*scale)/2,top=r.top-base.top+(r.height-ih*scale)/2;
- const x=left+detail.point[0]*scale,y=top+detail.point[1]*scale;
+ const x=left+detail.point[0]/1672*iw*scale,y=top+detail.point[1]/941*ih*scale;
  const bubble=$('bubble');
  // Keep the tire detail near the rear wheel; the engine detail needs no tether.
  ['left','top','right'].forEach(property=>bubble.style.removeProperty(property));
- if(n===1){
+ if(n===1||(n===5&&innerWidth>700)){
   const width=bubble.offsetWidth,height=bubble.offsetHeight,gap=innerWidth<=700?34:46;
   bubble.style.left=`${Math.max(16,Math.min(base.width-width-16,x-width/2))}px`;
   bubble.style.right='auto';bubble.style.top=`${Math.max(16,y-height-gap)}px`;
@@ -50,7 +51,7 @@ function updateDetail(n){
   bubble.style.top=`${targetTop}px`;
  }
  const br=bubble.getBoundingClientRect(),bx=br.left-base.left+br.width/2,by=br.top-base.top+br.height;
- $('leader-path').setAttribute('d',n===1?`M ${x} ${y} L ${bx} ${by}`:`M ${x} ${y} L ${bx-25} ${by+20} L ${bx} ${by}`);
+ if(n===5){const cy=br.top-base.top+br.height/2,dx=x-bx,dy=y-cy,length=Math.hypot(dx,dy)||1;const edgeX=bx+dx/length*br.width/2,edgeY=cy+dy/length*br.height/2;$('leader-path').setAttribute('d',`M ${x} ${y} L ${edgeX} ${edgeY}`)}else $('leader-path').setAttribute('d',n===1?`M ${x} ${y} L ${bx} ${by}`:`M ${x} ${y} L ${bx-25} ${by+20} L ${bx} ${by}`);
  $('leader-point').setAttribute('cx',x);$('leader-point').setAttribute('cy',y);
  const zoom=br.width/(n===1?240:330);
  if(detail.src){$('bubble-photo').style.backgroundImage=`url('${detail.src}')`;$('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;return}

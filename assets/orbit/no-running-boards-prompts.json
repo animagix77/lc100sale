@@ -1,0 +1,35 @@
+{
+  "tool": "built-in image_gen",
+  "assets": [
+    {
+      "source": "01-front-driver-quarter-v6.jpg",
+      "output": "01-front-driver-quarter-v7.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: existing 16:9 website orbit keyframe. Input image 1 is the edit target. Remove ONLY the protruding external running board / side-step shelf beneath the doors between the front and rear wheels. This truck has no running boards or side steps to stand on. Reconstruct the naturally exposed narrow rocker underside and ground/shadow behind that removed shelf. KEEP the lower door body cladding and original rocker panels intact; do not shorten the doors, alter the body, or add a tube/rail/step. Preserve EVERYTHING ELSE exactly: same truck pose and geometry, scale and right-hand location; same tires, wheels, crossbars, subtle rear-higher-than-front stance; same camera, beach background, waves, clouds, light, color, blemishes and shadows. Exact original full 16:9 composition and framing: no crop, zoom, pan, camera rotation or object repositioning. Only the running board should change. No people, accessories, text or watermark. Output one full-frame photograph."
+    },
+    {
+      "source": "02-driver-profile-v6.jpg",
+      "output": "02-driver-profile-v7.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: existing 16:9 website orbit keyframe. Input image 1 is the edit target. Remove ONLY the protruding external running board / side-step shelf beneath the doors between the front and rear wheels. This truck has no running boards or side steps to stand on. Reconstruct the naturally exposed narrow rocker underside and ground/shadow behind that removed shelf. KEEP the lower door body cladding and original rocker panels intact; do not shorten the doors, alter the body, or add a tube/rail/step. Preserve EVERYTHING ELSE exactly: same truck pose and geometry, scale and right-hand location; same tires, wheels, crossbars, subtle rear-higher-than-front stance; same camera, beach background, waves, clouds, light, color, blemishes and shadows. Exact original full 16:9 composition and framing: no crop, zoom, pan, camera rotation or object repositioning. Only the running board should change. No people, accessories, text or watermark. Output one full-frame photograph."
+    },
+    {
+      "source": "03-rear-driver-quarter-v6.jpg",
+      "output": "03-rear-driver-quarter-v7.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: existing 16:9 website orbit keyframe. Input image 1 is the edit target. Remove ONLY the protruding external running board / side-step shelf beneath the doors between the front and rear wheels. This truck has no running boards or side steps to stand on. Reconstruct the naturally exposed narrow rocker underside and ground/shadow behind that removed shelf. KEEP the lower door body cladding and original rocker panels intact; do not shorten the doors, alter the body, or add a tube/rail/step. Preserve EVERYTHING ELSE exactly: same truck pose and geometry, scale and right-hand location; same tires, wheels, crossbars, subtle rear-higher-than-front stance; same camera, beach background, waves, clouds, light, color, blemishes and shadows. Exact original full 16:9 composition and framing: no crop, zoom, pan, camera rotation or object repositioning. Only the running board should change. No people, accessories, text or watermark. Output one full-frame photograph."
+    },
+    {
+      "source": "05-rear-passenger-quarter-v6.jpg",
+      "output": "05-rear-passenger-quarter-v7.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: existing 16:9 website orbit keyframe. Input image 1 is the edit target. Remove ONLY the protruding external running board / side-step shelf beneath the doors between the front and rear wheels. This truck has no running boards or side steps to stand on. Reconstruct the naturally exposed narrow rocker underside and ground/shadow behind that removed shelf. KEEP the lower door body cladding and original rocker panels intact; do not shorten the doors, alter the body, or add a tube/rail/step. Preserve EVERYTHING ELSE exactly: same truck pose and geometry, scale and right-hand location; same tires, wheels, crossbars, subtle rear-higher-than-front stance; same camera, beach background, waves, clouds, light, color, blemishes and shadows. Exact original full 16:9 composition and framing: no crop, zoom, pan, camera rotation or object repositioning. Only the running board should change. No people, accessories, text or watermark. Output one full-frame photograph."
+    },
+    {
+      "source": "06-passenger-profile-v6.jpg",
+      "output": "06-passenger-profile-v7.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: existing 16:9 website orbit keyframe. Input image 1 is the edit target. Remove ONLY the protruding external running board / side-step shelf beneath the doors between the front and rear wheels. This truck has no running boards or side steps to stand on. Reconstruct the naturally exposed narrow rocker underside and ground/shadow behind that removed shelf. KEEP the lower door body cladding and original rocker panels intact; do not shorten the doors, alter the body, or add a tube/rail/step. Preserve EVERYTHING ELSE exactly: same truck pose and geometry, scale and right-hand location; same tires, wheels, crossbars, subtle rear-higher-than-front stance; same camera, beach background, waves, clouds, light, color, blemishes and shadows. Exact original full 16:9 composition and framing: no crop, zoom, pan, camera rotation or object repositioning. Only the running board should change. No people, accessories, text or watermark. Output one full-frame photograph."
+    },
+    {
+      "source": "07-front-passenger-quarter-v6.jpg",
+      "output": "07-front-passenger-quarter-v7.jpg",
+      "prompt": "Use case: precise-object-edit. Asset type: existing 16:9 website orbit keyframe. Input image 1 is the edit target. Remove ONLY the protruding external running board / side-step shelf beneath the doors between the front and rear wheels. This truck has no running boards or side steps to stand on. Reconstruct the naturally exposed narrow rocker underside and ground/shadow behind that removed shelf. KEEP the lower door body cladding and original rocker panels intact; do not shorten the doors, alter the body, or add a tube/rail/step. Preserve EVERYTHING ELSE exactly: same truck pose and geometry, scale and right-hand location; same tires, wheels, crossbars, subtle rear-higher-than-front stance; same camera, beach background, waves, clouds, light, color, blemishes and shadows. Exact original full 16:9 composition and framing: no crop, zoom, pan, camera rotation or object repositioning. Only the running board should change. No people, accessories, text or watermark. Output one full-frame photograph."
+    }
+  ]
+}
