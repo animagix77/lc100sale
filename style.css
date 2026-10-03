@@ -169,3 +169,26 @@
 /* Match the year to the orange model name below it. */
 .launch h1 em{display:inline-block;font-size:1.445em;letter-spacing:-.065em;line-height:.88}
 .launch h1>.model-name{width:max-content}
+
+/* A compact three-line title lockup. */
+.launch h1>.launch-kicker{display:block;width:max-content;font-size:.43em;line-height:1;letter-spacing:-.05em;margin-bottom:.14em}
+.launch h1 em{display:block;width:max-content}
+
+/* Three essentials; annual use belongs with the ownership story. */
+@media(min-width:701px){.spec-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:701px){.condition>.condition-grid>article:last-child:nth-child(odd){grid-column:1/-1}}
+@media(max-width:700px){.spec-strip>div:last-child:nth-child(odd){grid-column:1/-1}}
+
+/* Chapter copy changes must not move the scroll-driven timeline. */
+.orbit{overflow-anchor:none}
+
+/* Masked heading lines preserve the title lockup and natural phone wrapping. */
+.text-mask{display:block;clip-path:inset(-.12em -8px -.12em -8px)}
+.masked-ink{display:block}
+@media(prefers-reduced-motion:reduce){.text-mask{clip-path:none}}
+
+/* The punchline gets the orange treatment across the whole headline system. */
+#tour-title>.text-mask:nth-child(n+2){color:var(--accent)}
+h2 em,h3 em{font-style:normal;color:var(--accent)}
+.buyer-banner{background:#203238;color:var(--ink)}
+.buyer-banner .eyebrow{color:var(--accent)}

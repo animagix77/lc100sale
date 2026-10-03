@@ -5,7 +5,8 @@
     "caption": "Current TOYOTA grille, bumper wear and fog-lamp haze. Plate characters and background clutter removed.",
     "src": "assets/gallery/05-front-v2.jpg",
     "original": "assets/gallery/05-front-source.jpg",
-    "alt": "Front of the grey Land Cruiser with TOYOTA grille, worn bumper and cloudy fog lamps"
+    "alt": "Front of the grey Land Cruiser with TOYOTA grille, worn bumper and cloudy fog lamps",
+    "titleAccent": "very few regrets."
   },
   {
     "id": "06-engine",
@@ -13,31 +14,35 @@
     "caption": "4.7L V8 engine bay. Presentation edit; use the source photo for labels, fasteners and mechanical detail.",
     "src": "assets/gallery/06-engine.jpg",
     "original": "assets/gallery/06-engine-source.jpg",
-    "alt": "Open hood showing the dusty 4.7-liter V8 engine bay"
+    "alt": "Open hood showing the dusty 4.7-liter V8 engine bay",
+    "titleAccent": "Zero beauty filters for the dust."
   },
   {
     "id": "01-horn-button",
-    "title": "The horn moved offices.",
-    "caption": "The normal horn control does not work. An added dashboard push button is the owner’s workaround; operation should be demonstrated at viewing.",
+    "title": "One button. A second career.",
+    "caption": "The added round push button sits beside the steering column. See the known-issues list for the horn workaround.",
     "src": "assets/gallery/01-horn-button.jpg",
     "original": "assets/gallery/01-horn-button-source.jpg",
-    "alt": "Added round horn push button on the lower dashboard beside the steering wheel"
+    "alt": "Added round horn push button on the lower dashboard beside the steering wheel",
+    "titleAccent": "A second career."
   },
   {
     "id": "03-rear-seats",
     "title": "The rear seats have seen things.",
-    "caption": "Rear bench, seat belts and worn seatback pockets; loose paper removed, wear retained. DVD/entertainment system operation is unverified. The owner says a Family Guy DVD came with the truck and has never been removed, so it may still be inside. A very committed residency.",
+    "caption": "Rear bench, seat belts and worn seatback pockets. Loose paper removed; leather creases and visible wear retained.",
     "src": "assets/gallery/03-rear-seats-v2.jpg",
     "original": "assets/gallery/03-rear-seats-source.jpg",
-    "alt": "Grey leather rear bench, seat belts and worn front-seat back pockets"
+    "alt": "Grey leather rear bench, seat belts and worn front-seat back pockets",
+    "titleAccent": "have seen things."
   },
   {
     "id": "02-cabin-roof",
-    "title": "Sky access: under negotiation.",
-    "caption": "Front overhead grab handle and closed sunroof shade. With no running boards, the handles earn their keep. The sunroof has known issues; this photo does not demonstrate operation.",
+    "title": "Grip strength, now an amenity.",
+    "caption": "Front overhead grab handle, headliner and closed sunroof shade. This still photo does not demonstrate sunroof operation.",
     "src": "assets/gallery/02-cabin-roof-v2.jpg",
     "original": "assets/gallery/02-cabin-roof-source.jpg",
-    "alt": "Front overhead grab handle, interior headliner and closed sunroof shade"
+    "alt": "Front overhead grab handle, interior headliner and closed sunroof shade",
+    "titleAccent": "now an amenity."
   },
   {
     "id": "04-rear-door",
@@ -45,64 +50,71 @@
     "caption": "Door trim, seat and sill wear. Loose items removed from the pocket and cabin.",
     "src": "assets/gallery/04-rear-door-v2.jpg",
     "original": "assets/gallery/04-rear-door-source.jpg",
-    "alt": "Open rear door showing trim, sill and rear-seat wear"
+    "alt": "Open rear door showing trim, sill and rear-seat wear",
+    "titleAccent": "with a past."
   },
   {
     "id": "07-tire",
     "title": "Plenty of personality in the tread.",
-    "caption": "BFGoodrich KM3 detail. Fitted in 2019; tread appearance does not establish tire age or roadworthiness.",
+    "caption": "A closer look at the KM3 tread and silver wheel. Tread appearance alone does not establish roadworthiness; check the date codes and condition.",
     "src": "assets/gallery/07-tire.jpg",
     "original": "assets/gallery/07-tire-source.jpg",
-    "alt": "Close-up of BFGoodrich KM3 tire tread and silver wheel"
+    "alt": "Close-up of BFGoodrich KM3 tire tread and silver wheel",
+    "titleAccent": "in the tread."
   },
   {
     "id": "08-cargo",
-    "title": "Cargo sold separately. Character included.",
-    "caption": "Two functional rear jump seats are included. Loose cargo and bike carrier removed for this presentation edit. Stained carpet and hatch corrosion remain visible; previously covered areas are reconstructed. Compare the source photo before assessing condition.",
+    "title": "Room for gear. Evidence of use.",
+    "caption": "Folded jump seats, stained carpet and hatch corrosion. Loose cargo and the bike carrier were removed for this edit; previously covered areas are reconstructed. Compare the source before assessing condition.",
     "src": "assets/gallery/08-cargo.jpg",
     "original": "assets/gallery/08-cargo-source.jpg",
-    "alt": "Open rear hatch and tailgate with stained cargo carpet and folded rear jump seats"
+    "alt": "Open rear hatch and tailgate with stained cargo carpet and folded rear jump seats",
+    "titleAccent": "Evidence of use."
   },
   {
     "id": "09-beach-family",
     "title": "A room with a V8.",
-    "caption": "August 3, 2019. Family beach camping from the owner’s album. Rooftop tent and camping equipment pictured are not included.",
+    "caption": "August 3, 2019. Family beach camping. Historical setup; rooftop tent and camping equipment are not included.",
     "src": "assets/gallery/09-beach-family.jpg",
     "original": "assets/gallery/09-beach-family.jpg",
     "unedited": true,
-    "alt": "Family on the rooftop-tent ladder above the Land Cruiser at the beach in 2019"
+    "alt": "Family on the rooftop-tent ladder above the Land Cruiser at the beach in 2019",
+    "titleAccent": "with a V8."
   },
   {
     "id": "10-rooftop-tent",
     "title": "The upstairs neighbors were us.",
-    "caption": "August 24, 2019. A past adventure, with the rooftop tent in use. Tent and camping equipment are not included; Malone crossbars are included.",
+    "caption": "August 24, 2019. Rooftop camping from the family album. Historical setup; tent and camping equipment are not included.",
     "src": "assets/gallery/10-rooftop-tent.jpg",
     "original": "assets/gallery/10-rooftop-tent.jpg",
     "unedited": true,
-    "alt": "Family member beside the rooftop tent on the Land Cruiser in 2019"
+    "alt": "Family member beside the rooftop tent on the Land Cruiser in 2019",
+    "titleAccent": "were us."
   },
   {
     "id": "11-mechanic-lines",
     "title": "A closer look at the lines.",
-    "caption": "Unretouched photo supplied by the mechanic, showing lines, hoses and surrounding wear. The owner reports that the mechanic suspects the photographed area is related to the EVAP codes. The exact cause and repair scope still need confirmation.",
+    "caption": "Several lines beside hoses and surrounding hardware, with visible wear at the points shown. Supplied by the mechanic, unretouched.",
     "src": "assets/gallery/11-mechanic-lines.JPG",
     "original": "assets/gallery/11-mechanic-lines.JPG",
     "unedited": true,
     "sourceLabel": "MECHANIC PHOTO · UNRETOUCHED",
     "alt": "Mechanic close-up of several lines with visible surface wear, nearby hoses and corroded surrounding hardware",
     "width": 1153,
-    "height": 2048
+    "height": 2048,
+    "titleAccent": "at the lines."
   },
   {
     "id": "12-mechanic-corrosion",
-    "title": "The close-up belongs in the listing.",
-    "caption": "Unretouched mechanic photo showing visible corrosion around clamps and adjacent hardware. The owner reports a body shop/welder was recommended for assessment. This is a suspected lead on P2418, P0442 and P0446, not a confirmed diagnosis or repair estimate.",
+    "title": "Corrosion, up close.",
+    "caption": "Visible corrosion around hose clamps and adjacent hardware. Supplied by the mechanic, unretouched.",
     "src": "assets/gallery/12-mechanic-corrosion.JPG",
     "original": "assets/gallery/12-mechanic-corrosion.JPG",
     "unedited": true,
     "sourceLabel": "MECHANIC PHOTO · UNRETOUCHED",
     "alt": "Mechanic close-up of hoses and heavily corroded clamps and adjacent hardware",
     "width": 2048,
-    "height": 1153
+    "height": 1153,
+    "titleAccent": "up close."
   }
 ]

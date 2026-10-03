@@ -1,0 +1,60 @@
+{
+  "ready": true,
+  "frames": [
+    {
+      "src": "assets/orbit/01-front-driver-quarter-v7.jpg",
+      "alt": "Front driver quarter view of the Land Cruiser in the beach scene",
+      "angle": 0,
+      "view": "Front driver quarter"
+    },
+    {
+      "src": "assets/orbit/02-driver-profile-v7.jpg",
+      "alt": "Driver side view of the Land Cruiser in the beach scene",
+      "angle": 45,
+      "view": "Driver side"
+    },
+    {
+      "src": "assets/orbit/03-rear-driver-quarter-v7.jpg",
+      "alt": "Rear driver quarter view of the Land Cruiser in the beach scene",
+      "angle": 90,
+      "view": "Rear driver quarter"
+    },
+    {
+      "src": "assets/orbit/04-straight-rear-v6.jpg",
+      "alt": "Rear view of the Land Cruiser in the beach scene",
+      "angle": 135,
+      "view": "Rear"
+    },
+    {
+      "src": "assets/orbit/05-rear-passenger-quarter-v7.jpg",
+      "alt": "Rear passenger quarter view of the Land Cruiser in the beach scene",
+      "angle": 180,
+      "view": "Rear passenger quarter"
+    },
+    {
+      "src": "assets/orbit/06-passenger-profile-v7.jpg",
+      "alt": "Passenger side view of the Land Cruiser in the beach scene",
+      "angle": 225,
+      "view": "Passenger side"
+    },
+    {
+      "src": "assets/orbit/07-front-passenger-quarter-v7.jpg",
+      "alt": "Front passenger quarter view of the Land Cruiser in the beach scene",
+      "angle": 270,
+      "view": "Front passenger quarter"
+    },
+    {
+      "src": "assets/orbit/08-straight-front-v6.jpg",
+      "alt": "Front view of the Land Cruiser in the beach scene",
+      "angle": 315,
+      "view": "Front"
+    },
+    {
+      "src": "assets/orbit/01-front-driver-quarter-v7.jpg",
+      "alt": "Front driver quarter view of the Land Cruiser in the beach scene",
+      "angle": 360,
+      "view": "Back to the opening view"
+    }
+  ],
+  "note": "V7: no running boards or side steps, as confirmed by the owner. Smaller truck on the right, open scenery on the left, roof hardware and rear-high stance retained. Eight keyframes plus an exact opening repeat at 360 degrees; continuous footage pending."
+}

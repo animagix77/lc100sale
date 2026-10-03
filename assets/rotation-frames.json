@@ -1,60 +1,1010 @@
 {
   "ready": true,
+  "mode": "sequence",
+  "width": 960,
+  "height": 540,
+  "inbetweensPerInterval": 10,
+  "quality": "local interpolation preview",
   "frames": [
     {
-      "src": "assets/orbit/01-front-driver-quarter-v7.jpg",
-      "alt": "Front driver quarter view of the Land Cruiser in the beach scene",
-      "angle": 0,
-      "view": "Front driver quarter"
+      "src": "assets/orbit/sequence-v1/frame-000.png",
+      "alt": "Land Cruiser beach orbit at 0.0 degrees",
+      "angle": 0.0,
+      "view": "Front driver quarter",
+      "primary": true,
+      "interval": 0,
+      "step": 0
     },
     {
-      "src": "assets/orbit/02-driver-profile-v7.jpg",
-      "alt": "Driver side view of the Land Cruiser in the beach scene",
-      "angle": 45,
-      "view": "Driver side"
+      "src": "assets/orbit/sequence-v1/frame-001.png",
+      "alt": "Land Cruiser beach orbit at 4.1 degrees",
+      "angle": 4.090909,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 1
     },
     {
-      "src": "assets/orbit/03-rear-driver-quarter-v7.jpg",
-      "alt": "Rear driver quarter view of the Land Cruiser in the beach scene",
-      "angle": 90,
-      "view": "Rear driver quarter"
+      "src": "assets/orbit/sequence-v1/frame-002.png",
+      "alt": "Land Cruiser beach orbit at 8.2 degrees",
+      "angle": 8.181818,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 2
     },
     {
-      "src": "assets/orbit/04-straight-rear-v6.jpg",
-      "alt": "Rear view of the Land Cruiser in the beach scene",
-      "angle": 135,
-      "view": "Rear"
+      "src": "assets/orbit/sequence-v1/frame-003.png",
+      "alt": "Land Cruiser beach orbit at 12.3 degrees",
+      "angle": 12.272727,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 3
     },
     {
-      "src": "assets/orbit/05-rear-passenger-quarter-v7.jpg",
-      "alt": "Rear passenger quarter view of the Land Cruiser in the beach scene",
-      "angle": 180,
-      "view": "Rear passenger quarter"
+      "src": "assets/orbit/sequence-v1/frame-004.png",
+      "alt": "Land Cruiser beach orbit at 16.4 degrees",
+      "angle": 16.363636,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 4
     },
     {
-      "src": "assets/orbit/06-passenger-profile-v7.jpg",
-      "alt": "Passenger side view of the Land Cruiser in the beach scene",
-      "angle": 225,
-      "view": "Passenger side"
+      "src": "assets/orbit/sequence-v1/frame-005.png",
+      "alt": "Land Cruiser beach orbit at 20.5 degrees",
+      "angle": 20.454545,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 5
     },
     {
-      "src": "assets/orbit/07-front-passenger-quarter-v7.jpg",
-      "alt": "Front passenger quarter view of the Land Cruiser in the beach scene",
-      "angle": 270,
-      "view": "Front passenger quarter"
+      "src": "assets/orbit/sequence-v1/frame-006.png",
+      "alt": "Land Cruiser beach orbit at 24.5 degrees",
+      "angle": 24.545455,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 6
     },
     {
-      "src": "assets/orbit/08-straight-front-v6.jpg",
-      "alt": "Front view of the Land Cruiser in the beach scene",
-      "angle": 315,
-      "view": "Front"
+      "src": "assets/orbit/sequence-v1/frame-007.png",
+      "alt": "Land Cruiser beach orbit at 28.6 degrees",
+      "angle": 28.636364,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 7
     },
     {
-      "src": "assets/orbit/01-front-driver-quarter-v7.jpg",
-      "alt": "Front driver quarter view of the Land Cruiser in the beach scene",
+      "src": "assets/orbit/sequence-v1/frame-008.png",
+      "alt": "Land Cruiser beach orbit at 32.7 degrees",
+      "angle": 32.727273,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 8
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-009.png",
+      "alt": "Land Cruiser beach orbit at 36.8 degrees",
+      "angle": 36.818182,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 9
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-010.png",
+      "alt": "Land Cruiser beach orbit at 40.9 degrees",
+      "angle": 40.909091,
+      "view": "Front driver quarter to Driver side",
+      "primary": false,
+      "interval": 0,
+      "step": 10
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-011.png",
+      "alt": "Land Cruiser beach orbit at 45.0 degrees",
+      "angle": 45.0,
+      "view": "Driver side",
+      "primary": true,
+      "interval": 1,
+      "step": 0,
+      "anchors": {
+        "tire": [
+          0.808612,
+          0.716259
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-012.png",
+      "alt": "Land Cruiser beach orbit at 49.1 degrees",
+      "angle": 49.090909,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 1,
+      "anchors": {
+        "tire": [
+          0.795998,
+          0.715197
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-013.png",
+      "alt": "Land Cruiser beach orbit at 53.2 degrees",
+      "angle": 53.181818,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 2,
+      "anchors": {
+        "tire": [
+          0.783384,
+          0.714134
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-014.png",
+      "alt": "Land Cruiser beach orbit at 57.3 degrees",
+      "angle": 57.272727,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 3,
+      "anchors": {
+        "tire": [
+          0.77077,
+          0.713071
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-015.png",
+      "alt": "Land Cruiser beach orbit at 61.4 degrees",
+      "angle": 61.363636,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 4,
+      "anchors": {
+        "tire": [
+          0.758156,
+          0.712009
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-016.png",
+      "alt": "Land Cruiser beach orbit at 65.5 degrees",
+      "angle": 65.454545,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 5,
+      "anchors": {
+        "tire": [
+          0.745542,
+          0.710946
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-017.png",
+      "alt": "Land Cruiser beach orbit at 69.5 degrees",
+      "angle": 69.545455,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 6,
+      "anchors": {
+        "tire": [
+          0.732927,
+          0.709883
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-018.png",
+      "alt": "Land Cruiser beach orbit at 73.6 degrees",
+      "angle": 73.636364,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 7,
+      "anchors": {
+        "tire": [
+          0.720313,
+          0.70882
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-019.png",
+      "alt": "Land Cruiser beach orbit at 77.7 degrees",
+      "angle": 77.727273,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 8,
+      "anchors": {
+        "tire": [
+          0.707699,
+          0.707758
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-020.png",
+      "alt": "Land Cruiser beach orbit at 81.8 degrees",
+      "angle": 81.818182,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 9,
+      "anchors": {
+        "tire": [
+          0.695085,
+          0.706695
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-021.png",
+      "alt": "Land Cruiser beach orbit at 85.9 degrees",
+      "angle": 85.909091,
+      "view": "Driver side to Rear driver quarter",
+      "primary": false,
+      "interval": 1,
+      "step": 10,
+      "anchors": {
+        "tire": [
+          0.682471,
+          0.705632
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-022.png",
+      "alt": "Land Cruiser beach orbit at 90.0 degrees",
+      "angle": 90.0,
+      "view": "Rear driver quarter",
+      "primary": true,
+      "interval": 2,
+      "step": 0
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-023.png",
+      "alt": "Land Cruiser beach orbit at 94.1 degrees",
+      "angle": 94.090909,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 1
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-024.png",
+      "alt": "Land Cruiser beach orbit at 98.2 degrees",
+      "angle": 98.181818,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 2
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-025.png",
+      "alt": "Land Cruiser beach orbit at 102.3 degrees",
+      "angle": 102.272727,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 3
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-026.png",
+      "alt": "Land Cruiser beach orbit at 106.4 degrees",
+      "angle": 106.363636,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 4
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-027.png",
+      "alt": "Land Cruiser beach orbit at 110.5 degrees",
+      "angle": 110.454545,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 5
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-028.png",
+      "alt": "Land Cruiser beach orbit at 114.5 degrees",
+      "angle": 114.545455,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 6
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-029.png",
+      "alt": "Land Cruiser beach orbit at 118.6 degrees",
+      "angle": 118.636364,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 7
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-030.png",
+      "alt": "Land Cruiser beach orbit at 122.7 degrees",
+      "angle": 122.727273,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 8
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-031.png",
+      "alt": "Land Cruiser beach orbit at 126.8 degrees",
+      "angle": 126.818182,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 9
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-032.png",
+      "alt": "Land Cruiser beach orbit at 130.9 degrees",
+      "angle": 130.909091,
+      "view": "Rear driver quarter to Rear",
+      "primary": false,
+      "interval": 2,
+      "step": 10
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-033.png",
+      "alt": "Land Cruiser beach orbit at 135.0 degrees",
+      "angle": 135.0,
+      "view": "Rear",
+      "primary": true,
+      "interval": 3,
+      "step": 0,
+      "anchors": {
+        "roof": [
+          0.723684,
+          0.416578
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-034.png",
+      "alt": "Land Cruiser beach orbit at 139.1 degrees",
+      "angle": 139.090909,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 1,
+      "anchors": {
+        "roof": [
+          0.712049,
+          0.418317
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-035.png",
+      "alt": "Land Cruiser beach orbit at 143.2 degrees",
+      "angle": 143.181818,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 2,
+      "anchors": {
+        "roof": [
+          0.700413,
+          0.420056
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-036.png",
+      "alt": "Land Cruiser beach orbit at 147.3 degrees",
+      "angle": 147.272727,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 3,
+      "anchors": {
+        "roof": [
+          0.688778,
+          0.421795
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-037.png",
+      "alt": "Land Cruiser beach orbit at 151.4 degrees",
+      "angle": 151.363636,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 4,
+      "anchors": {
+        "roof": [
+          0.677142,
+          0.423534
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-038.png",
+      "alt": "Land Cruiser beach orbit at 155.5 degrees",
+      "angle": 155.454545,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 5,
+      "anchors": {
+        "roof": [
+          0.665507,
+          0.425273
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-039.png",
+      "alt": "Land Cruiser beach orbit at 159.5 degrees",
+      "angle": 159.545455,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 6,
+      "anchors": {
+        "roof": [
+          0.653871,
+          0.427012
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-040.png",
+      "alt": "Land Cruiser beach orbit at 163.6 degrees",
+      "angle": 163.636364,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 7,
+      "anchors": {
+        "roof": [
+          0.642236,
+          0.428751
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-041.png",
+      "alt": "Land Cruiser beach orbit at 167.7 degrees",
+      "angle": 167.727273,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 8,
+      "anchors": {
+        "roof": [
+          0.6306,
+          0.43049
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-042.png",
+      "alt": "Land Cruiser beach orbit at 171.8 degrees",
+      "angle": 171.818182,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 9,
+      "anchors": {
+        "roof": [
+          0.618965,
+          0.432229
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-043.png",
+      "alt": "Land Cruiser beach orbit at 175.9 degrees",
+      "angle": 175.909091,
+      "view": "Rear to Rear passenger quarter",
+      "primary": false,
+      "interval": 3,
+      "step": 10,
+      "anchors": {
+        "roof": [
+          0.607329,
+          0.433968
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-044.png",
+      "alt": "Land Cruiser beach orbit at 180.0 degrees",
+      "angle": 180.0,
+      "view": "Rear passenger quarter",
+      "primary": true,
+      "interval": 4,
+      "step": 0
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-045.png",
+      "alt": "Land Cruiser beach orbit at 184.1 degrees",
+      "angle": 184.090909,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 1
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-046.png",
+      "alt": "Land Cruiser beach orbit at 188.2 degrees",
+      "angle": 188.181818,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 2
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-047.png",
+      "alt": "Land Cruiser beach orbit at 192.3 degrees",
+      "angle": 192.272727,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 3
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-048.png",
+      "alt": "Land Cruiser beach orbit at 196.4 degrees",
+      "angle": 196.363636,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 4
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-049.png",
+      "alt": "Land Cruiser beach orbit at 200.5 degrees",
+      "angle": 200.454545,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 5
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-050.png",
+      "alt": "Land Cruiser beach orbit at 204.5 degrees",
+      "angle": 204.545455,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 6
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-051.png",
+      "alt": "Land Cruiser beach orbit at 208.6 degrees",
+      "angle": 208.636364,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 7
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-052.png",
+      "alt": "Land Cruiser beach orbit at 212.7 degrees",
+      "angle": 212.727273,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 8
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-053.png",
+      "alt": "Land Cruiser beach orbit at 216.8 degrees",
+      "angle": 216.818182,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 9
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-054.png",
+      "alt": "Land Cruiser beach orbit at 220.9 degrees",
+      "angle": 220.909091,
+      "view": "Rear passenger quarter to Passenger side",
+      "primary": false,
+      "interval": 4,
+      "step": 10
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-055.png",
+      "alt": "Land Cruiser beach orbit at 225.0 degrees",
+      "angle": 225.0,
+      "view": "Passenger side",
+      "primary": true,
+      "interval": 5,
+      "step": 0,
+      "anchors": {
+        "handle": [
+          0.744617,
+          0.499469
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-056.png",
+      "alt": "Land Cruiser beach orbit at 229.1 degrees",
+      "angle": 229.090909,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 1,
+      "anchors": {
+        "handle": [
+          0.743258,
+          0.498889
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-057.png",
+      "alt": "Land Cruiser beach orbit at 233.2 degrees",
+      "angle": 233.181818,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 2,
+      "anchors": {
+        "handle": [
+          0.741899,
+          0.498309
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-058.png",
+      "alt": "Land Cruiser beach orbit at 237.3 degrees",
+      "angle": 237.272727,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 3,
+      "anchors": {
+        "handle": [
+          0.740539,
+          0.49773
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-059.png",
+      "alt": "Land Cruiser beach orbit at 241.4 degrees",
+      "angle": 241.363636,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 4,
+      "anchors": {
+        "handle": [
+          0.73918,
+          0.49715
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-060.png",
+      "alt": "Land Cruiser beach orbit at 245.5 degrees",
+      "angle": 245.454545,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 5,
+      "anchors": {
+        "handle": [
+          0.737821,
+          0.49657
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-061.png",
+      "alt": "Land Cruiser beach orbit at 249.5 degrees",
+      "angle": 249.545455,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 6,
+      "anchors": {
+        "handle": [
+          0.736462,
+          0.495991
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-062.png",
+      "alt": "Land Cruiser beach orbit at 253.6 degrees",
+      "angle": 253.636364,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 7,
+      "anchors": {
+        "handle": [
+          0.735102,
+          0.495411
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-063.png",
+      "alt": "Land Cruiser beach orbit at 257.7 degrees",
+      "angle": 257.727273,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 8,
+      "anchors": {
+        "handle": [
+          0.733743,
+          0.494831
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-064.png",
+      "alt": "Land Cruiser beach orbit at 261.8 degrees",
+      "angle": 261.818182,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 9,
+      "anchors": {
+        "handle": [
+          0.732384,
+          0.494252
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-065.png",
+      "alt": "Land Cruiser beach orbit at 265.9 degrees",
+      "angle": 265.909091,
+      "view": "Passenger side to Front passenger quarter",
+      "primary": false,
+      "interval": 5,
+      "step": 10,
+      "anchors": {
+        "handle": [
+          0.731024,
+          0.493672
+        ]
+      }
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-066.png",
+      "alt": "Land Cruiser beach orbit at 270.0 degrees",
+      "angle": 270.0,
+      "view": "Front passenger quarter",
+      "primary": true,
+      "interval": 6,
+      "step": 0
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-067.png",
+      "alt": "Land Cruiser beach orbit at 274.1 degrees",
+      "angle": 274.090909,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 1
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-068.png",
+      "alt": "Land Cruiser beach orbit at 278.2 degrees",
+      "angle": 278.181818,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 2
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-069.png",
+      "alt": "Land Cruiser beach orbit at 282.3 degrees",
+      "angle": 282.272727,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 3
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-070.png",
+      "alt": "Land Cruiser beach orbit at 286.4 degrees",
+      "angle": 286.363636,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 4
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-071.png",
+      "alt": "Land Cruiser beach orbit at 290.5 degrees",
+      "angle": 290.454545,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 5
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-072.png",
+      "alt": "Land Cruiser beach orbit at 294.5 degrees",
+      "angle": 294.545455,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 6
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-073.png",
+      "alt": "Land Cruiser beach orbit at 298.6 degrees",
+      "angle": 298.636364,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 7
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-074.png",
+      "alt": "Land Cruiser beach orbit at 302.7 degrees",
+      "angle": 302.727273,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 8
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-075.png",
+      "alt": "Land Cruiser beach orbit at 306.8 degrees",
+      "angle": 306.818182,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 9
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-076.png",
+      "alt": "Land Cruiser beach orbit at 310.9 degrees",
+      "angle": 310.909091,
+      "view": "Front passenger quarter to Front",
+      "primary": false,
+      "interval": 6,
+      "step": 10
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-077.png",
+      "alt": "Land Cruiser beach orbit at 315.0 degrees",
+      "angle": 315.0,
+      "view": "Front",
+      "primary": true,
+      "interval": 7,
+      "step": 0
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-078.png",
+      "alt": "Land Cruiser beach orbit at 319.1 degrees",
+      "angle": 319.090909,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 1
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-079.png",
+      "alt": "Land Cruiser beach orbit at 323.2 degrees",
+      "angle": 323.181818,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 2
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-080.png",
+      "alt": "Land Cruiser beach orbit at 327.3 degrees",
+      "angle": 327.272727,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 3
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-081.png",
+      "alt": "Land Cruiser beach orbit at 331.4 degrees",
+      "angle": 331.363636,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 4
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-082.png",
+      "alt": "Land Cruiser beach orbit at 335.5 degrees",
+      "angle": 335.454545,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 5
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-083.png",
+      "alt": "Land Cruiser beach orbit at 339.5 degrees",
+      "angle": 339.545455,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 6
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-084.png",
+      "alt": "Land Cruiser beach orbit at 343.6 degrees",
+      "angle": 343.636364,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 7
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-085.png",
+      "alt": "Land Cruiser beach orbit at 347.7 degrees",
+      "angle": 347.727273,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 8
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-086.png",
+      "alt": "Land Cruiser beach orbit at 351.8 degrees",
+      "angle": 351.818182,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 9
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-087.png",
+      "alt": "Land Cruiser beach orbit at 355.9 degrees",
+      "angle": 355.909091,
+      "view": "Front to Front driver quarter",
+      "primary": false,
+      "interval": 7,
+      "step": 10
+    },
+    {
+      "src": "assets/orbit/sequence-v1/frame-000.png",
+      "alt": "Land Cruiser beach orbit at 0.0 degrees",
       "angle": 360,
-      "view": "Back to the opening view"
+      "view": "Back to the opening view",
+      "primary": true,
+      "interval": 8,
+      "step": 0
     }
   ],
-  "note": "V7: no running boards or side steps, as confirmed by the owner. Smaller truck on the right, open scenery on the left, roof hardware and rear-high stance retained. Eight keyframes plus an exact opening repeat at 360 degrees; continuous footage pending."
+  "note": "80 RIFE motion-interpolated in-betweens, 8 resized primary keyframes, and exact opening repeat at 360 degrees. Spatial and temporal ensemble enabled. Local preview: source view gaps cause visible geometry morphing, especially tires, roof bars and occlusion boundaries; not captured video or a verified 3D reconstruction."
 }
