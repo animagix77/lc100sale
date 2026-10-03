@@ -291,5 +291,18 @@
     "height": 1024,
     "unedited": true,
     "sourceLabel": "OWNER PHOTO · UNRETOUCHED"
+  },
+  {
+    "id": "30-brake-caliper",
+    "title": "New caliper. Same old wheel.",
+    "titleAccent": "Same old wheel.",
+    "caption": "Replacement brake caliper visible through the wheel. Owner photo of the 2026 brake work, shown unretouched.",
+    "src": "assets/gallery/30-brake-caliper.jpg",
+    "original": "assets/gallery/30-brake-caliper.jpg",
+    "alt": "Replacement brake caliper visible through an opening in the scuffed silver wheel",
+    "width": 3024,
+    "height": 4032,
+    "unedited": true,
+    "sourceLabel": "OWNER PHOTO · UNRETOUCHED"
   }
 ]
