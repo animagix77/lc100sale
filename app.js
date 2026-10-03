@@ -131,7 +131,7 @@ function updateDetail(n){
  const shown=frames[frameIndex];
  if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
- const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8\nAI EDIT',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
+ const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
  setDetailState(n,detail);
  if(!detail)return;
  const anchor=shown.anchors?.[n===1?'tire':n===2?'cargo':n===3?'roof':n===5?'handle':'engine'];
@@ -171,7 +171,7 @@ function updateDetail(n){
  $('bubble-label').textContent=detail.label;revealDetail(n);
 }
 function updateVideoDetail(n){
- const detail=n===0?{src:'assets/gallery/27-engine-cover-edited.jpg',label:'4.7L V8\nAI EDIT',size:'cover',position:'50% 61%'}:
+ const detail=n===0?{src:'assets/gallery/27-engine-cover-edited.jpg',label:'4.7L V8',size:'cover',position:'50% 61%'}:
  n===1?{src:'assets/gallery/07-tire-source.jpg',label:'KM3 · 2019',size:'cover',position:'center'}:
  n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO\nEDITED PHOTO',size:'165%',position:'50% 67%'}:
  n===3?{live:true,label:'NO REAR\nSPOILER'}:
