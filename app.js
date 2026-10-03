@@ -116,9 +116,10 @@ function setDetailState(n,detail){
  const panel=$('inspection-detail'),open=$('detail-open');
  panel.hidden=!detail;panel.dataset.detail=String(n);
  $('bubble-video').hidden=!detail?.live;$('bubble-photo').hidden=!!detail?.live;
- open.hidden=!detail||(n!==2&&n!==5);
- if(n===2){open.dataset.photo='7';open.dataset.photoSource='false';open.setAttribute('aria-label','Open the rear cargo photo and its presentation-edit notes')}
- if(n===5){open.dataset.photo='4';open.dataset.photoSource='true';open.setAttribute('aria-label','Open the original front grab-handle photo')}
+ open.hidden=!detail||(n!==0&&n!==2&&n!==5);
+ if(n===0){open.dataset.photo=document.querySelector('#photo-27-engine-cover .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the cleaned V8 detail and source comparison')}
+ if(n===2){open.dataset.photo=document.querySelector('#photo-08-cargo .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the rear cargo photo and its presentation-edit notes')}
+ if(n===5){open.dataset.photo=document.querySelector('#photo-24-grab-handle .photo-open').dataset.photo;open.dataset.photoSource='true';open.setAttribute('aria-label','Open the original front grab-handle photo')}
  if(!detail)detailRevealed=-1;
 }
 function revealDetail(n){
@@ -129,7 +130,7 @@ function updateDetail(n){
  const shown=frames[frameIndex];
  if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
- const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
+ const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8\nAI EDIT',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
  setDetailState(n,detail);
  if(!detail)return;
  const anchor=shown.anchors?.[n===1?'tire':n===2?'cargo':n===3?'roof':n===5?'handle':'engine'];
@@ -169,7 +170,7 @@ function updateDetail(n){
  $('bubble-label').textContent=detail.label;revealDetail(n);
 }
 function updateVideoDetail(n){
- const detail=n===0?{src:'assets/gallery/06-engine-source.jpg',label:'4.7L V8',size:'cover',position:'center'}:
+ const detail=n===0?{src:'assets/gallery/27-engine-cover-edited.jpg',label:'4.7L V8\nAI EDIT',size:'cover',position:'50% 61%'}:
  n===1?{src:'assets/gallery/07-tire-source.jpg',label:'KM3 · 2019',size:'cover',position:'center'}:
  n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO\nEDITED PHOTO',size:'165%',position:'50% 67%'}:
  n===3?{live:true,label:'NO REAR\nSPOILER'}:

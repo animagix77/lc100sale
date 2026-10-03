@@ -1,0 +1,36 @@
+Cleaned engine-bay photo set, supplied by owner October 3, 2026.
+Three photos use built-in image generation for a full-frame camera presentation. Original JPEG conversions are linked beside each edit. Fine lettering and textures may be re-rendered. The AISIN timing-belt label is an unretouched JPEG conversion.
+
+ENGINE-OVERVIEW
+Use case: lighting-weather
+Asset type: photographic engine bay overview edit.
+Input image: Image 1 is the edit target, a portrait photograph of a cleaned Toyota Land Cruiser 100 V8 2UZ-FE engine bay with the hood raised.
+Primary request: Make this exact existing photograph look as if captured by a high-end full-frame camera for professional automotive editorial photography, with a 50mm lens at f/8 in realistic daylight. Change only photographic rendering, keeping the actual vehicle and condition faithful.
+Composition/framing: Preserve exact portrait orientation, crop, camera viewpoint, proportions, positions, borders, and every visible element. Retain the large hood liner occupying the upper part, engine centered, radiator support and grille below.
+Lighting/color: restrained neutral color grade; gently balance highlights and shadows, retain natural daylight direction, natural tonal depth, realistic microcontrast and sharp fine detail across the entire engine bay. Keep all components clearly visible; no artificial shallow depth of field.
+Materials/condition invariants: Preserve all engine components, wiring, cable routing, hoses, reservoirs, labels, badges, fasteners, weathering, corrosion, rust on brackets and radiator support, hood liner discoloration and wear, visible water droplets and wet glossy surfaces. Preserve the cleaned appearance exactly as shown without further cosmetic cleaning or repair. Preserve the silver V8 cover and Toyota emblem, red lettering, 2UZ-FE text, yellow radiator cap, cream-colored reservoir at upper right, battery on right and air box on left. Treat fine labels and lettering as original photographic content; do not redraw or invent text.
+Constraints: Photographic enhancement only, no new parts, missing parts, repairs, cosmetic retouching of defects, geometry changes, movement of objects, changed hose routing, hidden details, added text, watermarks, fake bokeh or immaculate showroom appearance. Keep the same image aspect ratio and orientation. Produce one edited image.
+
+
+ENGINE-COVER
+Use case: lighting-weather
+Asset type: Toyota Land Cruiser 100 engine detail editorial photograph.
+Input image: the referenced source image is the sole edit target.
+Primary request: change ONLY the photographic rendering of this exact existing photograph into a restrained, natural, high-end full-frame automotive editorial photograph, as if captured with an 85mm lens at f/8. Apply a subtle neutral daylight color grade, balanced specular highlights without blown glare, realistic crisp material texture, smooth tonal depth and open but natural shadow detail.
+Composition/framing: preserve the exact source portrait orientation, aspect ratio, camera position, perspective, visible boundaries and framing. No zooming, cropping, warping, straightening or rearranging anything. Keep all details in focus with the original depth relationships; do not introduce dramatic bokeh.
+Subject and materials: preserve every physical component exactly as photographed, including the silver and black ribbed engine cover, intake tubing, hose geometry, wiring, fasteners, metal lines, firewall, cowl and wiper. Preserve the same existing water droplets, leaves and debris, rust, corrosion, weathering, scratches, stains and worn textures, in their exact locations. Preserve the exact Toyota oval emblem and its proportions.
+Text (verbatim): keep "V8", "4700", and "2UZ-FE" absolutely verbatim, with the exact source placement, size, orientation, color, raised lettering, letter shapes and spacing. Keep every other marking or label unchanged. "V8" is black, "4700" is red, "2UZ-FE" is silver on the lower black edge.
+Constraints: this is a photographic grade of an existing photo, not restoration or reconstruction. No added or removed objects, no replacement parts, no repair, no cleaning away dirt or corrosion, no showroom finish, no changed hose routing, no invented details or writing. Preserve the complete original mechanical geometry. No graphic design, no watermark. Produce one image.
+
+
+ENGINE-ELECTRICAL
+Use case: lighting-weather.
+Asset type: portrait automotive engine-bay detail photograph.
+Input image: the supplied image is the edit target, not a style reference.
+Primary request: edit only the photographic tone of this exact LC100 engine electrical detail so it looks like a professional full-frame automotive detail photograph with an 85mm lens at f/8.
+Composition/framing: preserve the exact displayed portrait orientation, viewpoint, framing, crop, perspective and every mechanical outline. Keep the valve cover at upper left, fuse box at center right, DieHard battery and its long bracket in the lower middle, washer-fluid cap at lower left, and front radiator support along the bottom. Do not move, add or remove anything.
+Lighting/color: refined neutral daylight, balanced exposure, subtly cleaner whites and natural neutral grays, slightly clearer shadows, smooth highlight rolloff, restrained microcontrast and real fine detail. Enough depth of field for all mechanical details, no aggressive bokeh. This must remain a realistic photo of this exact used engine bay.
+Materials/textures: preserve all existing rust, scratches, dirt, worn labels, droplets, moisture marks, rubber texture, faded plastic and metal surface wear exactly as shown.
+Text: preserve all original text, specifically "DieHard" and "PLATINUM", as shown in the target with the same positioning, font, shape, wear and visibility. Never invent labels or warning text.
+Constraints: only photographic tone/exposure/color/detail adjustments; exact battery, fuse-box, wire, cable, hose, connector, terminal, bracket, fastener and body-panel geometry and placement unchanged. Preserve all imperfections and age. No component cleaning, corrosion removal, repairs, replacement parts, sharper invented text, geometry corrections, added gloss, oversmoothing, HDR, dramatic relighting, artificial shallow depth of field, new text, watermark or image borders. Produce one finished image.
+

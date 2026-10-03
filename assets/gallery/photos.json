@@ -9,13 +9,50 @@
     "titleAccent": "very few regrets."
   },
   {
-    "id": "06-engine",
-    "title": "Eight cylinders. Zero beauty filters for the dust.",
-    "caption": "4.7L V8 engine bay. Presentation edit; use the source photo for labels, fasteners and mechanical detail.",
-    "src": "assets/gallery/06-engine.jpg",
-    "original": "assets/gallery/06-engine-source.jpg",
-    "alt": "Open hood showing the dusty 4.7-liter V8 engine bay",
-    "titleAccent": "Zero beauty filters for the dust."
+    "id": "26-engine-bay",
+    "title": "Eight cylinders. Freshly cleaned.",
+    "titleAccent": "Freshly cleaned.",
+    "caption": "Engine bay after the owner’s cleanup. AI presentation edit for light, tone and detail; compare the original for condition.",
+    "src": "assets/gallery/26-engine-bay-edited.jpg",
+    "original": "assets/gallery/26-engine-bay-source.jpg",
+    "alt": "Raised hood and cleaned 4.7-liter V8 engine bay, with reservoirs, intake, hoses and radiator support visible",
+    "width": 1086,
+    "height": 1448
+  },
+  {
+    "id": "27-engine-cover",
+    "title": "V8 4700. Subtle as ever.",
+    "titleAccent": "Subtle as ever.",
+    "caption": "Cleaned V8 cover and surrounding components. AI presentation edit; original photo available for comparison.",
+    "src": "assets/gallery/27-engine-cover-edited.jpg",
+    "original": "assets/gallery/27-engine-cover-source.jpg",
+    "alt": "Close-up of the cleaned Toyota V8 4700 engine cover and 2UZ-FE marking",
+    "width": 1086,
+    "height": 1448
+  },
+  {
+    "id": "28-engine-electrical",
+    "title": "Under the hood. Beyond the badge.",
+    "titleAccent": "Beyond the badge.",
+    "caption": "Battery, fuse-box area, wiring and nearby hoses. AI presentation edit; original photo available for comparison.",
+    "src": "assets/gallery/28-engine-electrical-edited.jpg",
+    "original": "assets/gallery/28-engine-electrical-source.jpg",
+    "alt": "Engine-bay detail showing the battery, fuse-box area, cables, hoses and visible surface wear",
+    "width": 1086,
+    "height": 1448
+  },
+  {
+    "id": "29-timing-belt-label",
+    "title": "Timing-belt label. The fine print.",
+    "titleAccent": "The fine print.",
+    "caption": "Timing-belt replacement label, photographed as found. Unretouched owner photo; open it to read the handwritten service details.",
+    "src": "assets/gallery/29-timing-belt-label.jpg",
+    "original": "assets/gallery/29-timing-belt-label.jpg",
+    "alt": "Blue AISIN timing-belt replacement label with handwritten service date and mileage",
+    "width": 3024,
+    "height": 4032,
+    "unedited": true,
+    "sourceLabel": "OWNER PHOTO · UNRETOUCHED"
   },
   {
     "id": "01-horn-button",
