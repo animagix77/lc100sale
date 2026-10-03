@@ -34,7 +34,7 @@
     },
     {
       question: 'Does she drive well? Any records?',
-      reply: 'The owner says she drives great, with no shaking or rattling. Maintenance history is recalled from memory; service receipts aren’t available. Repairs still need attention. Enthusiasm has yet to qualify as a service record.',
+      reply: 'The owner reports oil changes every 5,000 miles, two Denso coils replaced in 2019, 3M undercoating and periodic underbody rinses. She drives great, with no shaking or rattling, per the owner. Service receipts aren’t available. Enthusiasm has yet to qualify as a service record.',
       link: 'Read the owner-recalled service history', href: '#history'
     },
     {
