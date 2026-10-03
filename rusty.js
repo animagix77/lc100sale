@@ -34,7 +34,7 @@
     },
     {
       question: 'Does she drive well? Any records?',
-      reply: 'The owner says she drives great, without shaking or rattling. Service receipts are unavailable; maintenance history is recalled from memory. Brake work, coils, oil changes and underbody care are detailed in the service history. The paperwork has taken early retirement.',
+      reply: 'The owner says she drives great, without shaking or rattling. Service receipts are unavailable; maintenance history is recalled from memory. Brake work, a new AGM starter battery and other maintenance are detailed in the service history. The paperwork has taken early retirement.',
       link: 'Read the owner-recalled service history', href: '#history'
     },
     {
