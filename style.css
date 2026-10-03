@@ -364,3 +364,22 @@ h2 em,h3 em{font-style:normal;color:var(--accent)}
 .is-static .journey-text-ink{transform:none!important;will-change:auto}
 .is-static .journey-map .map-stop-name{opacity:1!important}
 .is-static .journey-map .map-stop{opacity:1}
+
+/* Opening readiness is separate from the scroll-driven walkaround. */
+.site-preloader{display:none;position:fixed;inset:0;z-index:1000;place-items:center;background:#111718;color:#eef0e7;padding:28px;text-align:center;opacity:1;transition:opacity .34s cubic-bezier(.22,.61,.36,1)}
+html.site-loading{overflow:hidden}
+html.site-loading .site-preloader,html.site-loading-out .site-preloader{display:grid}
+html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
+.preloader-lockup{width:min(100%,360px)}
+.preloader-edition{font:11px/1.6 monospace;letter-spacing:2px;color:#aab5b4;margin:0 0 28px}
+.preloader-brand{font-size:clamp(76px,16vw,116px);font-weight:800;line-height:1;letter-spacing:-.075em;margin-left:-.075em}
+.preloader-brand span{color:#f58d52}
+.preloader-track{height:2px;max-width:240px;background:#394344;margin:32px auto 24px;overflow:hidden}
+.preloader-track::after{content:"";display:block;width:36%;height:100%;background:#f58d52;animation:preloader-road 1.6s cubic-bezier(.45,0,.55,1) infinite}
+.preloader-status{font-size:18px;line-height:1.5;margin:0;color:#eef0e7}
+.preloader-enter{margin-top:30px;min-height:44px;padding:10px 18px;border:1px solid #60706f;background:transparent;color:#eef0e7;font:12px/1.5 monospace;letter-spacing:1px;cursor:pointer}
+.preloader-enter:hover{border-color:#f58d52;color:#f58d52}
+.preloader-enter:focus-visible{outline:3px solid #f58d52;outline-offset:5px}
+.preloader-note{position:absolute;bottom:max(24px,env(safe-area-inset-bottom));left:24px;right:24px;font:10px/1.6 monospace;letter-spacing:1.5px;color:#aab5b4;margin:0}
+@keyframes preloader-road{from{transform:translateX(-105%)}to{transform:translateX(380%)}}
+@media(prefers-reduced-motion:reduce){.site-preloader{transition:none}.preloader-track::after{animation:none;margin-inline:auto}}

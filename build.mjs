@@ -10,3 +10,5 @@ console.log('Static website and storyboard prepared.');
 cpSync('assets/video','dist/assets/video',{recursive:true});
 
 cpSync('assets/history','dist/assets/history',{recursive:true});
+
+cpSync('assets/share','dist/assets/share',{recursive:true});

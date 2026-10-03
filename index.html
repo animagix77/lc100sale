@@ -17,7 +17,87 @@
 <meta name="twitter:description" content="One truck. Several weekends. 2004 Toyota Land Cruiser · 4.7L V8 · approximately 220,000 miles · $11,000 asking · North Jersey · sold as is.">
 <meta name="twitter:image" content="https://animagix77.github.io/lc100sale/assets/share/lc100-landing-hero-v1.jpg">
 <meta name="twitter:image:alt" content="LC100 landing page showing the grey Land Cruiser on the beach alongside The not-so-new 2004 Land Cruiser headline.">
-<title>The not-so-new 2004 · Land Cruiser</title><link rel="stylesheet" href="style.css?v=ownership-columns-2"><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%225%22%20fill%3D%22%23111718%22/%3E%3Ctext%20x%3D%2216%22%20y%3D%2222%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2217%22%20font-weight%3D%22bold%22%20fill%3D%22%23f58d52%22%3ELC%3C/text%3E%3C/svg%3E"></head><body class="immersive">
+<title>The not-so-new 2004 · Land Cruiser</title><link rel="stylesheet" href="style.css?v=preloader-1"><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%225%22%20fill%3D%22%23111718%22/%3E%3Ctext%20x%3D%2216%22%20y%3D%2222%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2217%22%20font-weight%3D%22bold%22%20fill%3D%22%23f58d52%22%3ELC%3C/text%3E%3C/svg%3E"><script data-lc-preloader>
+// This bootstrap is inline so loading feedback never needs its own network request.
+(() => {
+  const root = document.documentElement;
+  const priorInert = new Map();
+  let done = false;
+  let initialized = false;
+  let overlay;
+  root.classList.add('site-loading');
+
+  function finish(reason) {
+    if (done) return;
+    done = true;
+    clearTimeout(deadline);
+    root.classList.remove('site-loading');
+    for (const [node, wasInert] of priorInert) node.inert = wasInert;
+    const hadFocus = overlay?.contains(document.activeElement);
+    if (overlay) {
+      overlay.setAttribute('aria-hidden', 'true');
+      overlay.inert = true;
+      root.dataset.loadState = reason;
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        root.classList.add('site-loading-out');
+        setTimeout(() => { root.classList.remove('site-loading-out'); overlay.remove(); }, 360);
+      } else overlay.remove();
+    }
+    if (hadFocus) document.getElementById('start-tour')?.focus({ preventScroll: true });
+    // Start the existing masked hero reveal after it can actually be seen.
+    if (!document.getElementById('launch')?.hidden) window.lcMotion?.intro();
+  }
+
+  // Independent of the orbit controller, manifests, gallery, and video download.
+  const deadline = setTimeout(() => finish('timeout'), 4500);
+  window.addEventListener('pageshow', event => { if (event.persisted) finish('restored'); });
+  function initialize() {
+    if (initialized) return;
+    initialized = true;
+    overlay = document.getElementById('site-preloader');
+    if (done) { overlay?.remove(); return; }
+    for (const node of document.body.children) {
+      if (node === overlay || node.tagName === 'SCRIPT') continue;
+      priorInert.set(node, node.inert);
+      node.inert = true;
+    }
+    document.getElementById('preloader-enter')?.addEventListener('click', () => finish('entered'));
+    document.addEventListener('keydown', event => {
+      if (!done && event.key === 'Escape') { event.preventDefault(); finish('entered'); }
+    });
+    const image = document.getElementById('tour-image');
+    const video = document.getElementById('orbit-video');
+    const imageReady = () => {
+      if (!image.naturalWidth) { finish('image-fallback'); return; }
+      Promise.resolve().then(() => typeof image.decode === 'function' ? image.decode() : undefined)
+        .then(() => finish('image-ready'), () => finish('image-fallback'));
+    };
+    video?.addEventListener('loadeddata', () => finish('video-ready'), { once: true });
+    if (video?.readyState >= 2) { finish('video-ready'); return; }
+    if (!image) { finish('content-ready'); return; }
+    if (image.complete) imageReady();
+    else {
+      image.addEventListener('load', imageReady, { once: true });
+      image.addEventListener('error', () => finish('image-fallback'), { once: true });
+    }
+  }
+  // The inline setup signal runs before the external walkaround scripts.
+  document.addEventListener('lc100:preloader-setup', initialize, { once: true });
+  document.addEventListener('DOMContentLoaded', initialize, { once: true });
+})();
+
+</script></head><body class="immersive">
+<div class="site-preloader" id="site-preloader" role="region" aria-labelledby="preloader-status">
+  <div class="preloader-lockup">
+    <p class="preloader-edition">2004 / TOYOTA LAND CRUISER</p>
+    <div class="preloader-brand" aria-hidden="true">LC<span>100</span></div>
+    <div class="preloader-track" aria-hidden="true"></div>
+    <p class="preloader-status" id="preloader-status" role="status" aria-live="polite">Getting her ready.</p>
+    <button class="preloader-enter" id="preloader-enter" type="button">Enter site <span aria-hidden="true">↗</span></button>
+  </div>
+  <p class="preloader-note">ONE TRUCK. SEVERAL WEEKENDS.</p>
+</div>
+
 <a class="skip" href="#tour">Skip to inspection tour</a>
 <header><a class="brand" href="#top"><b>LC<span>100</span></b><small>ONE TRUCK. SEVERAL WEEKENDS.</small></a><nav aria-label="Main navigation"><a href="#tour">The tour</a><a href="#gallery">Photos</a><a href="#condition">The fine print</a><a href="#history">Service history</a></nav><span class="edition">2004 / STILL VERY 2004</span></header>
 <main id="top"><section class="orbit" id="tour" aria-label="Land Cruiser walkaround"><div class="orbit-pin keyframe-scene" id="orbit-pin">
@@ -60,4 +140,5 @@
 <section class="purchase-block" aria-labelledby="purchase-workflow"><h3 id="purchase-workflow">Meet at the bank. <em>Skip the plot twists.</em></h3><ol class="purchase-steps"><li><strong>Meet and present payment.</strong> Preferably at your bank or ours, especially for a cashier’s check.</li><li><strong>Verify and receive funds.</strong> The bank verifies the cash/check or completes the wire; we confirm payment has been received.</li><li><strong>Complete the paperwork.</strong> Sign the title and both bill-of-sale copies, recording the final details.</li><li><strong>Keep copies.</strong> We each photograph or copy the completed paperwork and keep our signed bill of sale.</li><li><strong>Plates off. Keys over.</strong> We remove our plates; you take possession and transport her using your own legal registration/permit or arranged trailer/tow.</li></ol><p class="purchase-payment"><strong>The truck and signed title stay with us until payment is verified and received.</strong> Enthusiasm is welcome. It is not a payment method.</p></section>
 <section class="purchase-block" aria-labelledby="purchase-records"><h3 id="purchase-records">Everyone keeps <em>a paper trail.</em></h3><p>You keep the original signed title, your signed bill of sale and keys. We retain our plates, a copy/photo of the completed title, our signed bill of sale, proof of payment, your name/address/contact details, and copies of the final transaction paperwork. Our plates will be transferred to another vehicle or surrendered to MVC as required.</p><p class="purchase-sources">Title and plate details: <a href="https://www.nj.gov/mvc/vehicles/transowner.htm" target="_blank" rel="noopener">NJ MVC ownership-transfer guidance ↗</a>. Complete the applicable title/registration steps with your motor vehicle agency after closing.</p></section>
 <p class="purchase-outro">No mystery. No dealership finance manager. No nitrogen-filled-tire package.<br><em>Just you, us, the truck, and three EVAP codes.</em></p></div></dialog>
+<script>document.dispatchEvent(new Event("lc100:preloader-setup"));</script>
 <script src="buyer-guide.js?v=buyer-guide-1"></script><script src="motion.js?v=scroll-motion-1"></script><script src="sequence-player.js"></script><script src="app.js?v=scroll-motion-1"></script><script src="page-motion.js?v=ownership-journey-1"></script><script src="gallery.js?v=jump-seat-5"></script><script src="ownership-journey.js?v=ownership-columns-2"></script></body></html>
