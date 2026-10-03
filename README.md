@@ -4,7 +4,7 @@ A humorous sales site for a 2004 Toyota Land Cruiser 100, with a continuous scro
 
 Live website: https://the-all-new-2004-lc100.binhthere.chatgpt.site/
 
-This repository includes the latest local work. These changes have not yet been published to the live website. GitHub is a source mirror; pushing here does not deploy Sites hosting.
+This repository contains the current LC100 listing source. The root directory is ready for GitHub Pages branch publishing. Sites hosting remains separate; pushing here does not deploy the Sites website.
 
 ## Local preview and build
 
@@ -33,4 +33,4 @@ The buyer guide covers payment verification, identification, insurance, title an
 
 ## Publishing
 
-Hosting uses the existing Sites project identified by `.openai/hosting.json`. Publishing requires a separate explicit instruction. No credentials are stored in this repository.
+GitHub Pages can publish the root of the main branch; `.nojekyll` preserves the static assets. Separate Sites hosting uses the project identified by `.openai/hosting.json`. No credentials are stored in this repository.
