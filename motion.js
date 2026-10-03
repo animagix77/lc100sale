@@ -54,6 +54,7 @@
 
  window.lcMotion={
   intro,transition,
+  detail(node){animate(node,[{opacity:0,transform:'scale(1.16)'},{opacity:1,transform:'scale(1)'}],{duration:700,easing:'cubic-bezier(.22,.61,.36,1)',fill:'backwards'})},
   chapter(index){
    clearText();
    const title=document.getElementById('tour-title');

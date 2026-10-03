@@ -37,7 +37,7 @@ const chapters=[
  {
   "tag": "THE CABIN",
   "title": "No running boards.<br>Plenty of commentary.",
-  "body": "My wife curses me out on the way up; the grab handle does the heavy lifting. Bring a stool, or ask Jesus to bless you with additional height.",
+  "body": "I removed the running boards to make her look even more lifted. That was the entire engineering brief. My wife curses me out on the way up; the grab handle does the heavy lifting. Bring a stool, or ask Jesus for additional height.",
   "href": "#cabin-condition",
   "link": "Read the cabin’s to-do list"
  },
@@ -111,16 +111,28 @@ fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
  frames=sequence.frames;render(progress);
 }).catch(()=>{});
 
+let detailRevealed=-1;
+function setDetailState(n,detail){
+ const panel=$('inspection-detail'),open=$('detail-open');
+ panel.hidden=!detail;panel.dataset.detail=String(n);
+ $('bubble-video').hidden=!detail?.live;$('bubble-photo').hidden=!!detail?.live;
+ open.hidden=!detail||(n!==2&&n!==5);
+ if(n===2){open.dataset.photo='7';open.dataset.photoSource='false';open.setAttribute('aria-label','Open the rear cargo photo and its presentation-edit notes')}
+ if(n===5){open.dataset.photo='4';open.dataset.photoSource='true';open.setAttribute('aria-label','Open the original front grab-handle photo')}
+ if(!detail)detailRevealed=-1;
+}
+function revealDetail(n){
+ if(detailRevealed===n)return;detailRevealed=n;
+ if(n===2||n===3)window.lcMotion?.detail($('bubble-video').hidden?$('bubble-photo'):$('bubble-video'));
+}
 function updateDetail(n){
  const shown=frames[frameIndex];
  if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
- const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===3?{point:[1210,392],label:'NO SPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/02-cabin-roof-source.jpg',size:'600%',position:'19% 38%'}:null):null;
- $('inspection-detail').hidden=!detail;
- $('inspection-detail').dataset.detail=String(n);
- $('detail-open').hidden=n!==5||!detail;
+ const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/02-cabin-roof-source.jpg',size:'600%',position:'19% 38%'}:null):null;
+ setDetailState(n,detail);
  if(!detail)return;
- const anchor=shown.anchors?.[n===1?'tire':n===3?'roof':n===5?'handle':'engine'];
+ const anchor=shown.anchors?.[n===1?'tire':n===2?'cargo':n===3?'roof':n===5?'handle':'engine'];
  if(anchor)detail.point=[anchor[0]*1672,anchor[1]*941];
  document.querySelector('.leader').toggleAttribute('hidden',n!==0&&!anchor&&!shown.primary);
  const img=$('tour-image'),pin=$('orbit-pin'),r=img.getBoundingClientRect(),base=pin.getBoundingClientRect();
@@ -150,17 +162,19 @@ function updateDetail(n){
  if(n===5){const cy=br.top-base.top+br.height/2,dx=x-bx,dy=y-cy,length=Math.hypot(dx,dy)||1;const edgeX=bx+dx/length*br.width/2,edgeY=cy+dy/length*br.height/2;$('leader-path').setAttribute('d',`M ${x} ${y} L ${edgeX} ${edgeY}`)}else $('leader-path').setAttribute('d',n===1?`M ${x} ${y} L ${bx} ${by}`:`M ${x} ${y} L ${bx-25} ${by+20} L ${bx} ${by}`);
  $('leader-point').setAttribute('cx',x);$('leader-point').setAttribute('cy',y);
  const zoom=br.width/(n===1?240:330)*1672/iw;
- if(detail.src){$('bubble-photo').style.backgroundImage=`url('${detail.src}')`;$('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;return}
+ if(detail.src){revealDetail(n);$('bubble-photo').style.backgroundImage=`url('${detail.src}')`;$('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;return}
  $('bubble-photo').style.backgroundImage=`url('${frames[frameIndex].src}')`;
  $('bubble-photo').style.backgroundSize=`${iw*zoom}px ${ih*zoom}px`;
  $('bubble-photo').style.backgroundPosition=`${br.width/2-detail.point[0]/1672*iw*zoom}px ${br.height/2-detail.point[1]/941*ih*zoom}px`;
- $('bubble-label').textContent=detail.label;
+ $('bubble-label').textContent=detail.label;revealDetail(n);
 }
 function updateVideoDetail(n){
  const detail=n===0?{src:'assets/gallery/06-engine-source.jpg',label:'4.7L V8',size:'cover',position:'center'}:
  n===1?{src:'assets/gallery/07-tire-source.jpg',label:'KM3 · 2019',size:'cover',position:'center'}:
+ n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO\nEDITED PHOTO',size:'165%',position:'50% 67%'}:
+ n===3?{live:true,label:'NO REAR\nSPOILER'}:
  n===5?{src:'assets/gallery/02-cabin-roof-source.jpg',label:'GRAB HANDLE',size:'600%',position:'19% 38%'}:null;
- $('inspection-detail').hidden=!detail;$('detail-open').hidden=n!==5||!detail;
+ setDetailState(n,detail);
  if(!detail)return;
  const bubble=$('bubble'),base=$('orbit-pin').getBoundingClientRect(),r=video.getBoundingClientRect();
  $('inspection-detail').dataset.detail=String(n);
@@ -173,21 +187,34 @@ function updateVideoDetail(n){
  const t=video.currentTime;
  const rearX=.87-Math.min(1,Math.max(0,(t-1.25)/.8))*.044;
  const hoodX=.63-.075*Math.min(1,Math.max(0,(t-.7)/.8));
- const pointX=n===0?hoodX:rearX,pointY=n===0?.545:.72;
+ const cargoX=.923-.055*Math.min(1,Math.max(0,(t-2.02)/.67));
+ const pointX=n===0?hoodX:n===2?cargoX:n===3?rearX-.013:rearX,pointY=n===0?.545:n===2?.60:n===3?.416:.72;
  const x=imageLeft+pointX*imageWidth,y=imageTop+pointY*imageHeight;
  const width=bubble.offsetWidth,height=bubble.offsetHeight;
  bubble.style.right='auto';bubble.style.left=`${Math.max(16,Math.min(base.width-width-16,x-width/2))}px`;
  let top=Math.max(16,imageTop+.38*imageHeight-height-24);
  if(innerWidth<=700){
-  top=Math.max(top,document.querySelector('.tour-copy').getBoundingClientRect().bottom-base.top+16);
-  if(top+height>imageTop+.38*imageHeight-16){$('inspection-detail').hidden=true;return;}
+  const newDetail=n===2||n===3;
+  top=Math.max(top,document.querySelector('.tour-copy').getBoundingClientRect().bottom-base.top+(newDetail?8:16));
+  const limit=newDetail?document.querySelector('.orbit-bottom').getBoundingClientRect().top-base.top-16:imageTop+.38*imageHeight-16;
+  if(top+height>limit){$('inspection-detail').hidden=true;return;}
  }
  bubble.style.top=`${top}px`;
- $('bubble-photo').style.backgroundImage=`url('${detail.src}')`;
- $('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;
+ if(detail.live){
+  // Magnify the roof from the exact paused video frame, keeping the crop in sync with scrubbing.
+  const canvas=$('bubble-video'),crop=160;
+  const sx=Math.max(0,Math.min(video.videoWidth-crop,pointX*video.videoWidth-crop/2));
+  const sy=Math.max(0,Math.min(video.videoHeight-crop,pointY*video.videoHeight-crop/2));
+  canvas.getContext('2d').drawImage(video,sx,sy,crop,crop,0,0,canvas.width,canvas.height);
+ }else{
+  $('bubble-photo').style.backgroundImage=`url('${detail.src}')`;
+  $('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;
+ }
+ $('bubble-label').textContent=detail.label;revealDetail(n);
  document.querySelector('.leader').toggleAttribute('hidden',n===5);
  $('leader-point').setAttribute('cx',x);$('leader-point').setAttribute('cy',y);
- $('leader-path').setAttribute('d',`M ${x} ${y} L ${x} ${top+height}`);
+ const bubbleX=parseFloat(bubble.style.left)+width/2;
+ $('leader-path').setAttribute('d',`M ${x} ${y} L ${bubbleX} ${top+height}`);
 }
 function render(p,forceDetail=false){
  progress=clamp(p);const op=orbitProgress(),n=progress<introFraction-.0005?-1:Math.min(7,Math.floor(op*8+.003));

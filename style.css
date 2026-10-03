@@ -383,3 +383,26 @@ html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
 .preloader-note{position:absolute;bottom:max(24px,env(safe-area-inset-bottom));left:24px;right:24px;font:10px/1.6 monospace;letter-spacing:1.5px;color:#aab5b4;margin:0}
 @keyframes preloader-road{from{transform:translateX(-105%)}to{transform:translateX(380%)}}
 @media(prefers-reduced-motion:reduce){.site-preloader{transition:none}.preloader-track::after{animation:none;margin-inline:auto}}
+
+/* The project warning is visible before the tour, with its full copy on the reading surface. */
+.project-warning{display:block;width:fit-content;max-width:360px;margin-top:18px;padding:10px 14px;border-left:3px solid var(--accent);background:#111718c7;color:#fff;text-decoration:none;text-shadow:none}
+.project-warning strong{display:block;font:700 12px/1.5 monospace;letter-spacing:1px;color:var(--accent)}
+.project-warning>span{display:block;font-size:13px;line-height:1.5;text-decoration:underline;text-underline-offset:3px}
+.project-warning:hover{background:#111718}
+.buyer-banner{padding:70px 6vw 64px;border-top:4px solid var(--accent)!important}
+.buyer-banner h2{font-size:clamp(46px,6.2vw,88px);line-height:1.02;letter-spacing:-.045em;margin-bottom:28px}
+.buyer-banner>p:not(.eyebrow){max-width:870px;font-size:20px;line-height:1.6;margin:0 0 20px}
+.buyer-banner>.buyer-punchline{color:var(--ink);font-weight:600}
+.buyer-warning-link{font-size:16px;color:var(--accent)}
+.bubble-video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover}
+.bubble-video[hidden],.bubble-photo[hidden]{display:none}
+.immersive .inspection-detail[data-detail="2"] .bubble,.immersive .inspection-detail[data-detail="3"] .bubble{width:210px;height:210px}
+.immersive .inspection-detail[data-detail="2"] .bubble>span,.immersive .inspection-detail[data-detail="3"] .bubble>span{z-index:2;font-size:11px;padding:10px 8px 18px;white-space:pre-line}
+@media(max-width:700px){
+ .project-warning{margin-top:12px;padding:8px 10px;max-width:100%}
+ .project-warning strong{font-size:11px;letter-spacing:.7px}.project-warning>span{font-size:12px}
+ .buyer-banner{padding:46px 6vw}.buyer-banner h2{font-size:clamp(42px,10vw,65px)}
+ .buyer-banner>p:not(.eyebrow){font-size:17px}
+ .immersive .inspection-detail[data-detail="2"] .bubble,.immersive .inspection-detail[data-detail="3"] .bubble{width:80px;height:80px}
+ .immersive .inspection-detail[data-detail="2"] .bubble>span,.immersive .inspection-detail[data-detail="3"] .bubble>span{font-size:8px;padding:5px 3px 9px}
+}
