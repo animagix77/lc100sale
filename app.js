@@ -2,7 +2,7 @@ const chapters=[
  {
   "tag": "THE POWERTRAIN",
   "title": "Big V8 energy.<br>Retiree schedule.",
-  "body": "The legendary 4.7-liter V8, with about 220,000 miles behind her. These days, she’s a driveway ornament with ambition.",
+  "body": "The legendary 4.7-liter V8. Odometer photo: 220,718 miles. These days, she’s a driveway ornament with ambition.",
   "href": "#engine-history-title",
   "link": "Read the owner-reported history"
  },
@@ -129,7 +129,7 @@ function updateDetail(n){
  const shown=frames[frameIndex];
  if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
- const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/02-cabin-roof-source.jpg',size:'600%',position:'19% 38%'}:null):null;
+ const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
  setDetailState(n,detail);
  if(!detail)return;
  const anchor=shown.anchors?.[n===1?'tire':n===2?'cargo':n===3?'roof':n===5?'handle':'engine'];
@@ -173,7 +173,7 @@ function updateVideoDetail(n){
  n===1?{src:'assets/gallery/07-tire-source.jpg',label:'KM3 · 2019',size:'cover',position:'center'}:
  n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO\nEDITED PHOTO',size:'165%',position:'50% 67%'}:
  n===3?{live:true,label:'NO REAR\nSPOILER'}:
- n===5?{src:'assets/gallery/02-cabin-roof-source.jpg',label:'GRAB HANDLE',size:'600%',position:'19% 38%'}:null;
+ n===5?{src:'assets/gallery/24-grab-handle.jpeg',label:'GRAB HANDLE',size:'250%',position:'51% 42%'}:null;
  setDetailState(n,detail);
  if(!detail)return;
  const bubble=$('bubble'),base=$('orbit-pin').getBoundingClientRect(),r=video.getBoundingClientRect();

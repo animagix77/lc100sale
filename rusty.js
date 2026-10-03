@@ -14,7 +14,7 @@
   const notes = [
     {
       question: 'What’s the asking price?',
-      reply: '$11,000 asking for the 2004 Land Cruiser, sold as is. Roughly 220,000 miles is the owner’s estimate. The repair list comes at no extra charge.',
+      reply: '$11,000 asking for the 2004 Land Cruiser, sold as is. The owner’s odometer photo shows 220,718 miles; mileage may increase. The repair list comes at no extra charge.',
       link: 'Talk to the owner', href: '#contact'
     },
     {
@@ -34,7 +34,7 @@
     },
     {
       question: 'Does she drive well? Any records?',
-      reply: 'The owner reports oil changes every 5,000 miles, two Denso coils replaced in 2019, 3M undercoating and periodic underbody rinses. She drives great, with no shaking or rattling, per the owner. Service receipts aren’t available. Enthusiasm has yet to qualify as a service record.',
+      reply: 'The owner recalls brake pads, rotors and calipers replaced in 2026, plus rear drum brakes rebuilt and two Denso coils replaced in 2019. Oil changes every 5,000 miles, 3M undercoating and periodic underbody rinses were also part of the routine. She drives great without shaking or rattling, per the owner. Service receipts are unavailable. The wallet has extensive experience.',
       link: 'Read the owner-recalled service history', href: '#history'
     },
     {

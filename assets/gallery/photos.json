@@ -36,13 +36,17 @@
     "titleAccent": "have seen things."
   },
   {
-    "id": "02-cabin-roof",
+    "id": "24-grab-handle",
     "title": "Grip strength, now an amenity.",
-    "caption": "Front overhead grab handle, headliner and closed sunroof shade. This still photo does not demonstrate sunroof operation.",
-    "src": "assets/gallery/02-cabin-roof-v2.jpg",
-    "original": "assets/gallery/02-cabin-roof-source.jpg",
-    "alt": "Front overhead grab handle, interior headliner and closed sunroof shade",
-    "titleAccent": "now an amenity."
+    "titleAccent": "now an amenity.",
+    "caption": "Driver’s A-pillar grab handle, demonstrated in the owner’s unretouched photo. No running boards; this is part of the boarding routine.",
+    "src": "assets/gallery/24-grab-handle.jpeg",
+    "original": "assets/gallery/24-grab-handle.jpeg",
+    "alt": "A hand holding the driver’s A-pillar grab handle beside the windshield, with the front door open",
+    "width": 768,
+    "height": 1024,
+    "unedited": true,
+    "sourceLabel": "OWNER PHOTO · UNRETOUCHED"
   },
   {
     "id": "04-rear-door",
@@ -237,5 +241,18 @@
     "height": 1448,
     "unedited": true,
     "sourceLabel": "HISTORICAL OWNER PHOTO"
+  },
+  {
+    "id": "25-odometer",
+    "title": "220,718 miles. Still counting.",
+    "titleAccent": "Still counting.",
+    "caption": "Owner-supplied odometer photo showing 220,718 miles. Unretouched; mileage may increase.",
+    "src": "assets/gallery/25-odometer.jpeg",
+    "original": "assets/gallery/25-odometer.jpeg",
+    "alt": "Land Cruiser instrument cluster with the odometer reading 220718 miles",
+    "width": 768,
+    "height": 1024,
+    "unedited": true,
+    "sourceLabel": "OWNER PHOTO · UNRETOUCHED"
   }
 ]
