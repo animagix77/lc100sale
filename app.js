@@ -61,6 +61,7 @@ const tour=$('tour'),slider=$('scrubber'),video=$('orbit-video'),poster=$('scene
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 let progress=0,last=-2,queued=false,videoReady=false,targetTime=0,frames=[],frameIndex=-1,sequence=null;
 const introFraction=.12;
+let pendingFocus=null;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const orbitProgress=()=>clamp((progress-introFraction)/(1-introFraction));
 chapters.forEach((c,i)=>{const b=document.createElement('button');b.textContent=String(i+1).padStart(2,'0');b.setAttribute('aria-label',`Chapter ${i+1}: ${c.tag.toLowerCase()}`);b.addEventListener('click',()=>go(i));$('chapter-dots').append(b)});
@@ -223,8 +224,13 @@ function render(p,forceDetail=false){
  if(videoReady)$('tour-progress').textContent=Math.round(progress*100)+'%';else if(!frames.length)$('tour-progress').textContent='0°';
  const chapterChanged=n!==last;
  if(chapterChanged){
+  if(pendingFocus&&pendingFocus.chapter!==n)pendingFocus=null;
   const direction=n>last?1:-1,initial=last===-2;
   const changeCopy=()=>{
+   const focusRequest=pendingFocus?.chapter===n?pendingFocus:null;
+   const source=focusRequest?.from,active=document.activeElement;
+   const shouldFocus=focusRequest&&(active===source||(active===document.body&&(source?.disabled||source?.closest('[hidden]'))));
+   if(focusRequest)pendingFocus=null;
    const intro=n<0;$('launch').hidden=!intro;$('walkaround').hidden=intro;
    $('orbit-pin').classList.toggle('inspecting',!intro);
    $('tour-mode').textContent=intro?'ONE TRUCK. SEVERAL WEEKENDS.':'THE HONEST WALKAROUND';
@@ -236,6 +242,8 @@ function render(p,forceDetail=false){
     $('tour-title').innerHTML=c.title;$('tour-body').textContent=c.body;window.lcMotion?.chapter(n);
    }else window.lcMotion?.intro();
    updateDetail(n);
+   // Focus only after the destination is revealed, and preserve any newer user focus.
+   if(shouldFocus)$(focusRequest.id).focus({preventScroll:true});
   };
   if(window.lcMotion?.transition)window.lcMotion.transition(changeCopy,direction,initial);else changeCopy();
   Array.from($('chapter-dots').children).forEach((b,i)=>b.setAttribute('aria-current',String(i===n)));
@@ -251,7 +259,7 @@ function scrollProgress(){const rect=tour.getBoundingClientRect(),distance=tourD
 const chapterStops=[0,...Array.from({length:9},(_,i)=>introFraction+i/8*(1-introFraction))];
 function onScroll(){queued=false;if(!reduced.matches)render(scrollProgress());}
 function setProgress(p){p=clamp(p);if(!reduced.matches)window.scrollTo({top:tour.offsetTop+p*tourDistance(),behavior:'instant'});render(p)}
-function go(i){i=Math.max(-1,Math.min(7,i));setProgress(i<0?0:introFraction+i/8*(1-introFraction))}
+function go(i,focusId){i=Math.max(-1,Math.min(7,i));pendingFocus=focusId?{chapter:i,id:focusId,from:document.activeElement}:null;setProgress(i<0?0:introFraction+i/8*(1-introFraction))}
 slider.addEventListener('input',()=>setProgress(Number(slider.value)/1000));
 slider.addEventListener('keydown',event=>{
  const forward=['ArrowRight','ArrowUp','PageUp'],back=['ArrowLeft','ArrowDown','PageDown'];
@@ -261,7 +269,7 @@ slider.addEventListener('keydown',event=>{
  const next=event.key==='Home'?0:event.key==='End'?chapterStops.length-1:Math.max(0,Math.min(chapterStops.length-1,index+(forward.includes(event.key)?1:-1)));
  setProgress(chapterStops[next]);
 });
-$('start-tour').addEventListener('click',()=>{go(0);$('tour-title').focus({preventScroll:true})});$('previous').addEventListener('click',()=>{go(last-1);if($('previous').disabled)$('start-tour').focus({preventScroll:true})});$('next').addEventListener('click',()=>{go(last+1);if($('next').disabled)$('tour-title').focus({preventScroll:true})});
+$('start-tour').addEventListener('click',()=>go(0,'tour-title'));$('previous').addEventListener('click',()=>go(last-1,last===0?'start-tour':null));$('next').addEventListener('click',()=>go(last+1,last===6?'tour-title':null));
 window.addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(onScroll)}},{passive:true});window.addEventListener('resize',()=>render(reduced.matches?progress:scrollProgress(),true));
 $('tour-image').addEventListener('load',()=>updateDetail(last));
 reduced.addEventListener('change',()=>{render(progress,true);if(!reduced.matches)setProgress(progress);});render(0);onScroll();

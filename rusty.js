@@ -24,22 +24,22 @@
     },
     {
       question: 'What are the EVAP codes?',
-      reply: 'P2418, P0442 and P0446 remain unresolved. The owner’s mechanic suspects the area in the photos and recommended a body shop/welder assessment. The cause, repair scope and cost remain unconfirmed. My crystal ball is also out for repairs.',
+      reply: 'P2418, P0442 and P0446 remain unresolved. The owner’s mechanic suspects the photographed area and recommended a body shop/welder assessment. Cause, repair scope and cost are unconfirmed. My crystal ball is also out for repairs.',
       link: 'See the mechanic’s notes and photos', href: '#mechanic-photos'
     },
     {
       question: 'Where are the running boards?',
-      reply: 'The owner removed them to make her look more lifted. That was the entire engineering brief. The grab handle helps with boarding; his wife has supplied extensive verbal feedback.',
+      reply: 'The owner removed them so she looks more lifted. The grab handle helps with boarding. His wife has supplied extensive verbal feedback.',
       link: 'Read the cabin notes', href: '#cabin-condition'
     },
     {
       question: 'Does she drive well? Any records?',
-      reply: 'The owner recalls brake pads, rotors and calipers replaced in 2026, plus rear drum brakes rebuilt and two Denso coils replaced in 2019. Oil changes every 5,000 miles, 3M undercoating and periodic underbody rinses were also part of the routine. She drives great without shaking or rattling, per the owner. Service receipts are unavailable. The wallet has extensive experience.',
+      reply: 'The owner says she drives great, without shaking or rattling. Service receipts are unavailable; maintenance history is recalled from memory. Brake work, coils, oil changes and underbody care are detailed in the service history. The paperwork has taken early retirement.',
       link: 'Read the owner-recalled service history', href: '#history'
     },
     {
       question: 'What equipment comes with her?',
-      reply: 'Malone crossbars are included. She has OME suspension, KM3 tires, Bora spacers, two functional rear jump seats and a 2-inch hitch receiver. Rooftop tents, awnings and camping gear in historical photos aren’t included. The penthouse was a previous tenancy.',
+      reply: 'Malone crossbars are included; rooftop tents, awnings and camping gear are excluded. She has OME suspension, KM3 tires, Bora spacers, two functional rear jump seats and a 2-inch hitch receiver. The penthouse was a previous tenancy.',
       link: 'See the camping equipment note', href: '#camping'
     },
     {
