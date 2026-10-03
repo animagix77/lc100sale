@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 164" fill="none" aria-hidden="true" focusable="false">
+  <!-- Facing right; the gentle nose-down stance puts the rear slightly higher. -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="m70 26 171 10" stroke="#eef0e7" stroke-width="4"/>
+    <path d="m96 20-1 13m113-6-1 13" stroke="#eef0e7" stroke-width="5"/>
+    <path d="m73 32 168 10" stroke="#162b30" stroke-width="5"/>
+    <path d="M28 113V62q0-12 13-14l18-16q5-5 16-4l164 10q17 1 27 15l23 29 43 3q18 2 21 17l5 24-35 4-43-4-41-1-59-4-41-2-45-3Z" fill="#6b7882" stroke="#eef0e7" stroke-width="3.5"/>
+    <path d="m43 57 24-18 52 3-2 35-74-4Zm85-14 58 3-2 35-59-4Zm68 4 42 3q11 1 17 10l17 23-78-2Z" fill="#162b30" stroke="#eef0e7" stroke-width="2.5"/>
+    <path d="m121 83-2 30m70-26-2 29m87-27-3 34" stroke="#162b30" stroke-width="2.5"/>
+    <path d="m138 90 13 1m53 4 13 1" stroke="#eef0e7" stroke-width="3"/>
+    <path d="m40 94 288 18" stroke="#162b30" stroke-width="2.5" opacity=".65"/>
+    <path d="m271 77 12 1 6 8-17-1Z" fill="#6b7882" stroke="#eef0e7" stroke-width="2.5"/>
+    <path d="m329 90 16 2 5 12-19-1Z" fill="#eef0e7"/>
+    <path d="m331 103 18 1 2 5-19-1Z" fill="#ef955c"/>
+    <path d="m29 75 9 1v19l-9-1Z" fill="#ef955c"/>
+    <path d="m26 106 16 1m294 13 23 1" stroke="#162b30" stroke-width="7"/>
+    <path d="M65 116a30 30 0 0 1 60 4m136 5a30 30 0 0 1 60 4" stroke="#162b30" stroke-width="5"/>
+    <circle cx="95" cy="121" r="27" fill="#162b30" stroke="#eef0e7" stroke-width="3"/>
+    <circle cx="291" cy="132" r="27" fill="#162b30" stroke="#eef0e7" stroke-width="3"/>
+    <circle cx="95" cy="121" r="14" fill="#6b7882" stroke="#eef0e7" stroke-width="2"/>
+    <circle cx="291" cy="132" r="14" fill="#6b7882" stroke="#eef0e7" stroke-width="2"/>
+    <path d="M95 112v18m-9-9h18m187 2v18m-9-9h18" stroke="#162b30" stroke-width="4"/>
+    <circle cx="95" cy="121" r="4" fill="#eef0e7"/>
+    <circle cx="291" cy="132" r="4" fill="#eef0e7"/>
+  </g>
+</svg>

@@ -7,7 +7,6 @@
   const animation=node.animate(keyframes,options);active.add(animation);
   animation.onfinish=animation.oncancel=()=>active.delete(animation);return animation;
  }
- function rise(node,delay=0){return animate(node,[{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'translateY(0)'}],{duration:720,delay,easing:'cubic-bezier(.22,.61,.36,1)',fill:'backwards'})}
  let outgoing=null,outgoingBackdrop=null,frameAnimation=null;
  const textAnimations=new Set();
  function clearText(){for(const a of textAnimations){a.cancel();active.delete(a)}textAnimations.clear();}
@@ -23,24 +22,49 @@
  }
  const launch=document.getElementById('launch');
  const launchLines=Array.from(launch.querySelectorAll('h1>span,h1>em'),wrapLine);
+ const ensureMask=node=>node?.querySelector(':scope>.masked-ink')||wrapLine(node);
+ ['.eyebrow','.intro','.asking-note'].forEach(selector=>ensureMask(launch.querySelector(selector)));
+ let pendingChange=null,exiting=false;
+ function finishExit(){
+  clearText();exiting=false;const change=pendingChange;pendingChange=null;change?.();
+ }
+ function transition(change,direction=1,initial=false){
+  pendingChange=change;
+  if(initial||preference.matches||!launch.animate){finishExit();return;}
+  if(exiting)return; // Finish the current exit, then reveal only the latest requested chapter.
+  exiting=true;
+  const root=launch.hidden?document.querySelector('.tour-copy'):launch;
+  const ink=Array.from(root.querySelectorAll('.masked-ink'));
+  const other=Array.from(root.querySelectorAll('.button,#tour-evidence')).filter(node=>!node.hidden);
+  const starts=[...ink,...other].map(node=>({node,transform:getComputedStyle(node).transform,opacity:getComputedStyle(node).opacity}));
+  clearText();
+  const animations=starts.map(({node,transform,opacity},i)=>{
+   const masked=node.classList.contains('masked-ink');
+   const a=animate(node,[{transform,opacity},{transform:`translateY(${masked?(direction<0?115:-115):direction<0?8:-8}${masked?'%':'px'})`,opacity:masked?1:0}],{duration:masked?420:260,delay:masked?Math.min(i*35,70):0,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+   if(a)textAnimations.add(a);return a?.finished.catch(()=>{});
+  });
+  Promise.all(animations).then(()=>{if(exiting)finishExit()});
+ }
  function intro(){
   clearText();if(preference.matches)return;
-  reveal(launch.querySelector('.eyebrow'));
+  reveal(ensureMask(launch.querySelector('.eyebrow')));
   launchLines.forEach((line,i)=>reveal(line,70+i*100,true));
-  reveal(launch.querySelector('.intro'),300);reveal(launch.querySelector('.asking-note'),380);
+  reveal(ensureMask(launch.querySelector('.intro')),300);reveal(ensureMask(launch.querySelector('.asking-note')),380);
  }
 
  window.lcMotion={
-  intro,
+  intro,transition,
   chapter(index){
    clearText();
    const title=document.getElementById('tour-title');
    const lines=title.innerHTML.split(/<br\s*\/?\s*>/i);
    title.replaceChildren(...lines.map(text=>{const mask=document.createElement('span');mask.className='text-mask';mask.textContent=text;wrapLine(mask);return mask}));
+   const chapter=ensureMask(document.getElementById('chapter')),tag=ensureMask(document.getElementById('tag'));
+   const body=ensureMask(document.getElementById('tour-body')),link=ensureMask(document.getElementById('tour-issue-link'));
    if(preference.matches)return;
-   reveal(document.getElementById('chapter'));reveal(document.getElementById('tag'),50);
+   reveal(chapter);reveal(tag,50);
    title.querySelectorAll('.masked-ink').forEach((line,i)=>reveal(line,70+i*100,true));
-   reveal(document.getElementById('tour-body'),280);reveal(document.getElementById('tour-issue-link'),360);
+   reveal(body,280);reveal(link,360);
   },
   frame(src){
    const img=document.getElementById('tour-image');if(img.getAttribute('src')===src)return;
@@ -54,11 +78,7 @@
    img.src=src;
   }
  };
- if('IntersectionObserver' in window){
-  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){observer.unobserve(entry.target);rise(entry.target,Number(entry.target.dataset.revealDelay)||0)}}),{threshold:.08,rootMargin:'0px 0px -24px 0px'});
-  document.querySelectorAll('.section-title>*,.condition-grid>article,.timeline>article,.photo-card,.spec-strip>div,.buyer-banner>*,.inspection-evidence>*,.closing>*,.ownership-note,.missing-evidence,.engine-history>*').forEach((node,i)=>{node.dataset.revealDelay=String(i%3*55);observer.observe(node)});
- }
  // The scroll controller starts the intro reveal when that section is visible.
  const photo=document.getElementById('photo-large');photo?.addEventListener('load',()=>animate(photo,[{opacity:.3},{opacity:1}],{duration:180,easing:'ease-out'}));
- preference.addEventListener('change',()=>{if(preference.matches){Array.from(active).forEach(a=>a.cancel());outgoing?.remove();outgoingBackdrop?.remove()}});
+ preference.addEventListener('change',()=>{if(preference.matches){if(exiting)finishExit();Array.from(active).forEach(a=>a.cancel());outgoing?.remove();outgoingBackdrop?.remove()}});
 })();

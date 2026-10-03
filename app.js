@@ -64,14 +64,41 @@ const introFraction=.12;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const orbitProgress=()=>clamp((progress-introFraction)/(1-introFraction));
 chapters.forEach((c,i)=>{const b=document.createElement('button');b.textContent=String(i+1).padStart(2,'0');b.setAttribute('aria-label',`Chapter ${i+1}: ${c.tag.toLowerCase()}`);b.addEventListener('click',()=>go(i));$('chapter-dots').append(b)});
-// Keep the latest scroll target while a previous video seek is decoding.
-function seekVideo(){if(videoReady&&!video.seeking&&Math.abs(video.currentTime-targetTime)>.025)video.currentTime=targetTime}
-video.addEventListener('seeked',seekVideo);
-video.addEventListener('loadeddata',()=>{videoReady=Number.isFinite(video.duration)&&video.duration>0;if(videoReady){video.hidden=false;poster.hidden=true;render(progress,true)}});
-video.addEventListener('error',()=>{videoReady=false;video.hidden=true;poster.hidden=false});
-fetch('assets/orbit-media.json').then(r=>r.ok?r.json():null).then(m=>{if(m?.ready&&typeof m.src==='string'&&m.src.startsWith('assets/')){video.src=m.src;video.load()}}).catch(()=>{});
+// The clip stays paused; scrolling requests the latest time instead of playing it.
+const videoBackdrop=$('video-backdrop'),videoContext=videoBackdrop.getContext('2d');
+function paintVideoFrame(){
+ if(!videoReady)return;
+ video.dataset.scrubTime=video.currentTime.toFixed(3);
+ videoContext.drawImage(video,0,0,videoBackdrop.width,videoBackdrop.height);
+ $('tour-progress').textContent=`${Math.round(progress*100)}%`;
+ updateDetail(last);
+}
+function seekVideo(){
+ if(videoReady&&!video.seeking&&Math.abs(video.currentTime-targetTime)>1/48){video.dataset.scrubTarget=targetTime.toFixed(3);video.currentTime=targetTime;}
+}
+video.addEventListener('seeked',()=>{paintVideoFrame();seekVideo()});
+video.addEventListener('loadeddata',()=>{
+ videoReady=Number.isFinite(video.duration)&&video.duration>0;
+ if(videoReady){
+  video.pause();sequence?.destroy();sequence=null;
+  video.hidden=false;poster.hidden=true;videoBackdrop.hidden=false;
+  $('orbit-pin').classList.add('video-scene');
+  paintVideoFrame();render(progress,true);
+ }
+});
+video.addEventListener('error',()=>{
+ videoReady=false;video.hidden=true;poster.hidden=false;videoBackdrop.hidden=true;
+ $('orbit-pin').classList.remove('video-scene');
+ render(progress,true);
+});
+fetch('assets/orbit-media.json').then(r=>r.ok?r.json():null).then(m=>{
+ if(m?.ready&&typeof m.src==='string'&&m.src.startsWith('assets/')){
+  if(m.poster)video.poster=m.poster;
+  video.src=m.src;video.load();
+ }
+}).catch(()=>{});
 fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
- if(!m?.ready||!window.LCSequence)return;
+ if(videoReady||!m?.ready||!window.LCSequence)return;
  sequence=new LCSequence(m,{onFrame:({frame,index,image})=>{
   if(videoReady)return;
   frameIndex=index;
@@ -86,6 +113,7 @@ fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
 
 function updateDetail(n){
  const shown=frames[frameIndex];
+ if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
  const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/06-engine-source.jpg',size:'cover',position:'center'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===3?{point:[1210,392],label:'NO SPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/02-cabin-roof-source.jpg',size:'600%',position:'19% 38%'}:null):null;
  $('inspection-detail').hidden=!detail;
@@ -94,7 +122,7 @@ function updateDetail(n){
  if(!detail)return;
  const anchor=shown.anchors?.[n===1?'tire':n===3?'roof':n===5?'handle':'engine'];
  if(anchor)detail.point=[anchor[0]*1672,anchor[1]*941];
- document.querySelector('.leader').hidden=n!==0&&!anchor&&!shown.primary;
+ document.querySelector('.leader').toggleAttribute('hidden',n!==0&&!anchor&&!shown.primary);
  const img=$('tour-image'),pin=$('orbit-pin'),r=img.getBoundingClientRect(),base=pin.getBoundingClientRect();
  const decoded=sequence?.current?.image||img;const iw=decoded.naturalWidth,ih=decoded.naturalHeight;if(!iw||!ih)return;
  const scale=Math.max(r.width/iw,r.height/ih),left=r.left-base.left+(r.width-iw*scale)/2,top=r.top-base.top+(r.height-ih*scale)/2;
@@ -128,96 +156,84 @@ function updateDetail(n){
  $('bubble-photo').style.backgroundPosition=`${br.width/2-detail.point[0]/1672*iw*zoom}px ${br.height/2-detail.point[1]/941*ih*zoom}px`;
  $('bubble-label').textContent=detail.label;
 }
-function render(p,forceDetail=false){
- progress=clamp(p);const op=orbitProgress(),n=progress<introFraction?-1:Math.min(7,Math.floor(op*8+.003));
- slider.value=Math.round(progress*1000);slider.setAttribute('aria-valuetext',n<0?'Introduction':`Chapter ${n+1} of 8: ${chapters[n].tag.toLowerCase()}`);
- if(videoReady)$('tour-progress').textContent=Math.round(op*360)+'°';else if(!frames.length)$('tour-progress').textContent='0°';
- const chapterChanged=n!==last;
- if(chapterChanged){const intro=n<0;$('launch').hidden=!intro;$('walkaround').hidden=intro;$('orbit-pin').classList.toggle('inspecting',!intro);$('tour-mode').textContent=intro?'ONE TRUCK. SEVERAL WEEKENDS.':'THE HONEST WALKAROUND';
- const showEvidence=n===4;$('tour-evidence').hidden=!showEvidence;$('orbit-pin').classList.toggle('showing-evidence',showEvidence);if(!intro){$('tour-issue-link').href=chapters[n].href;$('tour-issue-link').textContent=chapters[n].link;}
- if(!intro){const c=chapters[n];$('chapter').textContent=`0${n+1} / 08`;$('tag').textContent=c.tag;$('tour-title').innerHTML=c.title;$('tour-body').textContent=c.body;window.lcMotion?.chapter(n)}else{window.lcMotion?.intro()}
- Array.from($('chapter-dots').children).forEach((b,i)=>b.setAttribute('aria-current',String(i===n)));$('previous').disabled=intro;$('next').disabled=n===7;last=n;
+function updateVideoDetail(n){
+ const detail=n===0?{src:'assets/gallery/06-engine-source.jpg',label:'4.7L V8',size:'cover',position:'center'}:
+ n===1?{src:'assets/gallery/07-tire-source.jpg',label:'KM3 · 2019',size:'cover',position:'center'}:
+ n===5?{src:'assets/gallery/02-cabin-roof-source.jpg',label:'GRAB HANDLE',size:'600%',position:'19% 38%'}:null;
+ $('inspection-detail').hidden=!detail;$('detail-open').hidden=n!==5||!detail;
+ if(!detail)return;
+ const bubble=$('bubble'),base=$('orbit-pin').getBoundingClientRect(),r=video.getBoundingClientRect();
+ $('inspection-detail').dataset.detail=String(n);
+ // Match the video's cover crop so callout dots stay on the same body part after resizing.
+ const scale=Math.max(r.width/video.videoWidth,r.height/video.videoHeight);
+ const imageWidth=video.videoWidth*scale,imageHeight=video.videoHeight*scale;
+ const [positionX,positionY]=getComputedStyle(video).objectPosition.split(' ').map(value=>parseFloat(value)/100);
+ const imageLeft=r.left-base.left+(r.width-imageWidth)*(Number.isFinite(positionX)?positionX:.5);
+ const imageTop=r.top-base.top+(r.height-imageHeight)*(Number.isFinite(positionY)?positionY:.5);
+ const t=video.currentTime;
+ const rearX=.87-Math.min(1,Math.max(0,(t-1.25)/.8))*.044;
+ const hoodX=.63-.075*Math.min(1,Math.max(0,(t-.7)/.8));
+ const pointX=n===0?hoodX:rearX,pointY=n===0?.545:.72;
+ const x=imageLeft+pointX*imageWidth,y=imageTop+pointY*imageHeight;
+ const width=bubble.offsetWidth,height=bubble.offsetHeight;
+ bubble.style.right='auto';bubble.style.left=`${Math.max(16,Math.min(base.width-width-16,x-width/2))}px`;
+ let top=Math.max(16,imageTop+.38*imageHeight-height-24);
+ if(innerWidth<=700){
+  top=Math.max(top,document.querySelector('.tour-copy').getBoundingClientRect().bottom-base.top+16);
+  if(top+height>imageTop+.38*imageHeight-16){$('inspection-detail').hidden=true;return;}
  }
- if(videoReady){targetTime=op*Math.max(0,video.duration-.04);seekVideo()}
- else if(sequence){sequence.seek(op*360)}
+ bubble.style.top=`${top}px`;
+ $('bubble-photo').style.backgroundImage=`url('${detail.src}')`;
+ $('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;
+ document.querySelector('.leader').toggleAttribute('hidden',n===5);
+ $('leader-point').setAttribute('cx',x);$('leader-point').setAttribute('cy',y);
+ $('leader-path').setAttribute('d',`M ${x} ${y} L ${x} ${top+height}`);
+}
+function render(p,forceDetail=false){
+ progress=clamp(p);const op=orbitProgress(),n=progress<introFraction-.0005?-1:Math.min(7,Math.floor(op*8+.003));
+ slider.value=Math.round(progress*1000);slider.setAttribute('aria-valuetext',n<0?'Introduction':`Chapter ${n+1} of 8: ${chapters[n].tag.toLowerCase()}`);
+ if(videoReady)$('tour-progress').textContent=Math.round(progress*100)+'%';else if(!frames.length)$('tour-progress').textContent='0°';
+ const chapterChanged=n!==last;
+ if(chapterChanged){
+  const direction=n>last?1:-1,initial=last===-2;
+  const changeCopy=()=>{
+   const intro=n<0;$('launch').hidden=!intro;$('walkaround').hidden=intro;
+   $('orbit-pin').classList.toggle('inspecting',!intro);
+   $('tour-mode').textContent=intro?'ONE TRUCK. SEVERAL WEEKENDS.':'THE HONEST WALKAROUND';
+   const showEvidence=n===4;$('tour-evidence').hidden=!showEvidence;
+   $('orbit-pin').classList.toggle('showing-evidence',showEvidence);
+   if(!intro){
+    const c=chapters[n];$('tour-issue-link').href=c.href;$('tour-issue-link').textContent=c.link;
+    $('chapter').textContent=`0${n+1} / 08`;$('tag').textContent=c.tag;
+    $('tour-title').innerHTML=c.title;$('tour-body').textContent=c.body;window.lcMotion?.chapter(n);
+   }else window.lcMotion?.intro();
+   updateDetail(n);
+  };
+  if(window.lcMotion?.transition)window.lcMotion.transition(changeCopy,direction,initial);else changeCopy();
+  Array.from($('chapter-dots').children).forEach((b,i)=>b.setAttribute('aria-current',String(i===n)));
+  $('previous').disabled=n<0;$('next').disabled=n===7;last=n;
+ }
+ if(videoReady){targetTime=progress*Math.max(0,video.duration-.04);seekVideo()}
+ else if(sequence){sequence.seek(progress*360)}
  if(chapterChanged||forceDetail)updateDetail(n);
 }
-function scrollProgress(){const rect=tour.getBoundingClientRect(),distance=tour.offsetHeight-innerHeight;return distance>0?-rect.top/distance:progress}
-// Let gestures scrub, then settle on a primary view. No snapping below the tour.
-const snapStops=[0,...Array.from({length:9},(_,i)=>introFraction+i/8*(1-introFraction))];
-let snapTimer=0,snapAnimation=0,snapping=false,draggingTimeline=false,touching=false;
-let gestureStart=null,scrollDirection=0,previousScroll=scrollProgress();
-const closestStop=p=>snapStops.reduce((best,stop)=>Math.abs(stop-p)<Math.abs(best-p)?stop:best,0);
-let settledStop=closestStop(previousScroll);
-function cancelSnap(){clearTimeout(snapTimer);cancelAnimationFrame(snapAnimation);snapping=false;}
-function beginGesture(){
- if(snapping){cancelSnap();gestureStart=scrollProgress();}
- else if(gestureStart===null)gestureStart=scrollProgress();
-}
-function scheduleSnap(){
- clearTimeout(snapTimer);
- if(!snapping&&!touching&&!draggingTimeline&&!reduced.matches)snapTimer=setTimeout(()=>settleOrbit(true),50);
-}
-function settleOrbit(directional=false){
- clearTimeout(snapTimer);
- const raw=reduced.matches?progress:scrollProgress();
- if(raw<0||raw>1||$('photo-dialog').open||touching||draggingTimeline){gestureStart=null;return;}
- let target=closestStop(raw);
- // A short intentional wheel/touch gesture advances instead of bouncing back.
- if(directional&&gestureStart!==null&&scrollDirection&&Math.abs(raw-settledStop)*(tour.offsetHeight-innerHeight)>6&&target===settledStop){
-  const index=snapStops.indexOf(target)+scrollDirection;
-  target=snapStops[Math.max(0,Math.min(snapStops.length-1,index))];
- }
- gestureStart=null;scrollDirection=0;
- cancelSnap();settledStop=target;
- const distance=tour.offsetHeight-innerHeight;
- if(reduced.matches||distance<=0||Math.abs(target-raw)*distance<1){setProgress(target);return;}
- const from=window.scrollY,to=tour.offsetTop+target*distance,started=performance.now();
- snapping=true;
- function step(now){
-  const t=Math.min(1,(now-started)/90),ease=t;
-  window.scrollTo({top:from+(to-from)*ease,behavior:'instant'});
-  render(raw+(target-raw)*ease);
-  if(t<1)snapAnimation=requestAnimationFrame(step);
-  else{snapping=false;previousScroll=target;setProgress(target);}
- }
- snapAnimation=requestAnimationFrame(step);
-}
-function onScroll(){
- queued=false;
- if(reduced.matches)return;
- const raw=scrollProgress();
- if(!snapping&&Math.abs(raw-previousScroll)>.0001){scrollDirection=Math.sign(raw-previousScroll);if(gestureStart===null&&!draggingTimeline)gestureStart=previousScroll;}
- previousScroll=raw;render(raw);
- if(!snapping)scheduleSnap();
-}
-function setProgress(p){p=clamp(p);if(!reduced.matches)window.scrollTo({top:tour.offsetTop+p*(tour.offsetHeight-innerHeight),behavior:'instant'});render(p)}
-function go(i){cancelSnap();gestureStart=null;scrollDirection=0;i=Math.max(-1,Math.min(7,i));settledStop=i<0?0:introFraction+i/8*(1-introFraction);setProgress(settledStop)}
-slider.addEventListener('pointerdown',()=>{cancelSnap();draggingTimeline=true;gestureStart=null;});
-window.addEventListener('pointerup',()=>{if(draggingTimeline){draggingTimeline=false;settleOrbit();}});
-window.addEventListener('pointercancel',()=>{if(draggingTimeline){draggingTimeline=false;settleOrbit();}});
-slider.addEventListener('input',()=>{cancelSnap();const p=Number(slider.value)/1000;setProgress(reduced.matches?closestStop(p):p);if(!draggingTimeline&&!reduced.matches)snapTimer=setTimeout(()=>settleOrbit(),50);});
-slider.addEventListener('change',()=>{if(!draggingTimeline)settleOrbit();});
+function tourDistance(){const overlap=Math.max(0,-parseFloat(getComputedStyle(document.querySelector('.page-content')).marginTop)||0);return tour.offsetHeight-innerHeight-overlap}
+function scrollProgress(){const rect=tour.getBoundingClientRect(),distance=tourDistance();return distance>0?-rect.top/distance:progress}
+// Native wheel/touch scrolling freely scrubs the video. Chapter buttons remain optional shortcuts.
+const chapterStops=[0,...Array.from({length:9},(_,i)=>introFraction+i/8*(1-introFraction))];
+function onScroll(){queued=false;if(!reduced.matches)render(scrollProgress());}
+function setProgress(p){p=clamp(p);if(!reduced.matches)window.scrollTo({top:tour.offsetTop+p*tourDistance(),behavior:'instant'});render(p)}
+function go(i){i=Math.max(-1,Math.min(7,i));setProgress(i<0?0:introFraction+i/8*(1-introFraction))}
+slider.addEventListener('input',()=>setProgress(Number(slider.value)/1000));
 slider.addEventListener('keydown',event=>{
  const forward=['ArrowRight','ArrowUp','PageUp'],back=['ArrowLeft','ArrowDown','PageDown'];
  if(![...forward,...back,'Home','End'].includes(event.key))return;
- event.preventDefault();cancelSnap();gestureStart=null;scrollDirection=0;
- const index=snapStops.indexOf(closestStop(progress));
- const next=event.key==='Home'?0:event.key==='End'?snapStops.length-1:Math.max(0,Math.min(snapStops.length-1,index+(forward.includes(event.key)?1:-1)));
- settledStop=snapStops[next];setProgress(settledStop);
+ event.preventDefault();
+ const index=chapterStops.reduce((best,stop,i)=>Math.abs(stop-progress)<Math.abs(chapterStops[best]-progress)?i:best,0);
+ const next=event.key==='Home'?0:event.key==='End'?chapterStops.length-1:Math.max(0,Math.min(chapterStops.length-1,index+(forward.includes(event.key)?1:-1)));
+ setProgress(chapterStops[next]);
 });
-
-window.addEventListener('wheel',()=>{beginGesture();scheduleSnap();},{passive:true});
-window.addEventListener('touchstart',()=>{beginGesture();touching=true;clearTimeout(snapTimer);},{passive:true});
-window.addEventListener('touchend',()=>{touching=false;scheduleSnap();},{passive:true});
-window.addEventListener('touchcancel',()=>{touching=false;scheduleSnap();},{passive:true});
-window.addEventListener('keydown',event=>{
- if(event.target.closest('input,button,a,dialog,textarea,select,[contenteditable]'))return;
- if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key)){beginGesture();scheduleSnap();}
-});
-// In-page links and photo dialogs must never be pulled back into the tour.
-document.addEventListener('click',event=>{if(event.target.closest('a,[data-photo]')){cancelSnap();gestureStart=null;}});
 $('start-tour').addEventListener('click',()=>{go(0);$('tour-title').focus({preventScroll:true})});$('previous').addEventListener('click',()=>{go(last-1);if($('previous').disabled)$('start-tour').focus({preventScroll:true})});$('next').addEventListener('click',()=>{go(last+1);if($('next').disabled)$('tour-title').focus({preventScroll:true})});
-window.addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(onScroll)}},{passive:true});window.addEventListener('resize',()=>{cancelSnap();gestureStart=null;render(reduced.matches?closestStop(progress):scrollProgress(),true);scheduleSnap();});
+window.addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(onScroll)}},{passive:true});window.addEventListener('resize',()=>render(reduced.matches?progress:scrollProgress(),true));
 $('tour-image').addEventListener('load',()=>updateDetail(last));
-reduced.addEventListener('change',()=>{cancelSnap();gestureStart=null;render(closestStop(progress),true);if(!reduced.matches)setProgress(progress);});render(0);onScroll();
+reduced.addEventListener('change',()=>{render(progress,true);if(!reduced.matches)setProgress(progress);});render(0);onScroll();

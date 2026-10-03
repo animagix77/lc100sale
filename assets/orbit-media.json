@@ -1,5 +1,7 @@
 {
-  "ready": false,
-  "src": null,
-  "note": "Awaiting one continuous clockwise 360-degree beach orbit. Set src to the approved local MP4 under assets and ready to true only after reviewing the complete clip. Playback is paused and scroll-seeked. Keep Malone bars, omit rear spoiler, no people or camping accessories."
+  "ready": true,
+  "src": "assets/video/orbit-scrub.mp4",
+  "poster": "assets/video/orbit-poster.jpg",
+  "fps": 24,
+  "note": "Owner-supplied six-second partial beach orbit. Silent H.264, 1280x720, every frame is a keyframe for fast scroll seeking. Original remains in the iCloud project folder."
 }

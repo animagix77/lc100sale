@@ -1,0 +1,70 @@
+{
+  "width": 1000,
+  "height": 760,
+  "viewBox": "0 0 1000 760",
+  "bounds": {
+    "west": -78.7,
+    "south": 37.65,
+    "east": -71.4,
+    "north": 41.9
+  },
+  "projection": {
+    "type": "Equirectangular",
+    "standardParallel": 40,
+    "units": "degrees",
+    "scaleX": 136.98677100480546,
+    "scaleY": 178.8235294117647,
+    "offsetX": -0.001714167539716982,
+    "formula": "x = offsetX + (longitude - west) * scaleX; y = (north - latitude) * scaleY"
+  },
+  "focusViewBoxes": {
+    "overview": "0 0 1000 760",
+    "maryland": "70 275 530 402.8",
+    "longIsland": "610 72 390 296.4",
+    "leonia": "485 80 360 273.6"
+  },
+  "points": {
+    "maryland": {
+      "label": "Maryland",
+      "longitude": -76.7,
+      "latitude": 39.1,
+      "representative": true,
+      "precisionNote": "State-level representative point. First-owner town is unknown.",
+      "x": 273.972,
+      "y": 500.706
+    },
+    "longIsland": {
+      "label": "Long Island, New York",
+      "longitude": -73.1,
+      "latitude": 40.86,
+      "representative": true,
+      "precisionNote": "Island-level representative point. Previous-owner town is unknown.",
+      "x": 767.124,
+      "y": 185.976
+    },
+    "leonia": {
+      "label": "Leonia, New Jersey",
+      "longitude": -73.988,
+      "latitude": 40.862,
+      "representative": false,
+      "precisionNote": "Approximate town-center coordinate provided for this task.",
+      "x": 645.48,
+      "y": 185.619
+    }
+  },
+  "colors": {
+    "water": "#0b2225",
+    "land": "#2c5355",
+    "boundary": "#527779"
+  },
+  "note": "Regional ownership journey. Representative locations do not identify owner addresses. Any connection between points is an illustrative ownership sequence, not a driven road route.",
+  "source": {
+    "publisher": "Natural Earth",
+    "dataset": "Admin 1 – States, provinces, 1:50m",
+    "datasetUrl": "https://www.naturalearthdata.com/downloads/50m-cultural-vectors/50m-admin-1-states-provinces/",
+    "dataUrl": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_1_states_provinces.geojson",
+    "termsUrl": "https://www.naturalearthdata.com/about/terms-of-use/",
+    "license": "Public domain; attribution optional",
+    "downloaded": "2026-10-03"
+  }
+}

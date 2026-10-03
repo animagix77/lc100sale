@@ -1,0 +1,27 @@
+{
+  "mode": "built-in imagegen",
+  "prompts": [
+    {
+      "key": "campPrompt1",
+      "prompt": "Use case: precise-object-edit. Edit target: the supplied real 2019 beach-camping photograph of the grey Toyota Land Cruiser with an open rooftop tent and ladder. Clone out EVERY person, including the adult and child on the tent ladder and any distant people, carefully reconstructing only the occluded ladder rungs, tent entrance, sky and background with physically plausible continuity. Remove the loose sandals and tiny loose trash on foreground sand for presentation. Preserve the actual photograph's composition, vehicle body shape, grey paint, wheels, tires, existing blemishes, open hatch, historical rooftop tent, ladder, beach and other campsite tents; do not invent a newer or cleaner truck or alter condition. Give the photograph a natural professional full-frame editorial finish: balanced exposure, recovered cloud highlights, subtle color separation and contrast, crisp vehicle and tent detail without oversharpening, realistic texture and restrained background depth. Same real scene and camera angle, no exaggerated HDR, no added people, no text or watermarks. Save a standalone edited photo."
+    },
+    {
+      "key": "campPrompt2",
+      "prompt": "Use case: precise-object-edit. Edit target: the supplied real low-angle photograph of the open rooftop tent above the grey Land Cruiser with a woman standing on the ladder. Remove the woman completely, cloning out all visible body, hair and clothing. Accurately reconstruct the ladder rails/rungs and tent edge she occludes, maintaining their perspective. Preserve the existing tent fabric and mesh, ladder, open hatch, roof hardware, vehicle condition and original camera framing. Render as a tasteful professional full-frame camera photo: soft natural highlight recovery, balanced exposure to retain pale fabric texture and sky blue, neutral grey vehicle, realistic sharp details and modest depth separation. This remains an edit of the same historical photo, not an invented new truck or setup. No people anywhere, no smoothing away blemishes, no added text or watermark."
+    },
+    {
+      "key": "campPrompt3",
+      "prompt": "Use case: precise-object-edit. Asset type: historical beach-camping photograph for the owner's Land Cruiser gallery. Edit target: the supplied actual August 24, 2019 photograph. Remove EVERY person, including the two people beside the truck, child in pink hat in the foreground, and all people at the shoreline. Seamlessly reconstruct only the sand, waves, chairs, ladder and vehicle portions they occlude. Remove loose black fabric sitting on the hood and distracting small loose litter. Keep the exact grey Toyota Land Cruiser, body wear, factory wheels, tires, roof-mounted open iKamper tent, ladder, roof mounting, historical rear spoiler, campsite accessories, ocean and sunny setting. This is a historical photo, do not update it to the current specification. Professional full-frame editorial automotive finish: gently level the horizon, balanced natural exposure, restrained blue sea and sky, neutral grey paint, soft highlight roll-off, realistic sand and tent fabric textures, crisp detail without excessive sharpening, sensible 35mm photographic perspective. Preserve original wide composition and the full truck; do not invent a different angle or fill in a clean showroom vehicle. No people anywhere, no beautification of scratches or wear, no added objects, no labels, no watermark."
+    },
+    {
+      "key": "campPrompt4",
+      "prompt": "Use case: lighting-weather / precise-object-edit. Asset type: historical 2019 Land Cruiser camping gallery photo. Edit target: the supplied actual low front-driver-quarter photograph at Hither Hills State Park. Give it a restrained professional full-frame automotive editorial finish: balanced exposure and neutral grey paint, recovered cloudy-sky highlights, gentle shadow lift revealing original undercarriage without exaggerating detail, crisp tire and fabric texture, realistic natural color, subtle dimensional contrast. Remove only the readable license-plate characters (leave blank plate), the thin fishing rod extending across the left sky, and any people if present. Keep the original camera angle, entire visible truck, original Toyota-emblem grille, body scratches/wear, wheels, tires, stance, running boards installed at that historical time, closed roof-mounted iKamper/camping bundle and its mounting, rear cargo carrier, dunes, vegetation and overcast light. Do not make it a different beach, don't add ocean or sunshine, don't change equipment to present-day specification, don't repair blemishes. No text, no watermark. Historical source photograph, photographic polish only."
+    }
+  ],
+  "outputs": [
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/09-beach-camp-edited-v2.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/10-rooftop-tent-edited-v2.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/13-ikamper-shoreline-edited.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/14-camping-front-quarter-edited.png"
+  ]
+}

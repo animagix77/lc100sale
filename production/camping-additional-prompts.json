@@ -1,0 +1,51 @@
+{
+  "mode": "built-in imagegen",
+  "jobs": [
+    {
+      "id": "15-beach-penthouse",
+      "path": "/Users/binhtran/Pictures/Photos Library.photoslibrary/resources/derivatives/9/9AFAF38D-39E5-4500-84B6-70F10D412796_1_105_c.jpeg",
+      "prompt": "Edit this actual owner photograph for a premium used-vehicle photo gallery. This is a faithful presentation retouch, not a new scene. Preserve the exact grey 2004 Toyota Land Cruiser, original proportions, suspension stance, roof equipment, wheels, tires, paint blemishes, scuffs, rust and historical accessories. Keep the original background, season and time of day unless specifically removing something below. Professional full-frame photography finish: balanced exposure, natural highlight/shadow recovery, refined white balance, restrained color, crisp realistic detail, no artificial blur or HDR halos, no showroom restoration. Remove license-plate characters while leaving plate shape/color. No added labels or text. Remove the seated man at far left, reconstructing empty chair and sand. Remove the bright foreground beach chair, towel, toys and small loose litter on sand. Keep truck, open rear hatch, luggage on carrier, deployed rooftop tent, awning, and blue canopy. Preserve every dent, scratch, age mark and tire/wheel detail.",
+      "output": "/Users/binhtran/.codex/generated_images/01a0fd7b-d648-7962-b75b-a72934958fc6/exec-b6726d1a-cf5b-4dd3-9c53-f3dc03db2264.png",
+      "saved_path": "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/15-beach-penthouse-edited.png"
+    },
+    {
+      "id": "18-sunrise-coast",
+      "path": "/Users/binhtran/Pictures/Photos Library.photoslibrary/resources/derivatives/6/67E0134A-D8FC-42EC-B593-6BC11236D12F_1_102_o.jpeg",
+      "prompt": "Edit this actual owner photograph for a premium used-vehicle photo gallery. This is a faithful presentation retouch, not a new scene. Preserve the exact grey 2004 Toyota Land Cruiser, original proportions, suspension stance, roof equipment, wheels, tires, paint blemishes, scuffs, rust and historical accessories. Keep the original background, season and time of day unless specifically removing something below. Professional full-frame photography finish: balanced exposure, natural highlight/shadow recovery, refined white balance, restrained color, crisp realistic detail, no artificial blur or HDR halos, no showroom restoration. Remove license-plate characters while leaving plate shape/color. No added labels or text. Remove the child and all beach chairs at right, small toys and the diagonal foreground guyline, reconstructing continuous sand and water. Keep vehicle, packed roof tent and solar panel, fishing rods, background, tire tracks, lighting. Preserve every body blemish.",
+      "output": "/Users/binhtran/.codex/generated_images/01a0fd7b-d648-7962-b75b-a72934958fc6/exec-01605740-c1fc-4c16-9715-6e4fcd5bc231.png",
+      "saved_path": "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/18-sunrise-coast-edited.png"
+    },
+    {
+      "id": "19-shoreline-awning",
+      "path": "/Users/binhtran/Pictures/Photos Library.photoslibrary/resources/derivatives/7/7D751D9F-BD70-4AD3-9EC6-C203BEC46BD0_1_102_o.jpeg",
+      "prompt": "Edit this actual owner photograph for a premium used-vehicle photo gallery. This is a faithful presentation retouch, not a new scene. Preserve the exact grey 2004 Toyota Land Cruiser, original proportions, suspension stance, roof equipment, wheels, tires, paint blemishes, scuffs, rust and historical accessories. Keep the original background, season and time of day unless specifically removing something below. Professional full-frame photography finish: balanced exposure, natural highlight/shadow recovery, refined white balance, restrained color, crisp realistic detail, no artificial blur or HDR halos, no showroom restoration. Remove license-plate characters while leaving plate shape/color. No added labels or text. Remove the woman, baby and boy, their foreground empty chair, toys, sandals and loose foreground beach clutter. Reconstruct sand without changing the truck's open rear hatch, open side doors, awning, packed roof gear, hitch luggage or cargo. Preserve all wear, dents, rust and marks; do not repair the truck.",
+      "output": "/Users/binhtran/.codex/generated_images/01a0fd7b-d648-7962-b75b-a72934958fc6/exec-836b74a4-96c9-4465-8c5b-34899e4ebc9e.png",
+      "saved_path": "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/19-shoreline-awning-edited.png"
+    },
+    {
+      "id": "20-blue-hour-coast",
+      "path": "/Users/binhtran/Pictures/Photos Library.photoslibrary/resources/derivatives/A/AAB98E76-25EA-436C-83DC-3746D22C2A8A_1_105_c.jpeg",
+      "prompt": "Edit this actual owner photograph for a premium used-vehicle photo gallery. This is a faithful presentation retouch, not a new scene. Preserve the exact grey 2004 Toyota Land Cruiser, original proportions, suspension stance, roof equipment, wheels, tires, paint blemishes, scuffs, rust and historical accessories. Keep the original background, season and time of day unless specifically removing something below. Professional full-frame photography finish: balanced exposure, natural highlight/shadow recovery, refined white balance, restrained color, crisp realistic detail, no artificial blur or HDR halos, no showroom restoration. Remove license-plate characters while leaving plate shape/color. No added labels or text. Remove the walking person at right and the neighboring dark pickup at left, rebuilding existing beach and shoreline naturally. Keep Land Cruiser exactly in same position and perspective, packed rooftop camping setup and rods, twilight sky and sand. Preserve vehicle blemishes.",
+      "output": "/Users/binhtran/.codex/generated_images/01a0fd7b-d648-7962-b75b-a72934958fc6/exec-5355e282-51fe-456f-8714-c50a25a62574.png",
+      "saved_path": "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/20-blue-hour-coast-edited.png"
+    },
+    {
+      "id": "21-evening-campfire",
+      "path": "/Users/binhtran/Pictures/Photos Library.photoslibrary/resources/derivatives/F/F5601421-0CE3-4F99-A901-971814A91CFE_1_105_c.jpeg",
+      "prompt": "Edit this actual owner photograph for a premium used-vehicle photo gallery. This is a faithful presentation retouch, not a new scene. Preserve the exact grey 2004 Toyota Land Cruiser, original proportions, suspension stance, roof equipment, wheels, tires, paint blemishes, scuffs, rust and historical accessories. Keep the original background, season and time of day unless specifically removing something below. Professional full-frame photography finish: balanced exposure, natural highlight/shadow recovery, refined white balance, restrained color, crisp realistic detail, no artificial blur or HDR halos, no showroom restoration. Remove license-plate characters while leaving plate shape/color. No added labels or text. Remove ALL people, including standing man at far right and seated family members and any distant people. Leave empty beach chairs, real campfire, other parked vehicles and beach camping scene; reconstruct obscured seat fabric, sand and fire glow realistically. Keep Land Cruiser open hatch, packed roof gear and body features unchanged. Preserve age and wear.",
+      "output": "/Users/binhtran/.codex/generated_images/01a0fd7b-d648-7962-b75b-a72934958fc6/exec-b45534bc-a9fc-445d-a2fa-db90a9d6883b.png",
+      "saved_path": "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/21-evening-campfire-edited.png"
+    }
+  ],
+  "all_saved_photos": [
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/15-beach-penthouse-edited.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/16-oceanfront-camp.jpeg",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/17-winter-waterfront.jpeg",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/18-sunrise-coast-edited.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/19-shoreline-awning-edited.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/20-blue-hour-coast-edited.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/21-evening-campfire-edited.png",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/22-bridge-portrait.jpeg",
+    "/Users/binhtran/.codex/.chatgpt-projects/g-p-6abfdb8c0d148191b76431f480b4142f/output/camping-polish/23-bridge-wide.jpeg"
+  ]
+}
