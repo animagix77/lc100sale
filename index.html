@@ -1,4 +1,26 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="One truck. Several weekends. 2004 Toyota Land Cruiser · 4.7L V8 · 220,718 miles shown · $11,000 asking · North Jersey · sold as is.">
+<script data-lc-refresh>
+// A refresh opens on the landing view; new visits to shared section links still work.
+(() => {
+  if (performance.getEntriesByType('navigation')[0]?.type !== 'reload') return;
+  const restoration = history.scrollRestoration;
+  history.scrollRestoration = 'manual';
+  history.replaceState(history.state, '', location.pathname + location.search);
+  let interacted = false;
+  const inputs = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+  const noteInteraction = () => { interacted = true; };
+  const reset = () => { if (!interacted) window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); };
+  inputs.forEach(type => window.addEventListener(type, noteInteraction, { passive: true }));
+  reset();
+  document.addEventListener('DOMContentLoaded', reset, { once: true });
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted) reset();
+    inputs.forEach(type => window.removeEventListener(type, noteInteraction));
+    // Resume native restoration for subsequent Back/Forward navigation.
+    requestAnimationFrame(() => { history.scrollRestoration = restoration; });
+  }, { once: true });
+})();
+</script>
 <link rel="canonical" href="https://animagix77.github.io/lc100sale/">
 <link rel="image_src" href="https://animagix77.github.io/lc100sale/assets/share/lc100-landing-hero-v1.jpg">
 <meta property="og:type" content="website">
