@@ -1,7 +1,7 @@
 // Reading content follows viewport position; the orbit's chapter transitions stay independent.
 (() => {
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
- const candidates=[...document.querySelectorAll('.page-content h2,.page-content h3,.page-content p,.page-content .status,.page-content .timeline>article>span,.page-content .spec-strip>div>strong,.page-content .spec-strip>div>span,.page-content .ownership-stat>strong,.page-content .history-fact-copy>strong,.page-content .history-fact-copy>span,.page-content .sale-meta>span,.page-content .buyer-actions>a,.page-content .purchase-trigger,.page-content .photo-open>span,.page-content a,footer>span,footer>p')].filter(node=>!node.closest('dialog,.ownership-journey'));
+ const candidates=[...document.querySelectorAll('.page-content h2,.page-content h3,.page-content p,.page-content .status,.page-content .timeline>article>span,.page-content .spec-strip>div>strong,.page-content .spec-strip>div>span,.page-content .ownership-stat>strong,.page-content .history-fact-copy>strong,.page-content .history-fact-copy>span,.page-content .sale-meta>span,.page-content .buyer-actions>a,.page-content .purchase-trigger,.page-content .photo-open>span,.page-content a,footer>span,footer>p')].filter(node=>!node.closest('dialog,.ownership-journey')&&node.matches('h2,.spec-strip strong'));
  const records=candidates.filter(node=>!node.parentElement.closest('.scroll-text-mask')&&!candidates.some(parent=>parent!==node&&parent.contains(node))).map(node=>{
   const ink=document.createElement('span');ink.className='scroll-ink';ink.append(...node.childNodes);node.append(ink);node.classList.add('scroll-text-mask');
   return {node,ink,counter:null};

@@ -1,66 +1,38 @@
 const chapters=[
- {
-  "tag": "THE POWERTRAIN",
-  "title": "Big V8 energy.<br>Retiree schedule.",
-  "body": "Original 4.7-liter V8, never rebuilt according to my ownership history. Odometer photo: 220,718 miles. These days, the daily driving goes to my other vehicles.",
-  "href": "#engine-history-title",
-  "link": "Read the owner-reported history"
- },
- {
-  "tag": "THE STANCE",
-  "title": "A modest lift.<br>An immodest stance.",
-  "body": "Old Man Emu suspension, BFGoodrich KM3s and Bora spacers. A little taller, a little wider, and wildly overqualified for the garden-center parking lot.",
-  "href": "#history",
-  "link": "See the equipment and service dates"
- },
- {
-  "tag": "THE CARGO",
-  "title": "Bring the gear.<br>Or two more people.",
-  "body": "Two functional rear jump seats fold away for cargo. A 2-inch hitch receiver sits out back. This was supposed to be a mulch run. Then we packed for a family expedition.",
-  "href": "#photo-08-cargo",
-  "link": "Explore the cargo photo"
- },
- {
-  "tag": "THE ROOF",
-  "title": "The spoiler left.<br>The bars stayed.",
-  "body": "The rear spoiler is gone, a piece of roof-rack trim is missing, and the sunroof needs attention. The Malone crossbars are included because I really don’t want to take them off.",
-  "href": "#roof-condition",
-  "link": "Check the roof and sunroof notes"
- },
- {
-  "tag": "THE DIAGNOSTICS",
-  "title": "Three codes.<br>No hide-and-seek.",
-  "body": "P2418 / P0442 / P0446. My mechanic suspects the area in these photos and recommended a body shop/welder. It’s a lead, not a confirmed diagnosis or repair estimate.",
-  "href": "#mechanic-photos",
-  "link": "Open the mechanic’s photos and notes"
- },
- {
-  "tag": "THE CABIN",
-  "title": "No running boards.<br>Plenty of commentary.",
-  "body": "I removed the running boards because I wanted her to look taller. My wife would like the jury to remember that sentence. Grab handle supplied. Additional height sold separately.",
-  "href": "#cabin-condition",
-  "link": "Read the cabin’s to-do list"
- },
- {
-  "tag": "THE FUEL ECONOMY",
-  "title": "Budget for<br>the gasoline.",
-  "body": "EPA stock figures are 12 city / 16 highway MPG; mileage with these modifications is unconfirmed. Buying this to save on fuel would be an ambitious misunderstanding.",
-  "href": "#fuel-economy",
-  "link": "Check the stock MPG figures"
- },
- {
-  "tag": "THE NEXT CHAPTER",
-  "title": "A hobby.<br>With a VIN.",
-  "body": "Your socket set deserves a purpose. If your idea of a good weekend involves a garage and a parts order, we should talk.",
-  "href": "#contact",
-  "link": "Arrange a viewing"
- }
+  {
+    "tag": "THE TRUCK",
+    "title": "Big V8.<br>Small workload.",
+    "body": "4.7 liters. 220,718 miles shown. Roughly 1,530 miles a year under my ownership. I bought a Land Cruiser and gave it a desk job.",
+    "href": "#ownership",
+    "link": "Meet the owner’s truck"
+  },
+  {
+    "tag": "THE SETUP",
+    "title": "Overqualified<br>for the mulch run.",
+    "body": "Old Man Emu suspension, BFGoodrich KM3s and Bora spacers. A little taller, a little wider. The garden center remains deeply unimpressed.",
+    "href": "#history",
+    "link": "See the equipment & service"
+  },
+  {
+    "tag": "THE PRACTICAL BITS",
+    "title": "Bring the gear.<br>Grow longer legs.",
+    "body": "Fold-away rear seats make room for cargo. I removed the running boards to make her look taller. My wife has submitted her review. Grab handles remain.",
+    "href": "#gallery",
+    "link": "Look inside"
+  },
+  {
+    "tag": "THE NEXT OWNER",
+    "title": "A hobby.<br>With a VIN.",
+    "body": "$11,000 asking. She drives great in my experience, and she needs work. Your socket set deserves a purpose. The repair list is included.",
+    "href": "#price",
+    "link": "See the price & comparables"
+  }
 ];
 const $=id=>document.getElementById(id);
 const tour=$('tour'),slider=$('scrubber'),video=$('orbit-video'),poster=$('scene-poster');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 let progress=0,last=-2,queued=false,videoReady=false,targetTime=0,frames=[],frameIndex=-1,sequence=null;
-const introFraction=.12;
+const introFraction=.08;
 let pendingFocus=null,fallbackManifest=null;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const orbitProgress=()=>clamp((progress-introFraction)/(1-introFraction));
@@ -120,9 +92,9 @@ function setDetailState(n,detail){
  panel.hidden=!detail;panel.dataset.detail=String(n);
  $('bubble-video').hidden=!detail?.live;$('bubble-photo').hidden=!!detail?.live;
  open.hidden=!detail||(n!==0&&n!==2&&n!==5);
- if(n===0){open.dataset.photo=document.querySelector('#photo-27-engine-cover .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the cleaned V8 detail and source comparison')}
- if(n===2){open.dataset.photo=document.querySelector('#photo-08-cargo .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the rear cargo photo and its presentation-edit notes')}
- if(n===5){open.dataset.photo=document.querySelector('#photo-24-grab-handle .photo-open').dataset.photo;open.dataset.photoSource='true';open.setAttribute('aria-label','Open the original front grab-handle photo')}
+ if(n===0){open.dataset.photo=document.querySelector('#photo-27-engine-cover .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the cleaned V8 detail')}
+ if(n===2){open.dataset.photo=document.querySelector('#photo-08-cargo .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the rear cargo photo')}
+ if(n===5){open.dataset.photo=document.querySelector('#photo-24-grab-handle .photo-open').dataset.photo;open.dataset.photoSource='true';open.setAttribute('aria-label','Open the front grab-handle photo')}
  if(!detail)detailRevealed=-1;
 }
 function revealDetail(n){
@@ -130,10 +102,11 @@ function revealDetail(n){
  if(n===2||n===3)window.lcMotion?.detail($('bubble-video').hidden?$('bubble-photo'):$('bubble-video'));
 }
 function updateDetail(n){
+ if(progress<introFraction)n=-1;else if(n===2){const phase=(orbitProgress()-.5)*4;n=phase<.38?2:phase<.68?3:5;}else if(n===3)n=-1;
  const shown=frames[frameIndex];
  if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
- const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO\nEDITED PHOTO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
+ const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
  setDetailState(n,detail);
  if(!detail)return;
  const anchor=shown.anchors?.[n===1?'tire':n===2?'cargo':n===3?'roof':n===5?'handle':'engine'];
@@ -175,7 +148,7 @@ function updateDetail(n){
 function updateVideoDetail(n){
  const detail=n===0?{src:'assets/gallery/27-engine-cover-edited.jpg',label:'4.7L V8',size:'cover',position:'50% 61%'}:
  n===1?{src:'assets/gallery/07-tire-source.jpg',label:'KM3 · 2019',size:'cover',position:'center'}:
- n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO\nEDITED PHOTO',size:'165%',position:'50% 67%'}:
+ n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO',size:'165%',position:'50% 67%'}:
  n===3?{live:true,label:'NO REAR\nSPOILER'}:
  n===5?{src:'assets/gallery/24-grab-handle.jpeg',label:'GRAB HANDLE',size:'250%',position:'51% 42%'}:null;
  setDetailState(n,detail);
@@ -221,8 +194,8 @@ function updateVideoDetail(n){
  $('leader-path').setAttribute('d',`M ${x} ${y} L ${bubbleX} ${top+height}`);
 }
 function render(p,forceDetail=false){
- progress=clamp(p);const op=orbitProgress(),n=progress<introFraction-.0005?-1:Math.min(7,Math.floor(op*8+.003));
- slider.value=Math.round(progress*1000);slider.setAttribute('aria-valuetext',n<0?'Introduction':`Chapter ${n+1} of 8: ${chapters[n].tag.toLowerCase()}`);
+ progress=clamp(p);const op=orbitProgress(),n=progress<introFraction-.0005?-1:Math.min(chapters.length-1,Math.floor(op*chapters.length+.003));
+ slider.value=Math.round(progress*1000);slider.setAttribute('aria-valuetext',n<0?'Introduction':`Chapter ${n+1} of ${chapters.length}: ${chapters[n].tag.toLowerCase()}`);
  if(videoReady)$('tour-progress').textContent=Math.round(progress*100)+'%';else if(!frames.length)$('tour-progress').textContent='0°';
  const chapterChanged=n!==last;
  if(chapterChanged){
@@ -236,11 +209,11 @@ function render(p,forceDetail=false){
    const intro=n<0;$('launch').hidden=!intro;$('walkaround').hidden=intro;
    $('orbit-pin').classList.toggle('inspecting',!intro);
    $('tour-mode').textContent=intro?'ONE TRUCK. SEVERAL WEEKENDS.':'THE HONEST WALKAROUND';
-   const showEvidence=n===4;$('tour-evidence').hidden=!showEvidence;
+   const showEvidence=false;$('tour-evidence').hidden=!showEvidence;
    $('orbit-pin').classList.toggle('showing-evidence',showEvidence);
    if(!intro){
     const c=chapters[n];$('tour-issue-link').href=c.href;$('tour-issue-link').textContent=c.link;
-    $('chapter').textContent=`0${n+1} / 08`;$('tag').textContent=c.tag;
+    $('chapter').textContent=`0${n+1} / 04`;$('tag').textContent=c.tag;
     $('tour-title').innerHTML=c.title;$('tour-body').textContent=c.body;window.lcMotion?.chapter(n);
    }else window.lcMotion?.intro();
    updateDetail(n);
@@ -249,7 +222,7 @@ function render(p,forceDetail=false){
   };
   if(window.lcMotion?.transition)window.lcMotion.transition(changeCopy,direction,initial);else changeCopy();
   Array.from($('chapter-dots').children).forEach((b,i)=>b.setAttribute('aria-current',String(i===n)));
-  $('previous').disabled=n<0;$('next').disabled=n===7;last=n;
+  $('previous').disabled=n<0;$('next').disabled=n===chapters.length-1;last=n;
  }
  if(videoReady){targetTime=progress*Math.max(0,video.duration-.04);seekVideo()}
  else if(sequence){sequence.seek(progress*360)}
@@ -258,10 +231,10 @@ function render(p,forceDetail=false){
 function tourDistance(){const overlap=Math.max(0,-parseFloat(getComputedStyle(document.querySelector('.page-content')).marginTop)||0);return tour.offsetHeight-innerHeight-overlap}
 function scrollProgress(){const rect=tour.getBoundingClientRect(),distance=tourDistance();return distance>0?-rect.top/distance:progress}
 // Native wheel/touch scrolling freely scrubs the video. Chapter buttons remain optional shortcuts.
-const chapterStops=[0,...Array.from({length:9},(_,i)=>introFraction+i/8*(1-introFraction))];
+const chapterStops=[0,...Array.from({length:chapters.length+1},(_,i)=>introFraction+i/chapters.length*(1-introFraction))];
 function onScroll(){queued=false;if(!reduced.matches)render(scrollProgress());}
 function setProgress(p){p=clamp(p);if(!reduced.matches)window.scrollTo({top:tour.offsetTop+p*tourDistance(),behavior:'instant'});render(p)}
-function go(i,focusId){i=Math.max(-1,Math.min(7,i));pendingFocus=focusId?{chapter:i,id:focusId,from:document.activeElement}:null;setProgress(i<0?0:introFraction+i/8*(1-introFraction))}
+function go(i,focusId){i=Math.max(-1,Math.min(chapters.length-1,i));pendingFocus=focusId?{chapter:i,id:focusId,from:document.activeElement}:null;setProgress(i<0?0:introFraction+i/chapters.length*(1-introFraction))}
 slider.addEventListener('input',()=>setProgress(Number(slider.value)/1000));
 slider.addEventListener('keydown',event=>{
  const forward=['ArrowRight','ArrowUp','PageUp'],back=['ArrowLeft','ArrowDown','PageDown'];
@@ -271,7 +244,7 @@ slider.addEventListener('keydown',event=>{
  const next=event.key==='Home'?0:event.key==='End'?chapterStops.length-1:Math.max(0,Math.min(chapterStops.length-1,index+(forward.includes(event.key)?1:-1)));
  setProgress(chapterStops[next]);
 });
-$('start-tour').addEventListener('click',()=>go(0,'tour-title'));$('previous').addEventListener('click',()=>go(last-1,last===0?'start-tour':null));$('next').addEventListener('click',()=>go(last+1,last===6?'tour-title':null));
+$('start-tour').addEventListener('click',()=>go(0,'tour-title'));$('previous').addEventListener('click',()=>go(last-1,last===0?'start-tour':null));$('next').addEventListener('click',()=>go(last+1,last===chapters.length-2?'tour-title':null));
 window.addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(onScroll)}},{passive:true});window.addEventListener('resize',()=>render(reduced.matches?progress:scrollProgress(),true));
 $('tour-image').addEventListener('load',()=>updateDetail(last));
 reduced.addEventListener('change',()=>{render(progress,true);if(!reduced.matches)setProgress(progress);});render(0);onScroll();
