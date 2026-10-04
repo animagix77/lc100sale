@@ -490,3 +490,8 @@ html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
 .vehicle-vin{display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:8px 12px;margin:22px auto 0;font:14px/1.6 monospace}
 .vehicle-vin>span{color:var(--muted);letter-spacing:1px}
 .vehicle-vin code{font:inherit;color:var(--ink);letter-spacing:.04em;user-select:all;-webkit-user-select:all}
+
+/* Establish the entire journey before the camera moves into the first stop. */
+.journey-map .map-stop-name{transition:opacity .35s ease}
+.is-overview .journey-map .map-stop-name{opacity:1!important}
+.is-overview .journey-map .map-stop{opacity:1}

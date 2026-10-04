@@ -11,7 +11,7 @@
  const buttons=[...section.querySelectorAll('[data-journey-stop]')];
  const status=section.querySelector('.journey-map-position');
  const pin=section.querySelector('.journey-pin');
- const cameras=[[70,275,530,402.8],[610,72,390,296.4],[485,80,360,273.6]];
+ const cameras=[[119,340,310,270],[612,45,310,270],[505,55,280,250]];
  const overview=[0,0,1000,760];
  const names=['MARYLAND','LONG ISLAND','LEONIA, NJ'];
  const pathLength=route.getTotalLength();
@@ -20,6 +20,13 @@
  const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,value));
  const mix=(a,b,t)=>a+(b-a)*t;
  const ease=t=>1-Math.pow(1-t,4);
+ const cameraEase=t=>t*t*t*(t*(t*6-15)+10);
+ // Expand each framing to the map's real shape so wide and narrow screens keep every stop in view.
+ function fitCamera(box){
+  const rect=svg.getBoundingClientRect(),aspect=rect.width/Math.max(1,rect.height);
+  const width=Math.max(box[2],box[3]*aspect),height=width/aspect;
+  return [box[0]+box[2]/2-width/2,box[1]+box[3]/2-height/2,width,height];
+ }
  let camera=overview.slice(),position=0,current=-1,motion=null,frame=0;
  let settleFrame=0,settling=false,settleTimer=0,settleUnlockTimer=0,lastY=scrollY,direction=0;
  let touchHeld=false,pointerHeld=false;
@@ -73,9 +80,20 @@
  }
  function tick(now){
   frame=0;if(!motion)return;
-  const progress=clamp((now-motion.started)/motion.duration),t=ease(progress);
-  camera=motion.fromCamera.map((v,i)=>mix(v,motion.toCamera[i],t));
-  position=mix(motion.fromPosition,motion.toPosition,t);draw();
+  const progress=clamp((now-motion.started)/motion.duration),t=cameraEase(progress);
+  position=mix(motion.fromPosition,motion.toPosition,t);
+  const from=motion.fromCamera,to=motion.toCamera;
+  // Interpolate zoom multiplicatively; follow the dotted route instead of cutting across its bends.
+  const lift=motion.intro?1:1+Math.sin(Math.PI*t)*.16;
+  const width=Math.exp(mix(Math.log(from[2]),Math.log(to[2]),t))*lift;
+  const height=Math.exp(mix(Math.log(from[3]),Math.log(to[3]),t))*lift;
+  let cx=mix(from[0]+from[2]/2,to[0]+to[2]/2,t),cy=mix(from[1]+from[3]/2,to[1]+to[3]/2,t);
+  if(!motion.intro){
+   const point=route.getPointAtLength(position*pathLength);
+   cx=point.x+mix(motion.fromOffset[0],motion.toOffset[0],t);
+   cy=point.y+mix(motion.fromOffset[1],motion.toOffset[1],t);
+  }
+  camera=[cx-width/2,cy-height/2,width,height];draw();
   if(progress<1)frame=requestAnimationFrame(tick);else motion=null;
  }
  function textTransition(index,previous){
@@ -98,6 +116,7 @@
  function select(index,animate=true){
   if(index===current)return;
   const previous=current;current=index;section.dataset.stop=String(index);
+  section.classList.remove('is-overview');
   chapters.forEach((chapter,i)=>{chapter.classList.toggle('is-active',i===index);chapter.setAttribute('aria-hidden',String(!reduced.matches&&!staticLayout&&i!==index));});
   buttons.forEach((button,i)=>{if(i===index)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');});
   stops.forEach((stop,i)=>stop.classList.toggle('is-current',i===index));
@@ -112,16 +131,28 @@
   if(index===2&&animate&&!mileagePlayed){
    mileagePlayed=true;mileageReels.forEach(({reel,end},i)=>reel.animate([{transform:'translateY(0)'},{transform:`translateY(-${end}em)`}],{duration:1300+i*70,delay:500,easing:'cubic-bezier(.18,.65,.25,1)',fill:'backwards'}));
   }
-  if(!animate){camera=cameras[index].slice();position=destinations[index];motion=null;draw();return;}
+  if(!animate){camera=fitCamera(cameras[index]);position=destinations[index];motion=null;draw();return;}
   travelSign=Math.sign(destinations[index]-position)||1;
-  motion={started:performance.now(),duration:innerWidth<=700?650:850,fromCamera:camera.slice(),toCamera:cameras[index],fromPosition:position,toPosition:destinations[index]};
+  const target=fitCamera(cameras[index]),fromPoint=route.getPointAtLength(position*pathLength),toPoint=route.getPointAtLength(destinations[index]*pathLength);
+  const intro=previous<0;
+  motion={started:performance.now()+(intro?220:0),duration:intro?1900:1250+Math.abs(destinations[index]-position)*650,intro,fromCamera:camera.slice(),toCamera:target,fromPosition:position,toPosition:destinations[index],fromOffset:[camera[0]+camera[2]/2-fromPoint.x,camera[1]+camera[3]/2-fromPoint.y],toOffset:[target[0]+target[2]/2-toPoint.x,target[1]+target[3]/2-toPoint.y]};
   frame=requestAnimationFrame(tick);
+ }
+ function resetOverview(){
+  if(frame)cancelAnimationFrame(frame);frame=0;motion=null;
+  textNodes.flat().forEach(ink=>ink.getAnimations().forEach(animation=>animation.cancel()));
+  current=-1;select(0,false);current=-1;
+  camera=fitCamera(overview);position=0;travelSign=1;
+  section.classList.add('is-overview');status.textContent='THREE STOPS. ONE TRUCK.';draw();
  }
  let queued=false;
  function render(){
   queued=false;if(reduced.matches||staticLayout||settling)return;
   const {top,distance}=geometry(),progress=(scrollY-top)/distance;
-  if(scrollY+innerHeight<top||scrollY>top+section.offsetHeight)return;
+  // Let the wide establishing view enter first; replay only after leaving above the map.
+  if(scrollY<top-innerHeight*.85){if(current>=0)resetOverview();return;}
+  if(scrollY>top+section.offsetHeight)return;
+  if(current<0&&top-scrollY>innerHeight*.22)return;
   let index=clamp(Math.round(progress*2),0,2);
   // A small dead zone prevents a trackpad hovering at a boundary from flickering.
   if(current>=0&&Math.abs(progress-(current+.5)/2)<.025&&index>current)index=current;
@@ -189,6 +220,10 @@
   cancelSettle();
   const previous=staticLayout;fitLayout();
   if(previous!==staticLayout){current=-1;select(0,false);}
+  if(!reduced.matches&&!staticLayout){
+   if(current<0)resetOverview();
+   else{if(frame)cancelAnimationFrame(frame);frame=0;motion=null;camera=fitCamera(cameras[current]);position=destinations[current];}
+  }
   draw();queue();
  });
  function preference(){
@@ -197,7 +232,7 @@
   mileageReels.forEach(({reel})=>reel.getAnimations().forEach(animation=>animation.cancel()));
   section.classList.add('is-enhanced');current=-1;fitLayout();
   if(reduced.matches||staticLayout){select(0,false);chapters.forEach(chapter=>chapter.removeAttribute('aria-hidden'));}
-  else{camera=overview.slice();position=0;draw();render();}
+  else{resetOverview();render();}
  }
  reduced.addEventListener('change',preference);preference();
 })();
