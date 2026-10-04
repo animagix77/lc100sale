@@ -462,3 +462,26 @@ html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
  .price-comparisons{margin-top:32px}.comparable-links{grid-template-columns:1fr;gap:10px}.comparable-link{padding:14px 16px}.comparable-top{display:flex}.comparable-top>span{display:inline;margin-top:0}.comparable-detail{margin-top:3px}.comparable-note{font-size:12px}.comparable-disclosure{font-size:12px}.price-actions{gap:4px 22px}
 }
 @media(max-width:360px){.immersive .main-navigation{gap:8px;font-size:11px}.immersive .brand b{font-size:23px}.price-amount{font-size:80px}.price-line{font-size:22px}.comparable-top>span{font-size:11px}}
+
+/* Swipeable comparisons: local trucks lead, distant examples are labeled. */
+.comparison-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}
+.comparison-heading .eyebrow{font:700 11px/1.5 monospace;letter-spacing:1.2px;color:#b9c9c7;margin:0 0 6px}
+.comparison-hint{font-size:14px;color:var(--muted);margin:0}
+.comparison-controls{display:flex;gap:8px;flex-shrink:0}.comparison-controls[hidden]{display:none}
+.comparison-controls button{width:44px;height:44px;border:1px solid #688185;background:transparent;color:var(--ink);font:24px/1 sans-serif;cursor:pointer}
+.comparison-controls button:hover:not(:disabled){color:var(--accent);border-color:var(--accent)}.comparison-controls button:disabled{opacity:.3;cursor:default}
+.comparison-track{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:2px;padding:4px 2px 18px;scrollbar-color:var(--accent) #263a3e;scrollbar-width:thin;overscroll-behavior-x:contain}
+.comparison-track:focus-visible{outline:2px solid var(--accent);outline-offset:5px}
+.comparison-card{flex:0 0 310px;min-width:0;display:flex;flex-direction:column;scroll-snap-align:start;background:#17272b;border:1px solid #546a6d;padding:20px}
+.comparison-area{font:10px/1.6 monospace;letter-spacing:1px;color:var(--accent)}
+.comparison-card h3{font-size:20px;line-height:1.25;letter-spacing:-.4px;margin:12px 0 2px}
+.comparison-price{font-size:32px;line-height:1.2;color:var(--ink);letter-spacing:-1px}
+.comparison-facts{font-size:12px;line-height:1.6;margin-top:10px;color:#c1cecc}.comparison-seller{font-size:12px;line-height:1.6;color:#aabdbb}
+.comparison-condition{margin:16px 0 18px;border-top:1px solid #40575b;padding-top:14px;flex:1}
+.comparison-condition p{font-size:13px;line-height:1.5;color:#bdcdca;margin:0 0 8px}
+.comparison-condition .comparison-joke{color:var(--ink);margin-bottom:0}
+.comparison-condition blockquote{padding:0;margin:0 0 12px;font-size:15px;line-height:1.45;color:var(--ink)}
+.comparison-condition cite{display:block;font:11px/1.5 monospace;color:var(--accent);margin-top:6px}
+.comparison-source{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding-top:6px;border-top:1px solid #40575b;color:var(--accent);font-size:13px;text-underline-offset:4px}
+.comparison-source>.scroll-ink{width:100%}.comparison-source span[aria-hidden]{float:right}
+@media(max-width:700px){.comparison-card{flex-basis:82%;padding:16px}.comparison-heading{align-items:flex-end;gap:8px}.comparison-hint{font-size:12px}.comparison-controls{gap:5px}.comparison-card h3{font-size:19px}.comparison-track{gap:12px}.comparison-price{font-size:29px}}
