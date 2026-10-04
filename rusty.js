@@ -15,7 +15,7 @@
     {
       question: 'What’s the asking price?',
       reply: '$11,000 asking for the 2004 Land Cruiser, sold as is. The owner’s odometer photo shows 220,718 miles; mileage may increase. The repair list comes at no extra charge.',
-      link: 'Talk to the owner', href: '#contact'
+      link: 'See the price and comparable listings', href: '#price'
     },
     {
       question: 'How much work does it need?',
