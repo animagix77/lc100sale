@@ -485,3 +485,8 @@ html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
 .comparison-source{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding-top:6px;border-top:1px solid #40575b;color:var(--accent);font-size:13px;text-underline-offset:4px}
 .comparison-source>.scroll-ink{width:100%}.comparison-source span[aria-hidden]{float:right}
 @media(max-width:700px){.comparison-card{flex-basis:82%;padding:16px}.comparison-heading{align-items:flex-end;gap:8px}.comparison-hint{font-size:12px}.comparison-controls{gap:5px}.comparison-card h3{font-size:19px}.comparison-track{gap:12px}.comparison-price{font-size:29px}}
+
+/* Select the complete VIN without disrupting the price hierarchy. */
+.vehicle-vin{display:flex;justify-content:center;align-items:baseline;flex-wrap:wrap;gap:8px 12px;margin:22px auto 0;font:14px/1.6 monospace}
+.vehicle-vin>span{color:var(--muted);letter-spacing:1px}
+.vehicle-vin code{font:inherit;color:var(--ink);letter-spacing:.04em;user-select:all;-webkit-user-select:all}
