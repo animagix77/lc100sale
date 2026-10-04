@@ -61,7 +61,7 @@ const tour=$('tour'),slider=$('scrubber'),video=$('orbit-video'),poster=$('scene
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 let progress=0,last=-2,queued=false,videoReady=false,targetTime=0,frames=[],frameIndex=-1,sequence=null;
 const introFraction=.12;
-let pendingFocus=null;
+let pendingFocus=null,fallbackManifest=null;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const orbitProgress=()=>clamp((progress-introFraction)/(1-introFraction));
 chapters.forEach((c,i)=>{const b=document.createElement('button');b.textContent=String(i+1).padStart(2,'0');b.setAttribute('aria-label',`Chapter ${i+1}: ${c.tag.toLowerCase()}`);b.addEventListener('click',()=>go(i));$('chapter-dots').append(b)});
@@ -90,7 +90,7 @@ video.addEventListener('loadeddata',()=>{
 video.addEventListener('error',()=>{
  videoReady=false;video.hidden=true;poster.hidden=false;videoBackdrop.hidden=true;
  $('orbit-pin').classList.remove('video-scene');
- render(progress,true);
+ startSequence();render(progress,true);
 });
 fetch('assets/orbit-media.json').then(r=>r.ok?r.json():null).then(m=>{
  if(m?.ready&&typeof m.src==='string'&&m.src.startsWith('assets/')){
@@ -98,9 +98,9 @@ fetch('assets/orbit-media.json').then(r=>r.ok?r.json():null).then(m=>{
   video.src=m.src;video.load();
  }
 }).catch(()=>{});
-fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
- if(videoReady||!m?.ready||!window.LCSequence)return;
- sequence=new LCSequence(m,{onFrame:({frame,index,image})=>{
+function startSequence(){
+ if(videoReady||sequence||!fallbackManifest?.ready||!window.LCSequence)return;
+ try{sequence=new LCSequence(fallbackManifest,{initialAngle:progress*360,onFrame:({frame,index,image})=>{
   if(videoReady)return;
   frameIndex=index;
   const img=$('tour-image');img.src=image.src;img.alt=frame.alt||frame.view;
@@ -108,8 +108,10 @@ fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
   $('orbit-pin').dataset.frame=String(index);
   $('tour-progress').textContent=`${Math.round(frame.angle)}°`;
   updateDetail(last);
- }});
- frames=sequence.frames;render(progress);
+ }});frames=sequence.frames;}catch{sequence=null;}
+}
+fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
+ fallbackManifest=m;startSequence();render(progress);
 }).catch(()=>{});
 
 let detailRevealed=-1;

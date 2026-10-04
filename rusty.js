@@ -112,6 +112,7 @@
     const modalOpen = !!document.querySelector('dialog[open]');
     if (modalOpen) close(false);
     widget.hidden = modalOpen;
+    if (!modalOpen) queuePlacement();
   }
   const observer = new MutationObserver(syncVisibility);
   document.querySelectorAll('dialog').forEach(dialog => observer.observe(dialog, {attributes: true, attributeFilter: ['open']}));
@@ -123,12 +124,26 @@
   });
   const controls = document.querySelector('.orbit-bottom');
   const content = document.querySelector('.page-content');
+  const journeyControls = document.querySelector('.journey-controls');
   let queued = false;
   function place() {
     queued = false;
+    if (widget.hidden) return;
     const bounds = controls.getBoundingClientRect();
     const visible = bounds.bottom > 0 && bounds.top < innerHeight && content.getBoundingClientRect().top > bounds.top;
     widget.classList.toggle('rusty-on-tour', visible);
+    const launcherBounds = launcher.getBoundingClientRect();
+    const style = getComputedStyle(widget);
+    const priorClearance = parseFloat(style.getPropertyValue('--rusty-clearance')) || 0;
+    // Test the resting position, so raising Rusty cannot oscillate on the next frame.
+    const restingBottom = parseFloat(style.bottom) - priorClearance;
+    const restingTop = innerHeight - restingBottom - launcherBounds.height;
+    const journeyBounds = journeyControls?.getBoundingClientRect();
+    const overlaps = journeyBounds && journeyBounds.bottom > 0 && journeyBounds.top < innerHeight &&
+      journeyBounds.left < launcherBounds.right && journeyBounds.right > launcherBounds.left &&
+      journeyBounds.bottom > restingTop && journeyBounds.top < innerHeight - restingBottom;
+    const clearance = overlaps ? Math.max(0, Math.ceil(innerHeight - journeyBounds.top + 12 - restingBottom)) : 0;
+    widget.style.setProperty('--rusty-clearance', clearance + 'px');
   }
   function queuePlacement() { if (!queued) { queued = true; requestAnimationFrame(place); } }
   window.addEventListener('scroll', queuePlacement, {passive: true});

@@ -422,3 +422,9 @@ html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
 @media(max-width:1100px){.immersive .brand small{display:none}}
 @media(max-width:700px){.main-navigation .nav-long{display:none}.main-navigation .nav-short{display:inline}}
 @media(max-width:360px){.immersive .main-navigation{gap:8px}}
+
+/* Keep the orange contact section readable and photo actions within reach. */
+.closing h2 em{color:#24484e}
+.photo-modal-bar{position:sticky;top:0;z-index:2;background:#121b1e;border-bottom:1px solid var(--line)}
+.photo-modal-controls{position:sticky;bottom:0;z-index:2;background:#121b1e;border-top:1px solid var(--line);padding:12px 24px}
+@media(max-width:700px){.photo-modal-controls{padding:12px 18px}}
