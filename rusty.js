@@ -19,7 +19,7 @@
     },
     {
       question: 'How much work does it need?',
-      reply: 'Known rust, unresolved EVAP faults and other disclosed repairs make this a project truck. Inspect it yourself or bring an independent mechanic. The to-do list has already applied for overtime.',
+      reply: 'The EVAP faults are unresolved, and the sunroof, driver’s seat heater and other items need attention. The owner reports no frame rust; corrosion is mainly on clamps and other hardware. Inspect underneath and review the mechanic’s photos. I have notes, not X-ray vision.',
       link: 'Read the known issues', href: '#condition'
     },
     {
@@ -29,12 +29,12 @@
     },
     {
       question: 'Where are the running boards?',
-      reply: 'The owner removed them so she looks more lifted. The grab handle helps with boarding. His wife has supplied extensive verbal feedback.',
+      reply: 'He removed them to make the truck look taller. His wife has submitted the appeal. Use the grab handle; the additional height was strictly a visual upgrade.',
       link: 'Read the cabin notes', href: '#cabin-condition'
     },
     {
       question: 'Does she drive well? Any records?',
-      reply: 'The owner says she drives great, without shaking or rattling. Service receipts are unavailable; maintenance history is recalled from memory. Brake work, a new AGM starter battery and other maintenance are detailed in the service history. The paperwork has taken early retirement.',
+      reply: 'The owner says she drives great, without shaking or rattling. Brake work, a new AGM starter battery and other maintenance are listed in the service history. Dates and work are recalled from memory; service receipts are unavailable.',
       link: 'Read the owner-recalled service history', href: '#history'
     },
     {

@@ -2,7 +2,7 @@ const chapters=[
  {
   "tag": "THE POWERTRAIN",
   "title": "Big V8 energy.<br>Retiree schedule.",
-  "body": "The legendary 4.7-liter V8. Odometer photo: 220,718 miles. These days, she’s a driveway ornament with ambition.",
+  "body": "Original 4.7-liter V8, never rebuilt according to my ownership history. Odometer photo: 220,718 miles. These days, the daily driving goes to my other vehicles.",
   "href": "#engine-history-title",
   "link": "Read the owner-reported history"
  },
@@ -16,14 +16,14 @@ const chapters=[
  {
   "tag": "THE CARGO",
   "title": "Bring the gear.<br>Or two more people.",
-  "body": "Two functional rear jump seats fold away for cargo. A 2-inch hitch receiver sits out back. Home Depot trips have a way of becoming a personality.",
+  "body": "Two functional rear jump seats fold away for cargo. A 2-inch hitch receiver sits out back. This was supposed to be a mulch run. Then we packed for a family expedition.",
   "href": "#photo-08-cargo",
   "link": "Explore the cargo photo"
  },
  {
   "tag": "THE ROOF",
   "title": "The spoiler left.<br>The bars stayed.",
-  "body": "The rear spoiler is gone and a piece of roof-rack trim is missing. The Malone crossbars are included because I really don’t want to take them off. Negotiations with the sunroof are ongoing.",
+  "body": "The rear spoiler is gone, a piece of roof-rack trim is missing, and the sunroof needs attention. The Malone crossbars are included because I really don’t want to take them off.",
   "href": "#roof-condition",
   "link": "Check the roof and sunroof notes"
  },
@@ -37,14 +37,14 @@ const chapters=[
  {
   "tag": "THE CABIN",
   "title": "No running boards.<br>Plenty of commentary.",
-  "body": "I removed the running boards to make her look even more lifted. That was the entire engineering brief. My wife curses me out on the way up; the grab handle does the heavy lifting. Bring a stool, or ask Jesus for additional height.",
+  "body": "I removed the running boards because I wanted her to look taller. My wife would like the jury to remember that sentence. Grab handle supplied. Additional height sold separately.",
   "href": "#cabin-condition",
   "link": "Read the cabin’s to-do list"
  },
  {
   "tag": "THE FUEL ECONOMY",
-  "title": "Thirsty. Capable.<br>A little smug.",
-  "body": "Nobody buys a V8 Land Cruiser to win at the pump. If a Wrangler or Rubicon is taking an unscheduled roadside break, try to wave politely. Jeep rivalry comes standard.",
+  "title": "Budget for<br>the gasoline.",
+  "body": "EPA stock figures are 12 city / 16 highway MPG; mileage with these modifications is unconfirmed. Buying this to save on fuel would be an ambitious misunderstanding.",
   "href": "#fuel-economy",
   "link": "Check the stock MPG figures"
  },
