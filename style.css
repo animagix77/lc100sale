@@ -495,3 +495,8 @@ html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
 .journey-map .map-stop-name{transition:opacity .35s ease}
 .is-overview .journey-map .map-stop-name{opacity:1!important}
 .is-overview .journey-map .map-stop{opacity:1}
+
+/* Keep the full-width entertainment note compact and easy to scan. */
+.condition-grid .dvd-note{text-align:center}
+.condition-grid .dvd-note p{max-width:52ch;margin-inline:auto;text-wrap:pretty}
+.condition-grid .dvd-note h3{text-wrap:balance}
