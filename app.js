@@ -15,10 +15,10 @@ const chapters=[
   },
   {
     "tag": "THE PRACTICAL BITS",
-    "title": "Bring the gear.<br>Grow longer legs.",
-    "body": "Fold-away rear seats make room for cargo. I removed the running boards to make her look taller. My wife has submitted her review. Grab handles remain.",
-    "href": "#gallery",
-    "link": "Look inside"
+    "title": "Bring the gear.<br>All of it. Apparently.",
+    "body": "A 2-inch hitch receiver, Malone crossbars and fold-away rear seats. The cargo setup earned its keep on our camping trips. Packing light was never a family policy.",
+    "href": "#outdoor-title",
+    "link": "See the camping years"
   },
   {
     "tag": "THE NEXT OWNER",
@@ -106,7 +106,7 @@ function updateDetail(n){
  const shown=frames[frameIndex];
  if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
- const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1210,392],label:'NO REAR\nSPOILER'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
+ const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1120,360],label:'ROOF BARS'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
  setDetailState(n,detail);
  if(!detail)return;
  const anchor=shown.anchors?.[n===1?'tire':n===2?'cargo':n===3?'roof':n===5?'handle':'engine'];
@@ -149,7 +149,7 @@ function updateVideoDetail(n){
  const detail=n===0?{src:'assets/gallery/27-engine-cover-edited.jpg',label:'4.7L V8',size:'cover',position:'50% 61%'}:
  n===1?{src:'assets/gallery/07-tire-source.jpg',label:'KM3 · 2019',size:'cover',position:'center'}:
  n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO',size:'165%',position:'50% 67%'}:
- n===3?{live:true,label:'NO REAR\nSPOILER'}:
+ n===3?{live:true,label:'ROOF BARS'}:
  n===5?{src:'assets/gallery/24-grab-handle.jpeg',label:'GRAB HANDLE',size:'250%',position:'51% 42%'}:null;
  setDetailState(n,detail);
  if(!detail)return;
@@ -165,7 +165,7 @@ function updateVideoDetail(n){
  const rearX=.87-Math.min(1,Math.max(0,(t-1.25)/.8))*.044;
  const hoodX=.63-.075*Math.min(1,Math.max(0,(t-.7)/.8));
  const cargoX=.923-.055*Math.min(1,Math.max(0,(t-2.02)/.67));
- const pointX=n===0?hoodX:n===2?cargoX:n===3?rearX-.013:rearX,pointY=n===0?.545:n===2?.60:n===3?.416:.72;
+ const pointX=n===0?hoodX:n===2?cargoX:n===3?.68:rearX,pointY=n===0?.545:n===2?.60:n===3?.39:.72;
  const x=imageLeft+pointX*imageWidth,y=imageTop+pointY*imageHeight;
  const width=bubble.offsetWidth,height=bubble.offsetHeight;
  bubble.style.right='auto';bubble.style.left=`${Math.max(16,Math.min(base.width-width-16,x-width/2))}px`;

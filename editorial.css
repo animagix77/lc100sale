@@ -241,3 +241,44 @@
 .editorial .is-static .journey-text-ink{visibility:visible}
 @media(prefers-reduced-motion:reduce){.editorial .journey-text-ink{visibility:visible}}
 .editorial .intro-photo .photo-open>span{top:12px;bottom:auto}
+/* One aligned photographic sequence with a visible next frame. */
+.editorial .outdoor-album{margin-top:48px;padding-top:36px;border-top:1px solid var(--editorial-rule)}
+.editorial .outdoor-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+.editorial .outdoor-heading .eyebrow{margin-bottom:14px}
+.editorial .outdoor-heading h3{font-size:clamp(32px,3.7vw,56px);line-height:1.05;letter-spacing:-1.5px;margin:0}
+.editorial .outdoor-controls{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.editorial .outdoor-controls>span{font:12px/1.5 monospace;letter-spacing:1px;margin-right:12px;color:#b9cdca}
+.editorial .outdoor-controls button{width:46px;height:46px;background:transparent;color:var(--ink);border:1px solid #667975;font-size:24px;cursor:pointer}
+.editorial .outdoor-controls button:disabled{opacity:.3;cursor:default}
+.editorial .outdoor-track{display:flex;gap:24px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#ef955c #203538;padding-bottom:14px}
+.editorial .outdoor-card{flex:0 0 80%;scroll-snap-align:start}
+.editorial .outdoor-card img{aspect-ratio:1.5;object-fit:cover}
+.editorial .outdoor-card figcaption{display:flex;align-items:baseline;gap:16px;padding:16px 0;max-width:none;font-size:15px;line-height:1.5}
+.editorial .outdoor-number{color:var(--accent);font:12px/1.5 monospace}
+.editorial .outdoor-note{font-size:13px;line-height:1.6;color:#b9cdca;margin:18px 0 0;max-width:60ch}
+@media(max-width:700px){.editorial .outdoor-album{margin-top:28px;padding-top:28px}.editorial .outdoor-heading{display:block;margin-bottom:20px}.editorial .outdoor-heading h3{font-size:34px}.editorial .outdoor-controls{margin-top:22px;justify-content:flex-end}.editorial .outdoor-controls>span{margin-right:auto}.editorial .outdoor-track{gap:14px}.editorial .outdoor-card{flex-basis:92%}.editorial .outdoor-card figcaption{font-size:14px;gap:12px}}
+/* Contain offscreen decorative geometry without creating a sticky scroll container. */
+.editorial main{overflow-x:clip}
+
+.editorial .editorial-heading .todo-word{letter-spacing:0;white-space:nowrap}
+
+/* Set the sale terms to the digit column, excluding the currency symbol. */
+.editorial .price-figure{font-size:clamp(85px,11.3vw,184px);display:inline-grid;grid-template-columns:.34em max-content;max-width:100%}
+.editorial .price-figure .price-amount{grid-column:1/-1;font-size:inherit;display:grid;grid-template-columns:.34em max-content;margin:18px 0}
+.editorial .price-figure .price-amount>.scroll-ink{grid-column:1/-1;display:grid;grid-template-columns:.34em max-content}
+.editorial .price-figure .price-currency{margin:0;line-height:1.5}
+.editorial .price-figure .price-terms{grid-column:2;display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0 0;white-space:nowrap;font-size:clamp(9px,1.05vw,14px);letter-spacing:.06em}
+@media(max-width:700px){.editorial .price-figure{font-size:clamp(80px,23vw,145px)}.editorial .price-figure .price-terms{font-size:9px;gap:5px;letter-spacing:.025em}}
+
+/* Headline lines rise through separate masks, top line first. */
+.scroll-headline-line{display:block;clip-path:inset(-.12em -8px -.12em -8px)}
+.scroll-headline-ink{display:block}
+@media(prefers-reduced-motion:no-preference){.scroll-headline-ink{transform:translateY(115%)}}
+@media(prefers-reduced-motion:reduce){.scroll-headline-line{clip-path:none}.scroll-headline-ink{transform:none!important}}
+
+/* Disclosures expand in place; the copy and indicator share the same intent. */
+.editorial .issue-row.is-expanding{overflow:clip}
+.editorial .issue-plus{transform-origin:center;transition:transform 280ms cubic-bezier(.22,.61,.36,1)}
+.editorial .issue-row[data-expanded="false"] .issue-plus{transform:rotate(0)}
+.editorial .issue-row[data-expanded="true"] .issue-plus{transform:rotate(45deg)}
+@media(prefers-reduced-motion:reduce){.editorial .issue-plus{transition:none}}

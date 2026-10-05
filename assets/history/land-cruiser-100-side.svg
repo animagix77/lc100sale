@@ -1,26 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 164" fill="none" aria-hidden="true" focusable="false">
-  <!-- Facing right; the gentle nose-down stance puts the rear slightly higher. -->
-  <g stroke-linecap="round" stroke-linejoin="round">
-    <path d="m70 26 171 10" stroke="#eef0e7" stroke-width="4"/>
-    <path d="m96 20-1 13m113-6-1 13" stroke="#eef0e7" stroke-width="5"/>
-    <path d="m73 32 168 10" stroke="#162b30" stroke-width="5"/>
-    <path d="M28 113V62q0-12 13-14l18-16q5-5 16-4l164 10q17 1 27 15l23 29 43 3q18 2 21 17l5 24-35 4-43-4-41-1-59-4-41-2-45-3Z" fill="#6b7882" stroke="#eef0e7" stroke-width="3.5"/>
-    <path d="m43 57 24-18 52 3-2 35-74-4Zm85-14 58 3-2 35-59-4Zm68 4 42 3q11 1 17 10l17 23-78-2Z" fill="#162b30" stroke="#eef0e7" stroke-width="2.5"/>
-    <path d="m121 83-2 30m70-26-2 29m87-27-3 34" stroke="#162b30" stroke-width="2.5"/>
-    <path d="m138 90 13 1m53 4 13 1" stroke="#eef0e7" stroke-width="3"/>
-    <path d="m40 94 288 18" stroke="#162b30" stroke-width="2.5" opacity=".65"/>
-    <path d="m271 77 12 1 6 8-17-1Z" fill="#6b7882" stroke="#eef0e7" stroke-width="2.5"/>
-    <path d="m329 90 16 2 5 12-19-1Z" fill="#eef0e7"/>
-    <path d="m331 103 18 1 2 5-19-1Z" fill="#ef955c"/>
-    <path d="m29 75 9 1v19l-9-1Z" fill="#ef955c"/>
-    <path d="m26 106 16 1m294 13 23 1" stroke="#162b30" stroke-width="7"/>
-    <path d="M65 116a30 30 0 0 1 60 4m136 5a30 30 0 0 1 60 4" stroke="#162b30" stroke-width="5"/>
-    <circle cx="95" cy="121" r="27" fill="#162b30" stroke="#eef0e7" stroke-width="3"/>
-    <circle cx="291" cy="132" r="27" fill="#162b30" stroke="#eef0e7" stroke-width="3"/>
-    <circle cx="95" cy="121" r="14" fill="#6b7882" stroke="#eef0e7" stroke-width="2"/>
-    <circle cx="291" cy="132" r="14" fill="#6b7882" stroke="#eef0e7" stroke-width="2"/>
-    <path d="M95 112v18m-9-9h18m187 2v18m-9-9h18" stroke="#162b30" stroke-width="4"/>
-    <circle cx="95" cy="121" r="4" fill="#eef0e7"/>
-    <circle cx="291" cy="132" r="4" fill="#eef0e7"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 164" fill="none" role="img" aria-labelledby="title">
+<title id="title">Toyota Land Cruiser 100 Series side profile</title>
+<!-- LC100 proportions referenced to the owner's side photographs: level roof,
+     rounded D-pillar, split rear-door glass, flared arches and five-spoke wheels.
+     Artwork faces right to preserve the map's direction-of-travel behavior. -->
+<defs>
+ <g id="wheel">
+  <circle r="30" fill="#10262b" stroke="#eef0e7" stroke-width="2.3"/>
+  <circle r="25" stroke="#819095" stroke-width="1" stroke-dasharray="2 3"/>
+  <circle r="18" fill="#839096" stroke="#eef0e7" stroke-width="1.6"/>
+  <circle r="14" fill="#23383e"/>
+  <g fill="#cbd3d1"><path id="spoke" d="M-3-4-5-16H5L3-4Z"/><use href="#spoke" transform="rotate(72)"/><use href="#spoke" transform="rotate(144)"/><use href="#spoke" transform="rotate(216)"/><use href="#spoke" transform="rotate(288)"/></g>
+  <circle r="5" fill="#667981" stroke="#eef0e7" stroke-width="1.3"/>
+  <circle r="1.7" fill="#eef0e7"/>
+ </g>
+</defs>
+<g transform="translate(380 0) scale(-1 1)" stroke-linejoin="round" stroke-linecap="round">
+ <!-- Crossbars and the low factory roof rail. -->
+ <path d="M172 18H310" stroke="#182e33" stroke-width="5"/>
+ <path d="M178 12H307" stroke="#a7b4b7" stroke-width="2"/>
+ <path d="M191 18V9h8v9m83 0V8h8v10" stroke="#eef0e7" stroke-width="2" fill="#526871"/>
+ <!-- Long hood, upright rear body, restrained factory nose. -->
+ <path d="M17 92V76l6-14q3-5 12-6l78-9 29-28q11-10 30-11L306 7q19 0 28 17l14 30q5 11 5 22v35l-12 7-34 1-7-19q-6-16-25-16t-27 17l-8 20H107l-10-22q-8-16-26-16T42 102l-6 15-19-4Z" transform="translate(0 12)" fill="#65767f" stroke="#eef0e7" stroke-width="2.5"/>
+ <!-- Glass follows the A-pillar and broad, curved rear-quarter opening. -->
+ <path d="m120 62 29-29q10-9 23-10l19-1-3 39Z" fill="#10292f" stroke="#d4dcd9" stroke-width="1.7"/>
+ <path d="m199 22 35-1 5 40h-44Z" fill="#10292f" stroke="#d4dcd9" stroke-width="1.7"/>
+ <path d="m240 21 11 0 7 40h-13Z" fill="#10292f" stroke="#b9c7c7" stroke-width="1.3"/>
+ <path d="M258 21h47q12 0 18 12l11 23q1 5-5 5h-64Z" fill="#10292f" stroke="#d4dcd9" stroke-width="1.7"/>
+ <!-- Black pillars, door cut lines and the LC100's rear-quarter vent. -->
+ <path d="m116 65-1 18 2 44m76-63-2 65m65-64 8 25-4 13-7 23" stroke="#263d45" stroke-width="1.7"/>
+ <path d="m158 72 15-1m56 0 14-1" stroke="#d6dfdb" stroke-width="3"/>
+ <path d="m159 73 13-1m58 0 12-1" stroke="#263d45" stroke-width="1"/>
+ <path d="m334 66 13-2 2 7h-17Z" fill="#263d45" stroke="#a9b9bb" stroke-width="1"/>
+ <path d="m335 68 11-1m-10 3 11-1" stroke="#a9b9bb" stroke-width=".8"/>
+ <rect x="310" y="78" width="13" height="11" rx="2" stroke="#344c55" stroke-width="1.2"/>
+ <!-- Belt molding, rounded fender flares and lower bumper cladding. -->
+ <path d="M104 100h137m66-1 44-1" stroke="#bec9c8" stroke-width="2.3"/>
+ <path d="M106 104h133m71 0h39" stroke="#263d45" stroke-width="2"/>
+ <path d="M38 116 45 99q8-16 26-16t29 17l8 20m132 0 9-21q8-15 26-15t28 16l6 20" stroke="#405762" stroke-width="8"/>
+ <path d="M38 116 45 99q8-16 26-16t29 17l8 20m132 0 9-21q8-15 26-15t28 16l6 20" stroke="#a4b3b7" stroke-width="1.5"/>
+ <path d="M15 99h24l-8 26-17-4q-4-1-4-7v-10q0-5 5-5Zm296 4h45v15l-7 6-38 3Z" fill="#3c525c" stroke="#d6dfdb" stroke-width="1.8"/>
+ <path d="M112 127h127" stroke="#23383e" stroke-width="5"/>
+ <!-- Side mirror and characteristic tall corner lamps. -->
+ <path d="M119 54h-8q-4 0-4 4v10l11 2 5-4v-9Z" fill="#425b66" stroke="#cad5d3" stroke-width="1.6"/>
+ <path d="m20 76 13-2-6 15-10 2Z" fill="#dfe5dd" stroke="#a7b9bb" stroke-width="1"/>
+ <path d="m29 75 8-1-7 15-5 1Z" fill="#ef955c"/>
+ <path d="M350 76h5v20h-7Z" fill="#ef955c" stroke="#dce4de" stroke-width="1"/>
+ <path d="m350 83 5-1m-6 4h6" stroke="#eef0e7" stroke-width="2"/>
+ <path d="M13 109h8v6h-8" fill="#dae2dc"/>
+ <path d="m308 126 2 10m42-11 7 1v4" stroke="#23383e" stroke-width="4"/>
+ <use href="#wheel" x="71" y="121"/>
+ <use href="#wheel" x="275" y="121"/>
+</g>
 </svg>

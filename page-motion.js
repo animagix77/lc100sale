@@ -3,10 +3,23 @@
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  const candidates=[...document.querySelectorAll('.page-content h2,.page-content h3,.page-content p,.page-content .status,.page-content .timeline>article>span,.page-content .spec-strip>div>strong,.page-content .spec-strip>div>span,.page-content .ownership-stat>strong,.page-content .history-fact-copy>strong,.page-content .history-fact-copy>span,.page-content .sale-meta>span,.page-content .buyer-actions>a,.page-content .purchase-trigger,.page-content .photo-open>span,.page-content a,footer>span,footer>p')].filter(node=>!node.closest('dialog,.ownership-journey')&&node.matches('h2,.spec-strip strong'));
  const records=candidates.filter(node=>!node.parentElement.closest('.scroll-text-mask')&&!candidates.some(parent=>parent!==node&&parent.contains(node))).map(node=>{
+  // Match the hero's separate masks while preserving emphasis and responsive wrapping.
+  if(node.matches('h2:not(.price-amount)')){
+   const groups=[[]];
+   [...node.childNodes].forEach(child=>{if(child.nodeName==='BR')groups.push([]);else groups.at(-1).push(child)});
+   const lines=groups.filter(group=>group.length).map(group=>{
+    const mask=document.createElement('span'),ink=document.createElement('span');
+    mask.className='scroll-headline-line';ink.className='scroll-headline-ink';
+    ink.append(...group);mask.append(ink);return {mask,ink};
+   });
+   node.replaceChildren(...lines.map(line=>line.mask));node.classList.add('scroll-headline');
+   return {node,lines,counter:null};
+  }
   const ink=document.createElement('span');ink.className='scroll-ink';ink.append(...node.childNodes);node.append(ink);node.classList.add('scroll-text-mask');
   return {node,ink,counter:null};
  });
  const active=new Set(),counterAnimations=new Set();
+ const setTransform=(record,value)=>(record.lines||[{ink:record.ink}]).forEach(({ink})=>{ink.style.transform=value});
  const clamp=value=>Math.max(0,Math.min(1,value));
  const smooth=value=>value*value*(3-2*value);
  for(const record of records){
@@ -39,7 +52,14 @@
   for(const {record,rect} of positions){
    const entry=atBottom?1:smooth(clamp((viewport*.96-rect.top)/(viewport*.19)));
    const exit=smooth(clamp((viewport*.06-rect.bottom)/(viewport*.16)));
-   record.ink.style.transform=`translateY(${((1-entry)-exit)*110}%)`;
+   if(record.lines){
+    record.lines.forEach(({ink},index)=>{
+     const stagger=index*Math.min(54,viewport*.065);
+     const lineEntry=atBottom?1:smooth(clamp((viewport*.94-rect.top-stagger)/(viewport*.22)));
+     const lineExit=smooth(clamp((viewport*.06-rect.bottom-stagger)/(viewport*.16)));
+     ink.style.transform=`translateY(${((1-lineEntry)-lineExit)*115}%)`;
+    });
+   }else record.ink.style.transform=`translateY(${((1-entry)-exit)*110}%)`;
    if(record.counter&&!record.counter.played&&entry>.8&&exit<.1)roll(record.counter);
   }
  }
@@ -49,16 +69,16 @@
    for(const entry of entries){
     const record=records.find(item=>item.node===entry.target);
     if(entry.isIntersecting)active.add(record);
-    else{active.delete(record);record.ink.style.transform=entry.boundingClientRect.top<0?'translateY(-110%)':'translateY(110%)'}
+    else{active.delete(record);setTransform(record,entry.boundingClientRect.top<0?'translateY(-115%)':'translateY(115%)')}
    }
    queue();
   },{rootMargin:'160px 0px',threshold:0});
   records.forEach(record=>observer.observe(record.node));
- }else records.forEach(record=>{record.ink.style.transform='none'});
+ }else records.forEach(record=>{setTransform(record,'none')});
  window.addEventListener('scroll',queue,{passive:true});window.addEventListener('resize',queue);
  reduced.addEventListener('change',()=>{
-  if(reduced.matches){for(const animation of counterAnimations)animation.cancel();records.forEach(record=>{record.ink.style.transform='none'});}
+  if(reduced.matches){for(const animation of counterAnimations)animation.cancel();records.forEach(record=>{setTransform(record,'none')});}
   else queue();
  });
- if(reduced.matches)records.forEach(record=>{record.ink.style.transform='none'});
+ if(reduced.matches)records.forEach(record=>{setTransform(record,'none')});
 })();

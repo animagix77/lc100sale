@@ -24,7 +24,7 @@
     },
     {
       question: 'What are the EVAP codes?',
-      reply: 'P2418, P0442 and P0446 remain unresolved. The owner’s mechanic suspects the photographed area and recommended a body shop/welder assessment. Cause, repair scope and cost are unconfirmed. My crystal ball is also out for repairs.',
+      reply: 'P2418, P0442 and P0446 remain unresolved. The owner’s mechanic suspects the photographed area and recommended a body shop/welder assessment. An EVAP smoke test is probably needed to help diagnose the fault. Cause, repair scope and cost are unconfirmed. My crystal ball is also out for repairs.',
       link: 'See the mechanic’s notes and photos', href: '#mechanic-photos'
     },
     {
@@ -39,7 +39,7 @@
     },
     {
       question: 'What equipment comes with her?',
-      reply: 'Malone crossbars are included; rooftop tents, awnings and camping gear are excluded. She has OME suspension, KM3 tires, Bora spacers, two functional rear jump seats and a 2-inch hitch receiver. The penthouse was a previous tenancy.',
+      reply: 'Malone crossbars are included; rooftop tents, awnings and camping gear are excluded. She has OME suspension, KM3 tires, 1.25-inch Bora spacers installed in 2025, two functional rear jump seats and a 2-inch hitch receiver. The penthouse was a previous tenancy.',
       link: 'See the camping equipment note', href: '#camping'
     },
     {
