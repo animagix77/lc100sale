@@ -9,12 +9,12 @@
   '.page-content .issue-row','.page-content .service-row','.page-content .spec-strip>div',
   '.page-content .history-fact-copy','.page-content .sale-meta','.page-content .buyer-actions',
   '.page-content .purchase-link','.page-content .vehicle-vin','.page-content .outdoor-controls',
-  '.page-content .comparison-controls','.page-content .gallery-outro',
+  '.page-content .poll-choice','.page-content .comparison-controls','.page-content .gallery-outro',
   '.page-content .editorial-link','.page-content .primary-action',
   '.page-content .gallery-heading>.button','.page-content .status','.page-content .intro-disclosure',
   'footer>span','footer>p'
  ].join(',');
- const candidates=[...document.querySelectorAll(selector)].filter(n=>!n.closest('dialog,.ownership-journey,.issue-copy'));
+ const candidates=[...document.querySelectorAll(selector)].filter(n=>!n.closest('dialog,.ownership-journey,.issue-copy,.poll-results,.poll-footer'));
  const records=candidates.filter(n=>!candidates.some(parent=>parent!==n&&parent.contains(n))).map(node=>{
   const heading=node.matches('h2,h3')&&!node.matches('.price-amount');
   const photo=node.matches('.editorial-photo');

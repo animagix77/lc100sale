@@ -24,8 +24,8 @@ const chapters=[
     "tag": "THE BIG MAYBE",
     "title": "A hobby.<br>With a VIN.",
     "body": "$TBD. I’m considering a sale, but first I plan to chase the EVAP codes with a smoke test and get a body-shop estimate. Apparently I needed a whole website to discover I’m attached.",
-    "href": "#price",
-    "link": "See the sale status & comparables"
+    "href": "#verdict",
+    "link": "Help decide: keep or sell?"
   }
 ];
 const $=id=>document.getElementById(id);
