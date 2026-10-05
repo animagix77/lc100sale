@@ -3,9 +3,11 @@
 The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. All runtime dependencies are local. No player data is sent or saved.
 
 ## Vehicle
-`lc100.blend` is the editable Blender source, exported as `../lc100.glb`. `build_lc100.py` regenerates it using shaped body sections, a raked greenhouse, projected glazing, open wheel arches, wider mud-terrain tyres with staggered tread blocks, five-spoke wheels and 32 mm of extra wheel offset per side, trim, lamps and badges. It is a stylized LC100 made against the owner's photographs, not a scan or dimensionally certified replica. Named Body, Susp_*, Steer_* and Roll_* pivots support the physics rig.
+`lc100.blend` is the editable adapted Meshy LC100, exported as `../lc100.glb`. The owner-supplied Coastal Cruiser body is reduced to 60,000 triangles, with its baked-in wheels and running boards removed. Independent wide mud-terrain wheels share geometry and retain Body, Susp_*, Steer_* and Roll_* pivots. The 2.85 m wheelbase matches the physics rig; wheels retain 32 mm extra spacer offset per side. The full truck has 93,700 triangles and a 4.73 MB GLB. The original asset is untouched.
 
-Run Blender in background mode with `--python build_lc100.py`. Output goes to `/tmp/lc100-beach-rig.blend` and `/tmp/lc100-beach-rig.glb`; inspect the front/rear renders in `/tmp` before replacing assets.
+Regenerate using Blender: `blender -b --python adapt_meshy.py -- /path/to/Meshy_AI_Coastal_Cruiser_1005181224_texture.glb lc100.blend /tmp/lc100-meshy-adapted`. The existing blend supplies the independent wheel rig. The owner-supplied source GLB is separate from the site repository. Review front/rear/side renders before replacing assets. `build_lc100.py` retains the earlier procedural model generator.
+
+The body uses its original 2K albedo, with the previous enamel paint response (metallic 0.3, roughness 0.38) and the noisy normal/specular maps disconnected. Geometry batching preserves texture UVs. This is a stylized adaptation, not a scan or dimensionally certified replica.
 
 ## Driving and terrain
 Three.js WebGPURenderer uses WebGPU with WebGL2 fallback. Rapier supplies rigid-body gravity, chassis collisions, four raycast suspension units, damping, steering, tyre contact, braking and traction. Engine force goes to all four wheels; sand reduces grip and increases resistance. This is a physical driving model tuned for a relaxed experience, not validated LC100 engineering data or a full tyre/soil simulation.
