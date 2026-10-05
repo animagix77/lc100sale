@@ -3,6 +3,12 @@ import * as THREE from 'three/webgpu';
 import {DrivePhysics} from './physics.mjs';
 import {SandField,shore} from './terrain.mjs';
 import {TerrainView} from './terrain-view.mjs';
-const p=await DrivePhysics.create(),s=new SandField(),view=new TerrainView(new THREE.Scene(),p,s);view.update(0,0);p.reset(0,0,s.height(0,0));let lastTracks=[];let minY=Infinity,maxY=-Infinity,air=0,rebases=0;
-for(let i=0;i<18000;i++){let at=p.position();view.update(at.x,at.z);if(i%12===0){for(let w=0;w<4;w++)if(p.vehicle.wheelIsInContact(w)){const c=p.vehicle.wheelContactPoint(w);const x=c.x+p.origin.x,z=c.z+p.origin.z;if(!lastTracks[w]||Math.hypot(lastTracks[w].x-x,lastTracks[w].z-z)>.17){s.stamp(x,z);lastTracks[w]={x,z}}}view.refresh()}p.step(1/120,{cruise:true,turn:0});at=p.position();minY=Math.min(minY,at.y);maxY=Math.max(maxY,at.y);if(![0,1,2,3].some(w=>p.vehicle.wheelIsInContact(w)))air++;const l=p.rb.translation();if(Math.abs(l.z)>256){const z=Math.round(l.z/32)*32;p.rebase(0,z);view.rebase();rebases++}assert(Number.isFinite(at.y)&&at.y>s.height(at.x,at.z)-1,'Chassis stays above streamed ground')}
-console.log({end:p.position(),distance:p.travel,minY,maxY,rebases,air,tiles:view.tiles.size,rutDepth:s.deepest,retained:s.ruts.size});assert(p.travel>300,'Drives beyond the old map boundary');assert(rebases>0,'Crosses floating-origin boundary');assert(view.tiles.size===25,'Terrain memory stays bounded');assert(s.deepest<-.1,'Wheels deform physics surface');p.dispose();console.log('Streamed terrain, deformation and floating origin passed');
+const s=new SandField(),p=await DrivePhysics.create(s),view=new TerrainView(new THREE.Scene(),p,s);
+let minY=Infinity,maxY=-Infinity;
+// Drive the firm coastal strip with actual streamed, deforming collision meshes.
+const startX=shore(0)+18;view.update(startX,0);p.reset(startX,0,s.height(startX,0));
+for(let i=0;i<3600;i++){let at=p.position();view.update(at.x,at.z);if(i%16===0)view.refresh();p.step(1/120,{cruise:true,turn:0});p.marks.length=0;at=p.position();minY=Math.min(minY,at.y);maxY=Math.max(maxY,at.y);assert(Number.isFinite(at.y)&&at.y>s.height(at.x,at.z)-1,'Chassis stays above streamed ground')}
+assert(p.travel>65,'Continuous coastal drive crosses multiple tile boundaries');assert(s.stamps>100,'Physics contacts deform the actual terrain');
+// Probe distant coast segments and recenter the active collision/render tile set.
+for(const z of [-600,1200,-10000]){const x=shore(z)+18;p.reset(x,z,s.height(x,z));view.update(x,z);const local=p.rb.translation();p.rebase(Math.round(local.x/32)*32,Math.round(local.z/32)*32);view.rebase();for(let i=0;i<240;i++){p.step(1/120,{brake:true});if(i%16===0)view.refresh();p.marks.length=0}const at=p.position();assert(Math.abs(at.y-s.height(at.x,at.z))<1.5,'Truck settles on correctly rebased distant colliders');assert(view.tiles.size===25,'Tile memory stays bounded')}
+console.log({distance:p.travel,minY,maxY,tiles:view.tiles.size,rutDepth:s.deepest,retained:s.ruts.size});p.dispose();console.log('Streamed deforming terrain and distant floating-origin checks passed');

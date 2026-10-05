@@ -118,21 +118,30 @@ cube('Rear number plate',(0,-2.42,1.17),(.41,.018,.21),plate,bevel=.012)
 cube('Front number plate',(0,2.485,.79),(.41,.013,.20),plate,bevel=.012)
 cube('Chassis',(0,0,.51),(1.07,4.10,.14),black,bevel=.025)
 cube('Hitch receiver',(0,-2.51,.57),(.13,.23,.13),black,bevel=.015)
-# Radius .45, 2.85m wheelbase. Independent rigid wheel pivots for the physics rig.
-for side,x in [('L',-.93),('R',.93)]:
+# Radius .45, widened mud-terrain casing, +.032m spacer offset per side, 2.85m wheelbase. Independent rigid wheel pivots for the physics rig.
+for side,x in [('L',-.962),('R',.962)]:
  for end,y in [('F',1.42),('R',-1.43)]:
   s=empty('Susp_'+end+side,root,(x,y,.48));st=empty('Steer_'+end+side,s);roll=empty('Roll_'+end+side,st)
-  bpy.ops.mesh.primitive_torus_add(major_radius=.325,minor_radius=.12,major_segments=48,minor_segments=12,rotation=(0,math.pi/2,0));o=bpy.context.object;o.name='All terrain tyre';o.parent=roll;o.data.materials.append(rubber)
-  for p in o.data.polygons:p.use_smooth=True
-  for i in range(32):
-   a=i*math.tau/32
-   for lane in [-1,1]:
-    b=cube('Tread block',(lane*.07,math.sin(a)*.433,math.cos(a)*.433),(.11,.073,.036),rubber,roll,.008);b.rotation_euler.x=-a
+  # Broad, square-shouldered mud-terrain casing with open tread channels.
+  profile=[(-.155,.255),(-.164,.33),(-.155,.395),(-.128,.443),(.128,.443),(.155,.395),(.164,.33),(.155,.255)]
+  vs=[];faces=[];segments=64
+  for xx,rr in profile:
+   for i in range(segments):
+    a=i*math.tau/segments;vs.append((xx,math.sin(a)*rr,math.cos(a)*rr))
+  for lane in range(len(profile)):
+   for i in range(segments):faces.append((lane*segments+i,lane*segments+(i+1)%segments,((lane+1)%len(profile))*segments+(i+1)%segments,((lane+1)%len(profile))*segments+i))
+  mesh('Wide mud-terrain casing '+end+side,vs,faces,rubber,roll)
+  for i in range(28):
+   for lane in [-1,0,1]:
+    a=(i+(0.35 if lane==0 else .10*(i%2)))*math.tau/28
+    b=cube('Staggered mud lug',(lane*.098,math.sin(a)*.448,math.cos(a)*.448),(.082,.083,.044),rubber,roll,.008);b.rotation_euler.x=-a;b.rotation_euler.z=(.23 if lane>=0 else -.23)
+   for edge in [-1,1]:
+    a=(i+.25)*math.tau/28;b=cube('Sidewall shoulder biter',(edge*.159,math.sin(a)*.392,math.cos(a)*.392),(.027,.059,.072),rubber,roll,.008);b.rotation_euler.x=-a
   for out in [-1,1]:
-   for r,d,xoff,m in [(.255,.022,.115,chrome),(.212,.024,.13,black),(.071,.032,.155,chrome)]:
+   for r,d,xoff,m in [(.255,.022,.155,chrome),(.212,.024,.17,black),(.071,.032,.19,chrome)]:
     bpy.ops.mesh.primitive_cylinder_add(vertices=32,radius=r,depth=d,location=(out*xoff,0,0),rotation=(0,math.pi/2,0));o=bpy.context.object;o.parent=roll;o.data.materials.append(m)
    for i in range(5):
-    a=i*math.tau/5;b=cube('Five spoke alloy',(out*.15,math.sin(a)*.133,math.cos(a)*.133),(.036,.071,.19),chrome,roll,.016);b.rotation_euler.x=-a
+    a=i*math.tau/5;b=cube('Five spoke alloy',(out*.188,math.sin(a)*.133,math.cos(a)*.133),(.036,.071,.19),chrome,roll,.016);b.rotation_euler.x=-a
 # Rear lettering and oval Toyota emblems are geometry, not a generic SUV badge.
 def badge(string,loc,size,rot):
  c=bpy.data.curves.new('Land Cruiser lettering','FONT');c.body=string;c.align_x='CENTER';c.size=size;c.extrude=.001
