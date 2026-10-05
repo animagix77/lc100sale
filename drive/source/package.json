@@ -3,10 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild drive.js --bundle --format=esm --target=es2022 --minify --outfile=../drive.js --legal-comments=linked"
+    "build": "esbuild drive.js --bundle --format=esm --target=es2022 --minify --outfile=../drive.js --legal-comments=linked",
+    "test": "node test-build.cjs"
   },
   "dependencies": {
-    "three": "0.186.1"
+    "three": "0.186.1",
+    "@dimforge/rapier3d-compat": "0.21.0"
   },
   "devDependencies": {
     "esbuild": "0.28.2"
