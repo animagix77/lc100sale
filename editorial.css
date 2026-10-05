@@ -282,3 +282,22 @@
 .editorial .issue-row[data-expanded="false"] .issue-plus{transform:rotate(0)}
 .editorial .issue-row[data-expanded="true"] .issue-plus{transform:rotate(45deg)}
 @media(prefers-reduced-motion:reduce){.editorial .issue-plus{transition:none}}
+
+/* Give the desktop opening title the scale of a vehicle campaign. */
+@media(min-width:701px){
+ .editorial .launch{top:clamp(88px,11svh,132px);width:44vw}
+ .editorial .launch h1{font-size:clamp(80px,min(11vw,15svh,calc(38svh - 166px)),184px)}
+ .editorial .launch .eyebrow{margin-bottom:16px}
+ .editorial .launch .intro{margin:16px 0;max-width:36ch}
+}
+@media(min-width:701px) and (max-height:760px){
+ .editorial .launch .intro{font-size:16px;line-height:1.4;margin:12px 0}
+ .editorial .hero-shortcuts{margin-top:8px}
+ .editorial .launch .asking-note{margin-top:6px}
+}
+@media(min-width:701px) and (max-height:650px){
+ .editorial .launch{top:74px}
+ .editorial .launch h1{font-size:clamp(62px,min(9vw,12svh),78px)}
+ .editorial .launch .eyebrow{margin-bottom:8px}
+ .editorial .launch .intro{font-size:13px;margin:10px 0}
+}
