@@ -1,6 +1,7 @@
 // Content arrives at the reading position; the orbit and map own their own motion.
 (() => {
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ const compact=matchMedia('(max-width: 700px)');
  if(reduced.matches||!Element.prototype.animate)return;
  const selector=[
   '.page-content h2','.page-content h3','.page-content p',
@@ -31,9 +32,10 @@
   node.classList.add('reveal-unit','reveal-pending');if(photo)node.classList.add('reveal-photo');
   node.dataset.revealState='pending';
   // Eyebrow, title and intro share a cue: title first, supporting text afterwards.
-  const scope=node.closest('.editorial-heading,.story-heading,.intro-copy,.evidence-copy,.outdoor-heading,.closing,.condition-priority');
+  const scope=node.closest('.editorial-heading,.story-heading,.intro-copy,.evidence-copy,.outdoor-heading,.closing,.condition-priority,.price-answer');
   const title=scope?.querySelector('h2,h3');
   record.trigger=title||node;
+  record.mobileTrigger=scope||node;
   record.delay=title?(node.matches('.eyebrow,.status')?0:heading?100:980):0;
   if(title&&!heading&&!node.matches('.eyebrow,.status')){
    const siblings=[...scope.querySelectorAll('p,a,.buyer-actions,.sale-meta,.purchase-link,.intro-disclosure')];
@@ -78,24 +80,25 @@
  function play(record,offset=0){
   if(record.played)return;record.played=true;pending.delete(record);
   record.node.classList.remove('reveal-pending');record.node.dataset.revealState='building';
-  const delay=record.delay+offset;
+  const mobile=compact.matches;
+  const delay=mobile?Math.min(record.delay,180)+Math.min(offset,80):record.delay+offset;
   if(record.heading){
-   record.lines.forEach(({ink},i)=>animate(record,ink,[{transform:'translateY(115%)'},{transform:'translateY(0)'}],900,delay+i*220));
+   record.lines.forEach(({ink},i)=>animate(record,ink,[{transform:'translateY(115%)'},{transform:'translateY(0)'}],mobile?600:900,delay+i*(mobile?120:220)));
   }else if(record.photo){
-   animate(record,record.node,[{opacity:0,clipPath:'inset(10% 0 0 0)',transform:'translateY(24px)'},{opacity:1,clipPath:'inset(0)',transform:'translateY(0)'}],950,delay);
-   const img=record.node.querySelector('img');if(img)animate(record,img,[{transform:'scale(1.045)'},{transform:'scale(1)'}],1100,delay);
-  }else animate(record,record.node,[{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'translateY(0)'}],650,delay);
+   animate(record,record.node,[{opacity:0,clipPath:'inset(10% 0 0 0)',transform:'translateY(24px)'},{opacity:1,clipPath:'inset(0)',transform:'translateY(0)'}],mobile?650:950,delay);
+   const img=record.node.querySelector('img');if(img)animate(record,img,[{transform:'scale(1.045)'},{transform:'scale(1)'}],mobile?750:1100,delay);
+  }else animate(record,record.node,[{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'translateY(0)'}],mobile?400:650,delay);
   if(record.counter&&!record.counter.played)roll(record.counter);
  }
  function render(){
   queued=false;if(reduced.matches)return;
   const atBottom=scrollY+innerHeight>=document.documentElement.scrollHeight-4;
-  const positions=[...pending].map(record=>({record,rect:record.node.getBoundingClientRect(),trigger:record.trigger.getBoundingClientRect()}));
+  const positions=[...pending].map(record=>({record,rect:record.node.getBoundingClientRect(),trigger:(compact.matches?record.mobileTrigger:record.trigger).getBoundingClientRect()}));
   let lastTop=-Infinity,offset=0;
   for(const {record,rect,trigger} of positions){
    if(!rect.width||!rect.height||rect.right<=0||rect.left>=innerWidth)continue;
    if(rect.bottom<=0){finish(record);continue;}
-   if(trigger.top>innerHeight*.60&&!(atBottom&&rect.top<innerHeight))continue;
+   if(trigger.top>innerHeight*(compact.matches?.94:.60)&&!(atBottom&&rect.top<innerHeight))continue;
    if(!record.delay&&!record.heading){offset=Math.abs(rect.top-lastTop)<30?Math.min(offset+140,420):0;lastTop=rect.top}else offset=0;
    play(record,offset);
   }
