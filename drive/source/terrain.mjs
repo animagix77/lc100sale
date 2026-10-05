@@ -22,9 +22,11 @@ export class SandField{
  height(x,z){const gx=x*2,gz=z*2,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,v=gz-j;return (this.atGrid(i,j)*(1-u)+this.atGrid(i+1,j)*u)*(1-v)+(this.atGrid(i,j+1)*(1-u)+this.atGrid(i+1,j+1)*u)*v}
  depthAt(x,z){const i=Math.floor(x*2),j=Math.floor(z*2),u=x*2-i,v=z*2-j;const d=(a,b)=>Math.max(0,-(this.ruts.get(a+','+b)?.depth||0));return (d(i,j)*(1-u)+d(i+1,j)*u)*(1-v)+(d(i,j+1)*(1-u)+d(i+1,j+1)*u)*v}
  stamp(x,z,load=1,travel=.17,slip=0){this.stamps++;this.clock++;const ix=Math.round(x*2),iz=Math.round(z*2),soft=softnessAt(x,z);for(let j=iz-2;j<=iz+2;j++)for(let i=ix-2;i<=ix+2;i++){const r=Math.hypot(i*.5-x,j*.5-z);if(r>1.0)continue;const key=`${i},${j}`,old=this.ruts.get(key)?.depth||0;const energy=clamp(travel/.17,.1,2.5),dig=1+soft*Math.min(3,slip)*.50;
- const depression=-.040*(.35+soft)*clamp(load,.25,1.7)*energy*dig*Math.exp(-r*r/.16);
+ const depression=-.025*(.35+soft)*clamp(load,.25,1.7)*energy*dig*Math.exp(-r*r/.16);
  const berm=r>.44?.010*energy*soft*Math.exp(-Math.pow((r-.76)/.19,2)):0;
- const depth=clamp(old+depression+berm,-(.14+.74*soft),.16);this.ruts.set(key,{depth,t:this.clock});this.deepest=Math.min(this.deepest,depth);for(const tx of [Math.floor((i*.5-.001)/32),Math.floor((i*.5+.001)/32)])for(const tz of [Math.floor((j*.5-.001)/32),Math.floor((j*.5+.001)/32)])this.dirty.add(`${tx},${tz}`)}
+ // Rolling compacts a shallow track; sustained wheelspin can excavate a deep hole.
+ const cap=.06+.16*soft+(.08+.58*soft)*smooth(.35,2,slip);
+ const depth=clamp(old+depression+berm,Math.min(old,-cap),.16);this.ruts.set(key,{depth,t:this.clock});this.deepest=Math.min(this.deepest,depth);for(const tx of [Math.floor((i*.5-.001)/32),Math.floor((i*.5+.001)/32)])for(const tz of [Math.floor((j*.5-.001)/32),Math.floor((j*.5+.001)/32)])this.dirty.add(`${tx},${tz}`)}
  // Retain the most recent ~kilometres of tracks without growing memory indefinitely.
  if(this.ruts.size>90000){let n=0;for(const key of this.ruts.keys()){this.ruts.delete(key);if(++n===12000)break}}
  }
