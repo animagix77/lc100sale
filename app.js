@@ -208,7 +208,6 @@ function render(p,forceDetail=false){
    if(focusRequest)pendingFocus=null;
    const intro=n<0;$('launch').hidden=!intro;$('walkaround').hidden=intro;
    $('orbit-pin').classList.toggle('inspecting',!intro);
-   $('tour-mode').textContent=intro?'ONE TRUCK. SEVERAL WEEKENDS.':'THE HONEST WALKAROUND';
    const showEvidence=false;$('tour-evidence').hidden=!showEvidence;
    $('orbit-pin').classList.toggle('showing-evidence',showEvidence);
    if(!intro){
