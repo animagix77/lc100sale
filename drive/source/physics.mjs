@@ -23,7 +23,7 @@ export class DrivePhysics{
  let totalDepth=0,totalSlip=0;
  for(let i=0;i<4;i++){
   const w=this.tyres[i],contact=!!this.vehicle.wheelIsInContact(i),c=this.vehicle.wheelContactPoint(i);const x=c?c.x+this.origin.x:p.x,z=c?c.z+this.origin.z:p.z;
-  const onBoard=this.recovery?.supports(x,z,c?.y),soil=onBoard?0:softnessAt(x,z),depth=onBoard?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
+  const onBoard=this.recovery?.supports(x,z,c?.y),onSolid=this.obstacles?.has(this.vehicle.wheelGroundObject(i)),soil=onBoard||onSolid?0:softnessAt(x,z),depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
   const wheelSpeed=w.omega*.45,top=drive<0?gear.reverse:gear.maxSpeed;
   const motor=drive*clamp((top-Math.sign(drive)*wheelSpeed)/(this.range==='LO'?.9:2.4),0,1);
   const force=stepTyre(w,{dt,roadSpeed:this.speed,driveForce:motor,load,soft:soil,depth,contact,brake:braking});
@@ -38,7 +38,7 @@ export class DrivePhysics{
   const w=this.tyres[i],c=this.vehicle.wheelContactPoint(i);if(!c||!this.vehicle.wheelIsInContact(i))continue;
   const x=c.x+this.origin.x,z=c.z+this.origin.z,slipWork=Math.max(0,w.slip-.35);
   w.travel+=(Math.abs(this.speed)+slipWork*.8)*dt;
-  if(w.travel>=.17){const travel=Math.min(w.travel,.34);w.travel-=travel;const load=clamp((this.vehicle.wheelSuspensionForce(i)||6000)/6000,.25,1.7);if(this.recovery?.supports(x,z,c.y))continue;this.sand?.stamp(x,z,load,travel,slipWork);this.marks.push({x,z,wheel:i,slip:slipWork,soft:w.soft,load,dir:Math.sign(w.omega)||1});if(this.marks.length>256)this.marks.shift()}
+  if(w.travel>=.17){const travel=Math.min(w.travel,.34);w.travel-=travel;const load=clamp((this.vehicle.wheelSuspensionForce(i)||6000)/6000,.25,1.7);if(this.recovery?.supports(x,z,c.y)||this.obstacles?.has(this.vehicle.wheelGroundObject(i)))continue;this.sand?.stamp(x,z,load,travel,slipWork);this.marks.push({x,z,wheel:i,slip:slipWork,soft:w.soft,load,dir:Math.sign(w.omega)||1});if(this.marks.length>256)this.marks.shift()}
  }
  const burying=Math.abs(this.speed)<.4&&totalSlip/4>.7&&totalDepth/4>.28&&!!drive;this.stuckTime=burying?this.stuckTime+dt:Math.max(0,this.stuckTime-dt*2);this.stuck=this.stuckTime>1.5;
  }

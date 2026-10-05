@@ -10,7 +10,7 @@ for(const mobile of [false,true]){
  for(const s of life.samples){const d=s.x-shore(s.z);assert(d<16||d>29,'Main driving strip stays clear of debris')}
  const boat=life.boats[0],before=boat.mesh.position.clone();life.update(p,5,origin);assert(boat.mesh.position.distanceTo(before)>.05,'Fishing boats move with the swell');assert(Math.abs(boat.mesh.position.y-oceanHeight(boat.x,boat.z,5)+.13)<1e-6);for(const b of life.boats)assert(b.x<shore(b.z)-70,'Fleet stays offshore');
  const world=life.boats.map(b=>b.mesh.position.clone());life.update(p,5,{x:512,z:-512});life.boats.forEach((b,i)=>{assert(Math.abs(b.mesh.position.x+512-world[i].x)<1e-6);assert(Math.abs(b.mesh.position.z-512-world[i].z)<1e-6)});
- for(const z of [-2000,4000,10000]){life.update({x:shore(z)+22,z},8,{x:0,z});for(const m of [life.grass,life.logs,life.wrack]){assert(m.count<=m.instanceMatrix.count);assert([...m.instanceMatrix.array].every(Number.isFinite))}assert.equal(scene.children.length,8,'Streaming keeps object count fixed')}
+ for(const z of [-2000,4000,10000]){life.update({x:shore(z)+22,z},8,{x:0,z});for(const m of [life.grass,life.logs,life.wrack,life.rocks]){assert(m.count<=m.instanceMatrix.count);assert([...m.instanceMatrix.array].every(Number.isFinite))}assert.equal(scene.children.length,9,'Streaming keeps object count fixed')}
  life.dispose();assert.equal(scene.children.length,0);
 }
 const calm=new BeachLife(new THREE.Scene(),{reduced:true});calm.update({x:-14,z:0},5,{x:0,z:0});assert.equal(calm.time.value,0);calm.dispose();console.log('Scenery: placement, wind, boat flotation, world anchoring, bounded streaming and disposal passed');

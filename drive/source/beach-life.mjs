@@ -26,7 +26,7 @@ function boatGeometry(){
 }
 export class BeachLife{
  constructor(scene,{mobile=false,reduced=false}={}){
-  this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.time=uniform(0);this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,boats:5};
+  this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.time=uniform(0);this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,rocks:0,boats:5};
   const make=(geometry,material,count)=>{this.geometries.push(geometry);this.materials.push(material);const m=new THREE.InstancedMesh(geometry,material,count);m.frustumCulled=false;m.count=0;scene.add(m);return m};
   const geometry=grassGeometry(),grassMat=new THREE.MeshStandardNodeMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
   const phase=attribute('windPhase','float'),height=attribute('position','vec3').y;
@@ -36,12 +36,13 @@ export class BeachLife{
   this.grass=make(geometry,grassMat,capacity);
   this.logs=make(logGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),180);
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),300);
+  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}),100);
   this.boats=[];const bg=boatGeometry(),bm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7});this.geometries.push(bg);this.materials.push(bm);
   for(let i=0;i<5;i++){const mesh=new THREE.Mesh(bg,bm);scene.add(mesh);this.boats.push({mesh,id:0,x:0,z:0})}
  }
  refresh(p,origin){
   const cx=Math.floor(p.x/64),cz=Math.floor(p.z/64),key=`${cx},${cz},${origin.x},${origin.z}`;if(key===this.key)return;this.key=key;
-  let gi=0,li=0,wi=0;const d=this.dummy,c=new THREE.Color();this.samples=[];
+  let gi=0,li=0,wi=0,ri=0;const d=this.dummy,c=new THREE.Color();this.samples=[];
   // Fixed world cells prevent plants and driftwood reshuffling when new terrain arrives.
   for(let tz=cz-2;tz<=cz+2;tz++)for(let tx=cx-2;tx<=cx+2;tx++){
    const seed=tx*391+tz*977;
@@ -53,12 +54,12 @@ export class BeachLife{
    for(let i=0;i<24;i++){
     const x=tx*64+rand(seed,i+1300)*64,z=tz*64+rand(seed,i+1500)*64,coast=x-shore(z);
     if(coast<9||coast>48||coast>16&&coast<29)continue;
-    const log=i%3===0,mesh=log?this.logs:this.wrack,index=log?li:wi;if(index>=mesh.instanceMatrix.count)continue;
-    const h=baseHeight(x,z),normal=new THREE.Vector3(-(baseHeight(x+.4,z)-baseHeight(x-.4,z))/.8,1,-(baseHeight(x,z+.4)-baseHeight(x,z-.4))/.8).normalize();d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);const scale=log?.55+rand(seed,i+2000)*1.15:.7+rand(seed,i+2100)*1.7;d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':'wrack',x,z});if(log)li++;else wi++;
+    const log=i%3===0,rock=!log&&i%4===0,mesh=log?this.logs:rock?this.rocks:this.wrack,index=log?li:rock?ri:wi;if(index>=mesh.instanceMatrix.count)continue;
+    const h=baseHeight(x,z),normal=new THREE.Vector3(-(baseHeight(x+.4,z)-baseHeight(x-.4,z))/.8,1,-(baseHeight(x,z+.4)-baseHeight(x,z-.4))/.8).normalize();d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);const scale=log?.55+rand(seed,i+2000)*1.15:.7+rand(seed,i+2100)*1.7;d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':rock?'rock':'wrack',x,z});if(log)li++;else if(rock)ri++;else wi++;
    }
   }
-  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;
-  Object.assign(this.stats,{grass:gi,logs:li,wrack:wi});
+  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;
+  Object.assign(this.stats,{grass:gi,logs:li,wrack:wi,rocks:ri});
  }
  update(p,time,origin){
   this.refresh(p,origin);this.time.value=this.reduced?0:time;
@@ -69,5 +70,5 @@ export class BeachLife{
    boat.mesh.position.set(x-origin.x,h-.13,z-origin.z);boat.mesh.rotation.set(this.reduced?0:(back-front)*.08,Math.PI*.22+Math.sin(id*3.7)*.4,this.reduced?0:Math.sin(time*.7+id)*.025);boat.mesh.scale.setScalar(.85+rand(id,31)*.45);
   }
  }
- dispose(){for(const mesh of [this.grass,this.logs,this.wrack,...this.boats.map(b=>b.mesh)]){this.scene.remove(mesh);mesh.dispose?.()}for(const g of this.geometries)g.dispose();for(const m of this.materials)m.dispose()}
+ dispose(){for(const mesh of [this.grass,this.logs,this.wrack,this.rocks,...this.boats.map(b=>b.mesh)]){this.scene.remove(mesh);mesh.dispose?.()}for(const g of this.geometries)g.dispose();for(const m of this.materials)m.dispose()}
 }
