@@ -21,11 +21,11 @@ const chapters=[
     "link": "See the camping years"
   },
   {
-    "tag": "THE NEXT OWNER",
+    "tag": "THE BIG MAYBE",
     "title": "A hobby.<br>With a VIN.",
-    "body": "$11,000 asking. She drives great in my experience, and she needs work. Your socket set deserves a purpose. The repair list is included.",
+    "body": "$TBD. I’m considering a sale, but first I plan to chase the EVAP codes with a smoke test and get a body-shop estimate. Apparently I needed a whole website to discover I’m attached.",
     "href": "#price",
-    "link": "See the price & comparables"
+    "link": "See the sale status & comparables"
   }
 ];
 const $=id=>document.getElementById(id);

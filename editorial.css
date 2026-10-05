@@ -341,3 +341,5 @@
 @media(prefers-reduced-motion:reduce){.reveal-unit{opacity:1!important;transform:none!important;clip-path:none!important}.scroll-headline-ink{transform:none!important}}
 .reveal-unit:focus-within{opacity:1!important;transform:none!important;clip-path:none!important}
 @media print{.reveal-unit,.history-icon-motion :is(path,circle){opacity:1!important;transform:none!important;clip-path:none!important;stroke-dashoffset:0!important;fill-opacity:1!important}.scroll-headline-ink{transform:none!important}}
+
+.editorial .price-answer .sale-plan{font-size:17px;line-height:1.55;max-width:38ch;margin:0 0 26px;color:#446168}

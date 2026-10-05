@@ -13,9 +13,9 @@
   const body = document.getElementById('rusty-body');
   const notes = [
     {
-      question: 'What’s the asking price?',
-      reply: '$11,000 asking for the 2004 Land Cruiser, sold as is. The owner’s odometer photo shows 220,718 miles; mileage may increase. The repair list comes at no extra charge.',
-      link: 'See the price and comparable listings', href: '#price'
+      question: 'Is she for sale? What’s the price?',
+      reply: '$TBD. The owner is considering a sale but hasn’t decided to let her go. He plans an EVAP smoke test and a body-shop estimate first; neither is complete yet. Built an entire website. Still emotionally attached. Classic.',
+      link: 'See the sale status and comparables', href: '#price'
     },
     {
       question: 'How much work does it need?',
@@ -24,7 +24,7 @@
     },
     {
       question: 'What are the EVAP codes?',
-      reply: 'P2418, P0442 and P0446 remain unresolved. The owner’s mechanic suspects the photographed area and recommended a body shop/welder assessment. An EVAP smoke test is probably needed to help diagnose the fault. Cause, repair scope and cost are unconfirmed. My crystal ball is also out for repairs.',
+      reply: 'P2418, P0442 and P0446 remain unresolved. The owner’s mechanic suspects the photographed area and recommended a body shop/welder assessment. The owner plans an EVAP smoke test and a body-shop estimate; neither is complete yet. Cause, repair scope and cost are unconfirmed. My crystal ball is also out for repairs.',
       link: 'See the mechanic’s notes and photos', href: '#mechanic-photos'
     },
     {
@@ -44,12 +44,12 @@
     },
     {
       question: 'Where is she? Can I see her?',
-      reply: 'Leonia, New Jersey. Private sale, with viewings by arrangement. Call 917-981-5816 or email animagix@mac.com to set a time. Bring questions and a flashlight. She’s ready for her extremely unglamorous close-up.',
-      link: 'Arrange a viewing', href: '#contact'
+      reply: 'Leonia, New Jersey. The owner is still deciding whether to sell. Call 917-981-5816 or email animagix@mac.com to express interest and discuss next steps. The truck has a location. The owner’s resolve is harder to pin down.',
+      link: 'Express interest', href: '#contact'
     },
     {
-      question: 'Payment and getting her home?',
-      reply: 'Wire, cash or a directly verified cashier’s/certified check; no personal checks. Payment must be verified and received before handoff. The owner keeps the NJ plates. Arrange your own insurance and legal registration/permit, or towing. Optimism is not a payment method.',
+      question: 'If he sells, how would pickup work?',
+      reply: 'If the owner decides to sell and you agree on a price: wire, cash or a directly verified cashier’s/certified check; no personal checks. Payment must be verified and received before handoff. The owner keeps the NJ plates. Arrange your own insurance and legal registration/permit, or towing. Optimism is not a payment method.',
       link: 'See payment and pickup details', guide: true
     }
   ];
