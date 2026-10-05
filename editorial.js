@@ -55,3 +55,23 @@
  track.addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(update)}},{passive:true});
  track.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go(e.key==='ArrowRight'?1:-1)}});window.addEventListener('resize',update);update();
 })();
+
+// Decorative trim-path builds play once; the factual text stays visible throughout.
+(() => {
+ const icons=[...document.querySelectorAll('.history-icon-motion')];
+ const preference=matchMedia('(prefers-reduced-motion: reduce)');
+ if(preference.matches||!('IntersectionObserver' in window))return;
+ const observer=new IntersectionObserver(entries=>{
+  for(const entry of entries){
+   if(!entry.isIntersecting)continue;
+   const icon=entry.target.querySelector('.history-icon-motion');
+   icon.style.setProperty('--icon-delay',innerWidth>1000?(icons.indexOf(icon)*120)+'ms':'0ms');
+   icon.classList.add('is-drawing');observer.unobserve(entry.target);
+  }
+ },{threshold:.4,rootMargin:'0px 0px -8% 0px'});
+ icons.forEach(icon=>{icon.classList.add('motion-ready');observer.observe(icon.closest('li'))});
+ preference.addEventListener('change',()=>{
+  if(!preference.matches)return;
+  observer.disconnect();icons.forEach(icon=>icon.classList.remove('motion-ready','is-drawing'));
+ });
+})();

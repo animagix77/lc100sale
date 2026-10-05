@@ -321,3 +321,12 @@
  .editorial .launch .asking-note{margin-top:8px}
 }
 @media(max-width:360px){.editorial .launch .eyebrow{font-size:9px;letter-spacing:.8px}.editorial .hero-shortcuts{margin-left:8px;gap:10px}.editorial .hero-shortcuts a{font-size:11px}.editorial .launch .button{padding-inline:12px}}
+
+/* Draw the pictogram, circle, then slash as each fact enters the viewport. */
+@media(prefers-reduced-motion:no-preference){
+ .history-icon-motion.motion-ready :is(path,circle){stroke-dasharray:1;stroke-dashoffset:1;opacity:0;fill-opacity:0}
+ .history-icon-motion.motion-ready.is-drawing :is(path,circle){animation:history-stroke-build 600ms cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--icon-delay,0ms) + var(--stroke-order,0)*25ms)}
+ .history-icon-motion.motion-ready.is-drawing .history-draw-ring{animation-duration:700ms;animation-delay:calc(var(--icon-delay,0ms) + 420ms)}
+ .history-icon-motion.motion-ready.is-drawing .history-draw-slash{animation-duration:300ms;animation-delay:calc(var(--icon-delay,0ms) + 970ms)}
+}
+@keyframes history-stroke-build{0%{stroke-dashoffset:1;opacity:0;fill-opacity:0}3%{opacity:1}70%{fill-opacity:0}100%{stroke-dashoffset:0;opacity:1;fill-opacity:1}}
