@@ -500,3 +500,12 @@ html.site-loading-out .site-preloader{opacity:0;pointer-events:none}
 .condition-grid .dvd-note{text-align:center}
 .condition-grid .dvd-note p{max-width:52ch;margin-inline:auto;text-wrap:pretty}
 .condition-grid .dvd-note h3{text-wrap:balance}
+
+/* Magnifier choreography: anchor, leader, ring, then image and caption. */
+.immersive .callout-motion .bubble{border:0;background:transparent;box-shadow:none}
+.callout-motion .leader path,.callout-ring circle{stroke-dasharray:1;stroke-dashoffset:0}
+.callout-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:4;pointer-events:none}
+.callout-ring circle{fill:none;stroke:white;stroke-width:1;vector-effect:non-scaling-stroke}
+.callout-motion[data-motion="pending"] .leader,.callout-motion[data-motion="pending"] .bubble{visibility:hidden}
+.callout-motion[data-motion="entering"] .bubble-open{pointer-events:none}
+.callout-outgoing{z-index:1;pointer-events:none}

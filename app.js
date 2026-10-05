@@ -86,8 +86,8 @@ fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
  fallbackManifest=m;startSequence();render(progress);
 }).catch(()=>{});
 
-let detailRevealed=-1;
 function setDetailState(n,detail){
+ window.lcCallout?.prepare(detail?n:null);
  const panel=$('inspection-detail'),open=$('detail-open');
  panel.hidden=!detail;panel.dataset.detail=String(n);
  $('bubble-video').hidden=!detail?.live;$('bubble-photo').hidden=!!detail?.live;
@@ -95,11 +95,10 @@ function setDetailState(n,detail){
  if(n===0){open.dataset.photo=document.querySelector('#photo-27-engine-cover .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the cleaned V8 detail')}
  if(n===2){open.dataset.photo=document.querySelector('#photo-08-cargo .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the rear cargo photo')}
  if(n===5){open.dataset.photo=document.querySelector('#photo-24-grab-handle .photo-open').dataset.photo;open.dataset.photoSource='true';open.setAttribute('aria-label','Open the front grab-handle photo')}
- if(!detail)detailRevealed=-1;
+
 }
 function revealDetail(n){
- if(detailRevealed===n)return;detailRevealed=n;
- if(n===2||n===3)window.lcMotion?.detail($('bubble-video').hidden?$('bubble-photo'):$('bubble-video'));
+ window.lcCallout?.show(n);
 }
 function updateDetail(n){
  if(progress<introFraction)n=-1;else if(n===2){const phase=(orbitProgress()-.5)*4;n=phase<.38?2:phase<.68?3:5;}else if(n===3)n=-1;
@@ -132,14 +131,14 @@ function updateDetail(n){
   const targetTop=Math.max(currentTop,copyBottom+16);
   const controlsTop=document.querySelector('.orbit-bottom').getBoundingClientRect().top-base.top;
   const bottomLimit=n===1?Math.min(controlsTop-16,tireRoofTop-16):controlsTop-16;
-  if(targetTop+bubble.offsetHeight>bottomLimit){$('inspection-detail').hidden=true;return}
+  if(targetTop+bubble.offsetHeight>bottomLimit){window.lcCallout?.prepare(null);$('inspection-detail').hidden=true;return}
   bubble.style.top=`${targetTop}px`;
  }
  const br=bubble.getBoundingClientRect(),bx=br.left-base.left+br.width/2,by=br.top-base.top+br.height;
  if(n===5){const cy=br.top-base.top+br.height/2,dx=x-bx,dy=y-cy,length=Math.hypot(dx,dy)||1;const edgeX=bx+dx/length*br.width/2,edgeY=cy+dy/length*br.height/2;$('leader-path').setAttribute('d',`M ${x} ${y} L ${edgeX} ${edgeY}`)}else $('leader-path').setAttribute('d',n===1?`M ${x} ${y} L ${bx} ${by}`:`M ${x} ${y} L ${bx-25} ${by+20} L ${bx} ${by}`);
  $('leader-point').setAttribute('cx',x);$('leader-point').setAttribute('cy',y);
  const zoom=br.width/(n===1?240:330)*1672/iw;
- if(detail.src){revealDetail(n);$('bubble-photo').style.backgroundImage=`url('${detail.src}')`;$('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;return}
+ if(detail.src){$('bubble-photo').style.backgroundImage=`url('${detail.src}')`;$('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;$('bubble-label').textContent=detail.label;revealDetail(n);return}
  $('bubble-photo').style.backgroundImage=`url('${frames[frameIndex].src}')`;
  $('bubble-photo').style.backgroundSize=`${iw*zoom}px ${ih*zoom}px`;
  $('bubble-photo').style.backgroundPosition=`${br.width/2-detail.point[0]/1672*iw*zoom}px ${br.height/2-detail.point[1]/941*ih*zoom}px`;
@@ -174,7 +173,7 @@ function updateVideoDetail(n){
   const newDetail=n===2||n===3;
   top=Math.max(top,document.querySelector('.tour-copy').getBoundingClientRect().bottom-base.top+(newDetail?8:16));
   const limit=newDetail?document.querySelector('.orbit-bottom').getBoundingClientRect().top-base.top-16:imageTop+.38*imageHeight-16;
-  if(top+height>limit){$('inspection-detail').hidden=true;return;}
+  if(top+height>limit){window.lcCallout?.prepare(null);$('inspection-detail').hidden=true;return;}
  }
  bubble.style.top=`${top}px`;
  if(detail.live){
@@ -187,11 +186,12 @@ function updateVideoDetail(n){
   $('bubble-photo').style.backgroundImage=`url('${detail.src}')`;
   $('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;
  }
- $('bubble-label').textContent=detail.label;revealDetail(n);
+ $('bubble-label').textContent=detail.label;
  document.querySelector('.leader').toggleAttribute('hidden',n===5);
  $('leader-point').setAttribute('cx',x);$('leader-point').setAttribute('cy',y);
  const bubbleX=parseFloat(bubble.style.left)+width/2;
  $('leader-path').setAttribute('d',`M ${x} ${y} L ${bubbleX} ${top+height}`);
+ revealDetail(n);
 }
 function render(p,forceDetail=false){
  progress=clamp(p);const op=orbitProgress(),n=progress<introFraction-.0005?-1:Math.min(chapters.length-1,Math.floor(op*chapters.length+.003));
