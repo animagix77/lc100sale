@@ -22,3 +22,6 @@ Run `npm ci`, `npm test`, then `npm run build` here. `../drive.css` and `../inde
 The automated checks cover suspension settling, forward drive, steering, braking, range shifting, low-range climbing, stationary wheelspin, bogging, recovery, frame-rate-independent rut depth, bounded tile count, and a continuous coastal drive plus distant terrain probes across floating-origin recenters. Browser checks cover WebGPU rendering, desktop/mobile controls and clean iframe teardown.
 
 Licenses: `../THREE-LICENSE.txt`, `../RAPIER-LICENSE.txt` and `../drive.js.LEGAL.txt`.
+
+## Soundtrack
+Music is a separate opt-in toggle from the engine/surf sound. “No Particular Hurry” is an original 75-second, 108 BPM instrumental, composed for this drive. The AAC file loads only after Music is pressed, loops, fades, pauses with the game, and releases its audio context when the iframe closes. `compose-soundtrack.py` preserves the NumPy composition source; `soundtrack-info.json` contains its details.
