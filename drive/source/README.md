@@ -1,6 +1,6 @@
 # LC100 / Endless sunset drive
 
-The main site opens `../index.html` on demand. Closing its dialog unloads the game. All runtime dependencies are local. No player data is sent or saved.
+The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. All runtime dependencies are local. No player data is sent or saved.
 
 ## Vehicle
 `lc100.blend` is the editable Blender source, exported as `../lc100.glb`. `build_lc100.py` regenerates it using shaped body sections, a raked greenhouse, projected glazing, open wheel arches, wider mud-terrain tyres with staggered tread blocks, five-spoke wheels and 32 mm of extra wheel offset per side, trim, lamps and badges. It is a stylized LC100 made against the owner's photographs, not a scan or dimensionally certified replica. Named Body, Susp_*, Steer_* and Roll_* pivots support the physics rig.

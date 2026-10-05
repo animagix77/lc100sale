@@ -6,3 +6,5 @@
 
 @media(max-width:700px){.topbar{align-items:flex-start}.tools{display:grid;grid-template-columns:repeat(3,auto);gap:5px}.tools #exit{grid-column:2/4}.tools button{min-height:34px}.destination{top:110px}#map{top:113px}}
 @media(max-height:520px) and (max-width:700px){.topbar .tools{display:flex}.tools #exit{font-size:0}.tools #exit:after{content:"Exit";font-size:10px}.destination{top:66px}#map{top:65px}}
+
+.preview-mode .topbar,.preview-mode .destination,.preview-mode #map,.preview-mode .bottom,.preview-mode .drive-range,.preview-mode .touch-controls,.preview-mode .overlay{display:none!important}.preview-mode #view{outline:0;pointer-events:none}
