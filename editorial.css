@@ -374,3 +374,14 @@
 .editorial #poll-total{grid-column:1/-1;font-size:14px;margin:0}
 @media(max-width:700px){.editorial .community-poll{padding:44px 5vw}.editorial .poll-heading{margin-bottom:24px}.editorial .poll-heading h2{font-size:42px}.editorial .poll-heading>p:last-child{font-size:16px}.poll-choices{grid-template-columns:1fr;gap:12px}.poll-choice{padding:22px;gap:13px}.poll-choice strong{font-size:30px}.poll-reason{font-size:15px}.poll-footer{flex-direction:column;gap:16px}.poll-results:not([hidden]){gap:18px}.poll-result>div:first-child{font-size:10px;letter-spacing:0;flex-wrap:wrap}.poll-result strong{font-size:24px}}
 @media(prefers-reduced-motion:reduce){.poll-choice,.poll-track>span{transition:none}}
+
+.editorial .drive-invite{display:grid;grid-template-columns:.8fr 1.2fr;align-items:center;gap:5vw;background:#102529;border-top:1px solid #a7c6bf33}
+.editorial .drive-invite h2{font-size:clamp(42px,5.5vw,80px);line-height:1.04;letter-spacing:-.045em;margin:22px 0}
+.editorial .drive-invite-copy>p:not(.eyebrow){font-size:18px;line-height:1.55;max-width:34ch}
+.editorial .drive-invite .button{margin:10px 0;padding:17px 22px}
+.editorial .drive-invite-copy>.drive-hint{font-size:12px;color:#a8bfbc;margin:8px 0}
+.drive-preview{margin:0}.drive-preview img{display:block;width:100%;aspect-ratio:1.6;object-fit:cover;border:1px solid #a7c6bf55}.drive-preview figcaption{font-size:12px;color:#a8bfbc;margin-top:12px}
+.drive-dialog{padding:0;border:0;width:100vw;height:100dvh;max-width:none;max-height:none;inset:0;margin:0;background:#17292d;color:#fff5df;overflow:hidden}
+.drive-dialog-bar{height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;font:10px monospace;letter-spacing:1px}.drive-dialog-bar button{border:0;background:none;color:inherit;font:12px Arial;padding:10px;cursor:pointer}.drive-dialog-bar button span{margin-left:12px;color:#f59858}
+#drive-frame{display:block;width:100%;height:calc(100% - 44px);border:0;background:#17292d}
+@media(max-width:700px){.editorial .drive-invite{grid-template-columns:1fr;gap:30px}.editorial .drive-invite-copy>p:not(.eyebrow){font-size:16px}.editorial .drive-invite-copy>.drive-hint{font-size:11px}.drive-dialog-bar{padding:0 6px;font-size:8px;letter-spacing:0}}
