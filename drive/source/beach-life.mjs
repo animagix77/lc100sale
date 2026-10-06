@@ -1,3 +1,4 @@
+import {coastalWind} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
 import {positionLocal,attribute,uniform,sin,vec3} from 'three/tsl';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -26,12 +27,12 @@ function boatGeometry(){
 }
 export class BeachLife{
  constructor(scene,{mobile=false,reduced=false}={}){
-  this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.time=uniform(0);this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,rocks:0,boats:5};
+  this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.time=uniform(0);this.windStrength=uniform(.4);this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,rocks:0,boats:5};
   const make=(geometry,material,count)=>{this.geometries.push(geometry);this.materials.push(material);const m=new THREE.InstancedMesh(geometry,material,count);m.frustumCulled=false;m.count=0;scene.add(m);return m};
   const geometry=grassGeometry(),grassMat=new THREE.MeshStandardNodeMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
   const phase=attribute('windPhase','float'),height=attribute('position','vec3').y;
   const wind=sin(this.time.mul(1.65).add(phase)).mul(.13).add(sin(this.time.mul(.67).add(phase.mul(.37))).mul(.10));
-  grassMat.positionNode=positionLocal.add(vec3(wind.mul(height.pow(2)),0,wind.mul(height.pow(2)).mul(.4)));
+  grassMat.positionNode=positionLocal.add(vec3(wind.mul(this.windStrength).mul(height.pow(2)),0,wind.mul(this.windStrength).mul(height.pow(2)).mul(.4)));
   const capacity=mobile?2800:5400;geometry.setAttribute('windPhase',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
   this.grass=make(geometry,grassMat,capacity);
   this.logs=make(logGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),180);
@@ -49,7 +50,7 @@ export class BeachLife{
    for(let i=0;i<(this.mobile?205:375);i++){
     const x=tx*64+rand(seed,i*3)*64,z=tz*64+rand(seed,i*3+1)*64,coast=x-shore(z),patch=noise(x*.085,z*.085);
     if(coast<29||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.9||gi>=this.grass.instanceMatrix.count)continue;
-    d.position.set(x-origin.x,baseHeight(x,z)-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=.5+rand(seed,i+700)*.85;d.scale.set(scale,scale,scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.set('#819366').lerp(new THREE.Color('#c4ba87'),rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,rand(seed,i+800)*6.28);gi++;
+    d.position.set(x-origin.x,baseHeight(x,z)-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=.5+rand(seed,i+700)*.85;d.scale.set(scale,scale,scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.set('#819366').lerp(new THREE.Color('#c4ba87'),rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.055+z*.025);gi++;
    }
    for(let i=0;i<24;i++){
     const x=tx*64+rand(seed,i+1300)*64,z=tz*64+rand(seed,i+1500)*64,coast=x-shore(z);
@@ -61,8 +62,8 @@ export class BeachLife{
   for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;
   Object.assign(this.stats,{grass:gi,logs:li,wrack:wi,rocks:ri});
  }
- update(p,time,origin){
-  this.refresh(p,origin);this.time.value=this.reduced?0:time;
+ update(p,time,origin,weather={wind:8}){
+  this.refresh(p,origin);this.time.value=this.reduced?0:time;this.windStrength.value=this.reduced?0:coastalWind(time,weather.wind)*2.2;
   const region=Math.floor(p.z/220);
   for(let i=0;i<this.boats.length;i++){
    const boat=this.boats[i],id=region+i-2,z=id*220+55+rand(id,7)*65+Math.sin(time*.012+id)*12,x=shore(z)-75-rand(id,19)*65;
