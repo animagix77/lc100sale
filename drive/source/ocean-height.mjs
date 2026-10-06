@@ -7,8 +7,8 @@ export function oceanHeight(x,z,time){
  const cross=Math.sin(x*.41+z*.23-time*1.05)*.065;
  return -.18+(swell+cross)*offshore+Math.sin(time*.8-z*.026)*.075*(1-offshore);
 }
-export function surfaceProfile(mark,speed,ground,time){
- const activity=Math.abs(speed)+Math.max(0,mark.slip),water=oceanHeight(mark.x,mark.z,time);
+export function surfaceProfile(mark,speed,ground,time,water=oceanHeight(mark.x,mark.z,time)){
+ const activity=Math.abs(speed)+Math.max(0,mark.slip);
  const wet=mark.x-shore(mark.z)<10&&water>ground+.025;
  return {wet,water,activity,emit:activity>.35,dust:!wet&&mark.x-shore(mark.z)>10};
 }

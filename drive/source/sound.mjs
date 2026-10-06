@@ -1,6 +1,6 @@
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Audio follows wheel rotation and load, including wheelspin at zero road speed.
-export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=30}){
+export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=30,waterContact}){
  const moving=Math.abs(speed),ground=tyres.filter(w=>w.contact),wheel=tyres.length?tyres.reduce((sum,w)=>sum+Math.abs(w.omega||0),0)/tyres.length:0;
  const slip=Math.max(0,...ground.map(w=>w.slip||0)),soft=ground.length?ground.reduce((s,w)=>s+(w.soft||0),0)/ground.length:0;
  const throttle=input.brake?0:input.gas||input.reverse?1:input.cruise?.38:0;
@@ -8,9 +8,9 @@ export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=3
  const rolling=range==='LO'?wheel*9.5493*22:moving*155;
  const wheelspin=Math.max(0,wheel*.45-moving);
  const rpm=clamp(720+rolling+Math.sqrt(wheelspin)*260+throttle*260,720,4200);
- const load=clamp(throttle*.72+slip*.06,0,1),wet=clamp((7-shoreDistance)/5,0,1);
+ const load=clamp(throttle*.72+slip*.06,0,1),wet=clamp(waterContact??(7-shoreDistance)/5,0,1);
  const work=ground.length?clamp(moving*.12+slip*.13,0,1):0;
- return {rpm,load,wet,sand:work*(1-wet)*(.055+soft*.055),splash:work*wet*.23,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
+ return {rpm,load,wet,sand:work*(1-wet)*(.055+soft*.055),splash:ground.length?wet*clamp(moving/11.2,0,1)**.7*.58:0,splashInterval:1.35-clamp(moving/11.2,0,1)*.87,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
 }
 // Stylized muted petrol V8: four firing events per revolution, with a restrained
 // upper harmonic spectrum. All partials share an exact harmonic relationship.
@@ -42,7 +42,9 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
   nextGull=ctx.currentTime+4;apply();
  }
  function apply(){if(master)smooth(master.gain,on&&!paused?.72:0,.14);if(!on||paused)onMix(false,0);}
- function shot(name,volume,pan=0,rate=1){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner();s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();p.disconnect();};s.start();}
+ function shot(name,volume,pan=0,rate=1,duration=0){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner();s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();p.disconnect();};
+  if(duration){const now=ctx.currentTime;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.035);g.gain.setValueAtTime(volume,now+duration*.55);g.gain.linearRampToValueAtTime(0,now+duration);s.start(now,.25,duration*rate);s.stop(now+duration+.02);}else s.start();
+ }
  // Enabled by default; the first in-game gesture unlocks browser audio.
  // A deliberate mute is never undone by subsequent driving input.
  let starting;
@@ -76,7 +78,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    smooth(engineFilter.frequency,voice.cutoff,.4);
    smooth(sand.g.gain,m.sand);smooth(sand.source.playbackRate,.78+Math.min(Math.abs(state.speed)*.055,.5));smooth(coast.g.gain,m.surf,.7);
    if(now>nextGull){shot(Math.random()<.5?'gull1':'gull2',.14+Math.random()*.1,(Math.random()-.5)*1.6,.94+Math.random()*.12);nextGull=now+12+Math.random()*18;}
-   if(m.splash>.025&&now>nextSplash){shot(Math.random()<.5?'wave1':'wave2',m.splash, (Math.random()-.5)*.7,1.1+Math.random()*.25);nextSplash=now+.75+Math.random()*.6;}
+   if(m.splash>.025&&now>nextSplash){shot(Math.random()<.5?'wave1':'wave2',m.splash, (Math.random()-.5)*.7,1.04+Math.min(Math.abs(state.speed)/11.2,1)*.22,.70);nextSplash=now+m.splashInterval+Math.random()*.12;}
    onMix(true,m.load);
   },
   dispose(){button.removeEventListener('click',toggle);for(const type of ['pointerdown','click','keydown'])gestures.removeEventListener(type,activate);disposed=true;on=false;controller.abort();for(const source of sources){try{source.stop();source.disconnect();}catch{}}sources.clear();ctx?.close().catch(()=>{});onMix(false,0);}

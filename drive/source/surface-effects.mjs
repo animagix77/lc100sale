@@ -19,15 +19,28 @@ export class SurfaceEffects{
   this.sand=make('sand',mobile?160:260,new THREE.OctahedronGeometry(.028,0),'#e2af7b',.72);
   this.dust=make('dust',mobile?28:48,new THREE.PlaneGeometry(1,1),'#cfa174',.13,true);
   this.wake=make('wake',mobile?64:110,new THREE.RingGeometry(.70,1,32),'#d9eee6',.18);
-  this.pools=[this.sand,this.dust,this.wake];
+  this.splash=make('splash',mobile?120:224,new THREE.SphereGeometry(1,6,4),'#d6eee8',.52);
+  this.pools=[this.sand,this.dust,this.wake,this.splash];
+  this.splashStep=[0,0,0,0];this.up=new THREE.Vector3(0,1,0);this.dropDirection=new THREE.Vector3();
  }
  spawn(pool,values){const p=pool.particles[pool.cursor++%pool.particles.length];Object.assign(p,values,{life:values.ttl});this.stats[pool.kind]++;return p}
  emit(mark,heading,speed,time){
-  const ground=this.field.height(mark.x,mark.z),profile=surfaceProfile(mark,speed,ground,time);
+  const ground=this.field.height(mark.x,mark.z),profile=surfaceProfile(mark,speed,ground,time,this.waterHeight(mark.x,mark.z,time));
   if(!profile.emit)return profile.wet;
   const rand=this.random,fx=-Math.sin(heading),fz=-Math.cos(heading),dir=mark.dir||Math.sign(speed)||1;
   const slip=Math.min(6,mark.slip),pace=Math.min(7,Math.abs(speed)),sideSign=mark.wheel%2===0?-1:1;
   if(profile.wet){
+   // Small ballistic droplets form a tyre-width fan, never a billboard cloud.
+   const waterPace=Math.min(11.2,Math.abs(speed)),spin=Math.min(2,slip*.20);
+   if(waterPace+spin>.45&&++this.splashStep[mark.wheel]%(waterPace<2?2:1)===0){
+    const count=waterPace>6?3:waterPace>2?2:1;
+    for(let j=0;j<count;j++){
+     const outward=sideSign*(.25+waterPace*.17)*(.65+rand()*.55),back=(.25+waterPace*.12+spin*.25)*(.7+rand()*.6);
+     this.spawn(this.splash,{x:mark.x+Math.cos(heading)*sideSign*.16,z:mark.z-Math.sin(heading)*sideSign*.16,y:profile.water+.06,
+      vx:-fx*dir*back+Math.cos(heading)*outward,vz:-fz*dir*back-Math.sin(heading)*outward,
+      vy:.35+waterPace*.16+spin*.2+rand()*.35,size:.011+rand()*.010+waterPace*.0007,ttl:.22+waterPace*.018+rand()*.08,angle:0});
+    }
+   }
    // Overlapping expanding ellipses leave a short foamy tire wake that follows the waves.
    if(pace>.45&&mark.wheel>=2&&++this.wakeStep[mark.wheel]%2===0)this.spawn(this.wake,{x:mark.x,z:mark.z,y:profile.water+.045,vx:0,vz:0,vy:0,size:.22+pace*.025,ttl:1.0+rand()*.35,angle:heading});
   }else{
@@ -51,9 +64,9 @@ export class SurfaceEffects{
      p.life=Math.max(0,p.life-dt);const age=1-p.life/p.ttl;
      if(pool.kind==='wake')p.y=this.waterHeight(p.x,p.z,time)+.045;
      else{
-      p.vy-=(pool.kind==='dust'?0:7.8)*dt;
+      p.vy-=(pool.kind==='dust'?0:pool.kind==='splash'?9.81:7.8)*dt;
       p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
-      const ground=this.field.height(p.x,p.z),floor=ground;
+      const ground=this.field.height(p.x,p.z),floor=pool.kind==='splash'?Math.max(ground,this.waterHeight(p.x,p.z,time)):ground;
       if(p.y<floor){if(pool.kind==='dust')p.y=floor+.12;else p.life=0}
      }
      d.position.set(p.x-origin.x,p.y,p.z-origin.z);
@@ -63,6 +76,9 @@ export class SurfaceEffects{
       const size=p.size*(pool.kind==='dust'?1+age*.85:1);d.scale.set(size,size,1);
      }else if(pool.kind==='wake'){
       d.rotation.set(-Math.PI/2,0,p.angle);const size=p.size+age*.65;d.scale.set(size*.8,size*1.45,1);
+     }else if(pool.kind==='splash'){
+      this.dropDirection.set(p.vx,p.vy,p.vz).normalize();d.quaternion.setFromUnitVectors(this.up,this.dropDirection);
+      d.scale.set(p.size,p.size*(1.8+Math.min(2,Math.abs(p.vy)*.5)),p.size);
      }else{d.rotation.set(age*5,p.angle,age*3);d.scale.setScalar(p.size*Math.max(.1,fade));}
      pool.alpha.setX(i,p.life>0?pool.opacity*fade*(pool.kind==='dust'?Math.min(1,age*12):1):0);
     }else{d.scale.setScalar(0);pool.alpha.setX(i,0)}
