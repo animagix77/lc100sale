@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import {createDriveIntro} from './drive-intro.mjs';
+class Element{events={};addEventListener(t,f){this.events[t]=f}removeEventListener(t){delete this.events[t]}fire(t,e={}){this.events[t]?.(e)}showModal(){this.open=true}close(){this.open=false}}
+const dialog=new Element(),start=new Element(),exit=new Element(),status={};dialog.querySelector=s=>s==='[data-intro-exit]'?exit:status;
+let starts=0,exits=0;const intro=createDriveIntro(dialog,start,{onStart:()=>starts++,onExit:()=>exits++});
+assert(dialog.open&&start.disabled);start.fire('click');assert.equal(starts,0,'Cannot drive before assets are ready');let prevented=false;dialog.fire('cancel',{preventDefault(){prevented=true}});assert(prevented&&dialog.open,'Escape cannot start gameplay behind the briefing');
+intro.ready();assert(!start.disabled);start.fire('click');start.fire('click');assert.equal(starts,1);assert(!dialog.open);exit.fire('click');assert.equal(exits,1);intro.dispose();assert.equal(Object.keys(start.events).length,0);
+console.log('Briefing: load gate, explicit start, Escape containment, exit and cleanup passed.');

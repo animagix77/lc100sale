@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {solarAltitude,parseWeather,weatherURL,createLocalWeather} from './local-weather.mjs';
+const date=new Date('2026-03-20T12:00:00Z');
+assert(solarAltitude(date,{latitude:0,longitude:0})>85);
+assert(solarAltitude(new Date('2026-03-20T00:00:00Z'),{latitude:0,longitude:0})<-85);
+assert(solarAltitude(new Date('2026-06-21T12:00:00Z'),{latitude:89,longitude:0})>0);
+assert(solarAltitude(new Date('2026-12-21T12:00:00Z'),{latitude:89,longitude:0})<0);
+const payload=(code=61)=>({timezone:'UTC',current:{time:date.getTime()/1000,temperature_2m:17,cloud_cover:80,precipitation:2,wind_speed_10m:25,weather_code:code}});
+assert(parseWeather(payload(),date.getTime()).rain>0);assert(parseWeather(payload(75),date.getTime()).snow>0);assert(parseWeather(payload(45),date.getTime()).fog);assert(parseWeather(payload(95),date.getTime()).storm);
+assert.throws(()=>parseWeather(payload(),date.getTime()+8000000));assert.throws(()=>parseWeather({}));
+const url=new URL(weatherURL({latitude:40.87654,longitude:-73.98765}));assert.equal(url.searchParams.get('latitude'),'40.9');assert.equal(url.searchParams.get('longitude'),'-74.0');
+let requests=0,geoCalls=0,success,fail,state,status,interval,aborted;
+const timers={setInterval:f=>(interval=f,1),clearInterval:()=>interval=null,setTimeout:()=>2,clearTimeout:()=>{}},geo={getCurrentPosition:(s,f)=>{geoCalls++;success=s;fail=f}},fetcher=async(u,options)=>{requests++;aborted=options.signal;return {ok:true,json:async()=>payload()}};
+const c=createLocalWeather({geo,fetcher,timers,now:()=>date,hidden:()=>false,onChange:s=>state=s,onStatus:s=>status=s});
+assert.equal(requests,0);assert.equal(geoCalls,0,'Location is never requested on load');assert.equal(state.mode,'clock');
+c.local();assert.equal(geoCalls,1);fail();assert.equal(requests,0);assert.equal(state.mode,'clock');
+c.local();success({coords:{latitude:40.87654,longitude:-73.98765}});await new Promise(r=>setTimeout(r,0));assert.equal(requests,1);assert(state.live);assert(status.includes('Rain'));
+c.setMode('sunset');assert(aborted.aborted);assert.equal(state.altitude,8);assert(!state.live);
+c.local();c.setMode('clock');success({coords:{latitude:0,longitude:0}});await new Promise(r=>setTimeout(r,0));assert.equal(requests,1,'Late permission callback cannot reactivate cancelled weather');
+c.dispose();assert.equal(interval,null);
+console.log('Weather: solar time, polar day/night, conditions, stale data, rounded location, consent, denial, cancellation and disposal passed.');
+
+let offlineState,offlineStatus;
+const offline=createLocalWeather({geo:{getCurrentPosition:s=>s({coords:{latitude:40.7,longitude:-74}})},fetcher:async()=>{throw Error('Offline')},timers,now:()=>date,onChange:s=>offlineState=s,onStatus:s=>offlineStatus=s});
+offline.local();await new Promise(r=>setTimeout(r,0));assert(!offlineState.live);assert(offlineStatus.includes('Weather unavailable'));offline.dispose();
+console.log('Unavailable weather safely falls back to clear skies.');
