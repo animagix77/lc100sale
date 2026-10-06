@@ -2,7 +2,7 @@ const chapters=[
   {
     "tag": "THE TRUCK",
     "title": "Big V8.<br>Small workload.",
-    "body": "4.7 liters. 220,718 miles shown. Roughly 1,530 miles a year under my ownership. I bought a Land Cruiser and gave it a desk job.",
+    "body": "4.7 liters. 220,718 miles shown. Roughly 1,340 miles a year since I bought her in 2018. I bought a Land Cruiser and gave it a desk job.",
     "href": "#ownership",
     "link": "Meet the owner’s truck"
   },
