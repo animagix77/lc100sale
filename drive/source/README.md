@@ -55,3 +55,11 @@ Driftwood and weathered rocks have fixed Rapier colliders generated from the sam
 
 ## Coastal audio
 Sound is opt-in and independently switchable from music. Real CC0 V8 recordings form the idle/load layers, EQ’d for a restrained SUV character and pitch blended from wheel speed, HI/LO and throttle. This is not an authenticated 2UZ-FE recording. Ocean ambience changes with distance to the shoreline; real sand foley is granulated into a continuous tyre texture driven by motion and slip, with separate wet splash accents and occasional stereo gull calls. Music ducks gently under engine load when both toggles are on. Preview stays silent; pause mutes effects and pauses music; iframe disposal aborts loading and closes both audio contexts. Sources, references and processing notes: `../audio/CREDITS.md`.
+
+
+## Sand relief and geometric wakes
+The driving strip combines broad swales with irregular 2–7 m hummocks and diagonal ribs, fading toward the wet foreshore. The same height field builds rendered sand and Rapier colliders. Spring/damper tuning allows more heave and independent wheel travel; there is no looping cosmetic bob. Camera aim follows vertical movement gently instead of cancelling every bump.
+
+A bounded shallow-wave field receives wet tyre contact impulses, displacing the actual ocean vertices and supplying matching slopes and foam. It propagates ripples, damps them after passage, shifts its window without dragging old wakes, and clears on vehicle reset. Shoreline geometry uses 0.5 m desktop / 1 m mobile spacing along the coast; more distant water stays coarse. A half-float texture carries signed height, slopes and foam. Water effects sample the same wake height. This is a stylized height-field approximation, not a full fluid solver.
+
+References: [Isuzu sand-driving guide](https://www.isuzuute.com.au/events/4x4-tips/sand-driving), [AllOffRoad corrugations observations](https://alloffroad.com.au/blog/news/corrugations-speed-suspension-smooth-zone/), and [NVIDIA GPU Gems: geometric water displacement](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models).

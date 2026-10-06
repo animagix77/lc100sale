@@ -3,8 +3,8 @@ import {attribute,texture,uv,length,smoothstep,float,mx_noise_float,vec3} from '
 import {surfaceProfile,oceanHeight} from './ocean-height.mjs';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export class SurfaceEffects{
- constructor(scene,field,{mobile=false,random=Math.random}={}){
-  this.scene=scene;this.field=field;this.random=random;this.dummy=new THREE.Object3D();this.stats={sand:0,dust:0,splash:0,wake:0};this.wakeStep=[0,0,0,0];this.dustStep=[0,0,0,0];
+ constructor(scene,field,{mobile=false,random=Math.random,waterHeight=oceanHeight}={}){
+  this.scene=scene;this.field=field;this.waterHeight=waterHeight;this.random=random;this.dummy=new THREE.Object3D();this.stats={sand:0,dust:0,splash:0,wake:0};this.wakeStep=[0,0,0,0];this.dustStep=[0,0,0,0];
   const pixels=new Uint8Array(64*64*4);
   for(let y=0;y<64;y++)for(let x=0;x<64;x++){const r=Math.hypot((x-31.5)/31.5,(y-31.5)/31.5),i=(y*64+x)*4;pixels[i]=pixels[i+1]=pixels[i+2]=255;pixels[i+3]=Math.round(Math.pow(Math.max(0,1-r*r),2.2)*255)}
   this.sprite=new THREE.DataTexture(pixels,64,64,THREE.RGBAFormat);this.sprite.needsUpdate=true;this.sprite.magFilter=this.sprite.minFilter=THREE.LinearFilter;
@@ -55,11 +55,11 @@ export class SurfaceEffects{
     const p=pool.particles[i];
     if(p.life>0){
      p.life=Math.max(0,p.life-dt);const age=1-p.life/p.ttl;
-     if(pool.kind==='wake')p.y=oceanHeight(p.x,p.z,time)+.045;
+     if(pool.kind==='wake')p.y=this.waterHeight(p.x,p.z,time)+.045;
      else{
       p.vy-=(pool.kind==='dust'?0:pool.kind==='splash'?7:7.8)*dt;
       p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
-      const ground=this.field.height(p.x,p.z),floor=pool.kind==='splash'?Math.max(ground,oceanHeight(p.x,p.z,time)):ground;
+      const ground=this.field.height(p.x,p.z),floor=pool.kind==='splash'?Math.max(ground,this.waterHeight(p.x,p.z,time)):ground;
       if(p.y<floor){if(pool.kind==='dust')p.y=floor+.12;else p.life=0}
      }
      d.position.set(p.x-origin.x,p.y,p.z-origin.z);

@@ -10,8 +10,12 @@ export function baseHeight(x,z){
  const ridge=Math.pow(.5+.5*Math.sin(x*.067+Math.sin(z*.026)*1.8+z*.033),1.8);
  // Broad dunes plus crosswise swales put real suspension movement in the driving strip.
  // Fade them out at the waterline so the foreshore remains traversable.
- const swales=(Math.sin(z*.13+Math.sin(x*.08))*.72+Math.sin(z*.29-x*.15)*.30+(noise(x*.14,z*.14)-.5)*.65)*smooth(9,32,d);
- return -.4+d*.020+bank*(amplitude*(.08+ridge*.92)+noise(x*.041,z*.041)*1.8)+swales+Math.sin(z*.21+x*.32)*.055*smooth(5,25,d);
+ const swales=(Math.sin(z*.13+Math.sin(x*.08))*.90+Math.sin(z*.29-x*.15)*.40+(noise(x*.14,z*.14)-.5)*.65)*smooth(9,32,d);
+ // Uneven 2–7 m hummocks and diagonal ribs exercise individual wheels. The wet
+ // foreshore stays flatter; deep inland dunes retain the broad illustrated silhouette.
+ const rough=smooth(6,20,d),patch=.45+.55*noise(x*.065,z*.055);
+ const hummocks=((noise(x*.36,z*.32)-.5)*.34+Math.sin(z*1.45+x*.72+noise(x*.1,z*.1)*2)*.085+Math.sin(z*.83-x*.61)*.13)*rough*patch;
+ return hummocks+-.4+d*.020+bank*(amplitude*(.08+ridge*.92)+noise(x*.041,z*.041)*1.8)+swales+Math.sin(z*.21+x*.32)*.055*smooth(5,25,d);
 }
 export const softnessAt=(x,z)=>smooth(14,65,x-shore(z))*(.78+.22*noise(x*.026,z*.026));
 // Sparse half-metre deformation field, shared across tile edges and the physics collider.
