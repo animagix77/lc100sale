@@ -102,3 +102,5 @@ The full drive starts with lighting based on the visitor's device clock, using a
 The two stowed recovery boards and their straps are centered at z=0.92 m between the roof rack crossbars. Four-board deployment and return still use those same mounts.
 
 The full game opens with a native modal driver briefing while assets load. Start is enabled only once the beach is ready; physics input and audio stay gated until the explicit Start click. Native focus containment, an initial heading focus, a scrollable mobile layout and an exit link keep the briefing usable. The silent embedded preview skips it.
+
+Vehicle lighting: `vehicle-lights.mjs` adds emission to the existing textured lamp lenses. Automatic lamps turn on below 12° solar altitude and off above 16° to prevent flicker. Two warm spotlights illuminate the path; desktop uses one 512px shadow map. Rear running lamps, high-mounted brake light, brake glow, and white reverse illumination follow the actual physics braking/reverse state, including keyboard, touch, cruise braking, and recovery braking. Sunset previews also show the lamps.
