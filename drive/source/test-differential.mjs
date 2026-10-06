@@ -37,7 +37,13 @@ assert(lockedTurn.work<openTurn.work-150,'Locked drivetrain dissipates more ener
 assert(lockedTurn.out.forces[0]*lockedTurn.out.forces[2]<0,'Opposing axle reactions produce scrub');
 const p=await DrivePhysics.create();p.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(-20,-.1,0));p.reset(-20,0,0);
 for(let n=0;n<240;n++)p.step(dt,{brake:true});assert.equal(p.centerLocked,false);assert(p.setCenterLock(true));assert(p.centerLocked);assert(p.setRange('LO'));assert(p.centerLocked,'Range change retains lock');
-p.speed=2;assert(!p.setCenterLock(false));assert(p.centerLocked);p.speed=0;p.tyres[0].slip=3;assert(!p.setCenterLock(false));p.tyres[0].slip=0;assert(p.setCenterLock(false));
+for(const input of [{gas:true},{reverse:true},{cruise:true}]){
+ p.controls=input;assert(!p.setCenterLock(false));assert(!p.setRange('HI'));assert(p.centerLocked);assert.equal(p.range,'LO');
+}
+p.controls={};p.speed=-3;p.tyres[0].slip=5;p.rb.setLinvel({x:0,y:0,z:3},true);const velocity=p.rb.linvel();
+assert(p.setCenterLock(false),'Gravity drift and residual wheelspin do not block an unloaded shift');assert(p.setRange('HI'));assert.deepEqual(p.rb.linvel(),velocity,'Changing modes does not brake or teleport the truck');
+p.controls={gas:true};assert(p.setRange('LO',{}),'Fresh released input overrides previous physics tick');assert(p.setCenterLock(false,{}));
+p.controls={};p.speed=0;p.tyres[0].slip=0;p.rb.setLinvel({x:0,y:0,z:0},true);
 assert(p.setCenterLock(true));for(let n=0;n<720;n++)p.step(dt,{gas:true});assert(p.speed>2&&p.speed<3.4,'Locked low range stays governed');
 p.reset(-20,0,0);assert(p.centerLocked,'Reset preserves selected lock');assert(p.tyres.every(w=>w.omega===0));p.dispose();
 console.log('Center differential: traction, reverse, axle coupling, torque conservation, corner scrub and engagement guards passed.');

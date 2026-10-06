@@ -8,10 +8,10 @@ export class Recovery{
   const p=this.physics,q=p.rb.rotation(),up=1-2*(q.x*q.x+q.z*q.z);
   if(this.state!=='roof')return 'already';
   if(Math.abs(p.speed)>.45||Math.hypot(p.rb.linvel().x,p.rb.linvel().z)>.6)return 'moving';
-  if(up<.65||![0,1].every(i=>p.vehicle.wheelIsInContact(i)))return 'tilted';
+  if(up<.65||![0,1,2,3].every(i=>p.vehicle.wheelIsInContact(i)))return 'tilted';
   const f=p.forward(),length=Math.hypot(f.x,f.z),forward=new Vector3(f.x/length,0,f.z/length),right=new Vector3(-forward.z,0,forward.x);
   this.start=p.position();this.age=0;this.state='deploying';
-  for(let i=0;i<2;i++){
+  for(let i=0;i<4;i++){
    const c=p.vehicle.wheelContactPoint(i),x=c.x+p.origin.x,z=c.z+p.origin.z;
    const h=(s)=>p.sand?.height(x+forward.x*s,z+forward.z*s)??c.y;
    const slope=clamp((h(.8)-h(-.2)), -.45,.45),along=forward.clone().setY(slope).normalize(),normal=new Vector3().crossVectors(right,along).normalize();

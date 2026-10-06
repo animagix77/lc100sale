@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import * as THREE from 'three/webgpu';
+import {RecoveryView} from './recovery-view.mjs';
+const scene=new THREE.Scene(),truck=new THREE.Group();scene.add(truck);truck.position.set(5,2,7);truck.rotation.y=.4;
+const r={state:'roof',age:0,physics:{origin:{x:0,z:0}},boards:[]},view=new RecoveryView(scene,truck,new THREE.Group(),r);view.update();
+assert.equal(view.mounts.length,2);assert.equal(view.models.filter(m=>m.visible).length,2,'Original two-board roof silhouette stays intact');
+const roof=view.models.slice(0,2).map(m=>m.position.clone());
+r.boards=Array.from({length:4},(_,i)=>({position:{x:i%2?6:4,y:.2,z:i<2?4:7},rotation:new THREE.Quaternion()}));
+r.state='deploying';r.age=.42;view.update();assert(view.models.every(m=>m.visible),'Four animated recovery boards');assert(view.mounts.every(m=>!m.userData.straps.visible));
+r.state='ground';view.update();view.models.forEach((m,i)=>assert(m.position.distanceTo(new THREE.Vector3(...Object.values(r.boards[i].position)))<1e-8));
+r.physics.origin={x:3,z:2};view.update();view.models.forEach((m,i)=>assert(m.position.distanceTo(new THREE.Vector3(r.boards[i].position.x-3,.2,r.boards[i].position.z-2))<1e-8));
+r.state='stowing';r.age=.75;view.update();view.models.forEach((m,i)=>assert(m.position.distanceTo(roof[i%2])<1e-8,'All four animate back to the original mounts'));
+r.state='roof';r.boards=[];view.update();assert.equal(view.models.filter(m=>m.visible).length,2);assert(view.mounts.every(m=>m.userData.straps.visible));
+console.log('Recovery display: original roof pair, four deployed boards, matching supports, rebase and automatic stow passed.');
