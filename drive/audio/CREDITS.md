@@ -2,7 +2,7 @@
 
 All field recordings below are released under CC0. Downloaded October 6, 2026. Encoded locally to AAC; no remote audio requests at runtime.
 
-- **V8 idle/load:** “v8 engine rev.wav” by overmedium, https://freesound.org/people/overmedium/sounds/651534/ . Source vehicle is unknown (author says so); this is not a verified Toyota recording. Short steady excerpts trimmed, overlap-looped and circular RMS-leveled to remove the original rev envelope, then filtered and repitched at runtime.
+- **Former V8 idle/load (retained source assets, no longer played):** “v8 engine rev.wav” by overmedium, https://freesound.org/people/overmedium/sounds/651534/ . Source vehicle is unknown (author says so); this is not a verified Toyota recording. Short steady excerpts trimmed, overlap-looped and circular RMS-leveled to remove the original rev envelope, then filtered and repitched at runtime.
 - **Ocean bed:** “Sea Waves with Tern Calls” by DenisChardonnet, BigSoundBank 0267, https://bigsoundbank.com/sea-waves-and-seagulls-s0267.html . The birds in this recording are terns, separate from the added gull calls. End crossfaded, soft limited and normalized.
 - **Water tyre accents:** “Beach Ocean Waves” by jasinski, shared by qubodup, https://opengameart.org/content/beach-ocean-waves . Clips 01 and 02, normalized and repitched for splash accents.
 - **Gulls:** “Solo Seagull Sound Effects” by Rango Mango, https://opengameart.org/content/solo-seagull-sound-effects . Ambient clips 1 and 3 only; normalized and softly varied in pitch/pan.
@@ -20,3 +20,6 @@ CC0: https://creativecommons.org/publicdomain/zero/1.0/
 
 ## LC FM station music
 Five original synthesized instrumental arrangements created for this project: Glovebox After Hours (jazz), Curb Appeal (hip-hop), Low Range, High Spirits (EDM), Hairspray & Horsepower (80s rock), Smells Like Wet Floor Mats (90s rock). No external samples or borrowed melodies. Composition source: `../source/compose-radio.py`; metadata: `../source/radio-tracks.json`. Original No Particular Hurry remains the default preset.
+
+## Smooth engine drone
+The current engine sound is an original synthesized harmonic drone, replacing the recorded idle/load loops entirely to remove their puttering exhaust texture. Four phase-aligned sine partials follow RPM with smoothed frequency and gain, filtered for a muted petrol-V8 character. No random detuning or rhythmic amplitude modulation. This is a stylized game sound, not an authenticated Toyota recording. Ocean, sand, gulls and water accents remain from the credited recordings above.
