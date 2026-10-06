@@ -16,9 +16,19 @@ class Node{gain=new Param();frequency=new Param();Q=new Param();playbackRate=new
 let context,requests=0;const urls=[];
 globalThis.AudioContext=class{currentTime=0;destination=new Node();nodes=[];constructor(){context=this}node(){const n=new Node();this.nodes.push(n);return n}createGain(){return this.node()}createDynamicsCompressor(){return this.node()}createBiquadFilter(){return this.node()}createOscillator(){return this.node()}createBufferSource(){return this.node()}createStereoPanner(){return this.node()}async resume(){}async decodeAudioData(){return {duration:5}}async close(){this.closed=true}};
 globalThis.fetch=async(url)=>{requests++;urls.push(url);return {ok:true,arrayBuffer:async()=>new ArrayBuffer(1)}};
-const button={textContent:'',attrs:{},setAttribute(k,v){this.attrs[k]=v},addEventListener(_,f){this.click=f}};
+class Events{
+ handlers=new Map();
+ addEventListener(type,fn){this.handlers.set(type,fn)}
+ removeEventListener(type,fn){if(this.handlers.get(type)===fn)this.handlers.delete(type)}
+ async emit(type,event={}){await this.handlers.get(type)?.({target:{},...event})}
+}
+function controls(){const gestures=new Events(),button=Object.assign(new Events(),{textContent:'',attrs:{},setAttribute(k,v){this.attrs[k]=v},contains(target){return target===this},click(){return this.emit('click')},ownerDocument:gestures});return {button,gestures}}
+const {button,gestures}=controls();
 let mix;const sound=createSound(button,()=>{},(...v)=>mix=v);
-assert.equal(requests,0,'No unsolicited audio download');await button.click();assert.equal(requests,6);assert.equal(button.textContent,'Sound on');assert(urls.every(url=>!url.includes('v8-')),'Puttering engine recordings are not loaded');
+assert.equal(button.textContent,'Sound on');assert.equal(button.attrs['aria-pressed'],'true');
+assert.equal(requests,0,'No audio download until an interaction');
+await gestures.emit('keydown',{ctrlKey:true});assert.equal(requests,0,'Browser shortcuts do not unlock audio');
+await Promise.all([gestures.emit('pointerdown'),gestures.emit('keydown')]);assert.equal(requests,6);assert.equal(button.textContent,'Sound on');assert(urls.every(url=>!url.includes('v8-')),'Puttering engine recordings are not loaded');
 const oscillators=context.nodes.filter(n=>n.type==='sine');assert.equal(oscillators.length,4,'Four continuous harmonic voices replace exhaust pulses');
 sound.update({speed:3,tyres:[tyre],input:{gas:true}});assert.equal(mix[0],true);const voice=engineVoice(dry);assert(voice.gains.every(g=>g>0&&g<.2));for(let i=1;i<4;i++)assert(Math.abs(oscillators[i].frequency.value/oscillators[0].frequency.value-(i+1))<1e-9,'Exact harmonics avoid beating');
 const stable=oscillators.map(n=>n.frequency.value);sound.update({speed:3,tyres:[tyre],input:{gas:true}});assert.deepEqual(oscillators.map(n=>n.frequency.value),stable,'Steady throttle does not modulate the drone');
@@ -27,5 +37,25 @@ sound.pause(false);assert.equal(context.nodes[0].gain.value,.72);
 context.currentTime=10;sound.update({speed:3,tyres:[tyre],shoreDistance:2,input:{gas:true}});
 assert(context.nodes.filter(n=>n.started).length>=7,'Gull and splash one-shots play');
 await button.click();assert.equal(context.nodes[0].gain.value,0);assert.equal(button.attrs['aria-pressed'],'false');
-await button.click();assert.equal(requests,6,'Re-enable reuses decoded audio');sound.dispose();assert(context.closed);assert(context.nodes.filter(n=>n.started).every(n=>n.stopped));
-console.log('Audio tests passed: surface mix, reverse, wheelspin, range, lazy loading, mute, pause, resume, one-shots and disposal.');
+await gestures.emit('keydown');assert.equal(context.nodes[0].gain.value,0,'Driving never overrides mute');
+await button.click();assert.equal(requests,6,'Re-enable reuses decoded audio');sound.dispose();assert.equal(gestures.handlers.size,0);assert.equal(button.handlers.size,0);assert(context.closed);assert(context.nodes.filter(n=>n.started).every(n=>n.stopped));
+// Muting before the first drive gesture must neither fetch nor create a context.
+const early=controls(),earlySound=createSound(early.button,()=>{});const before=requests;
+await early.gestures.emit('pointerdown',{target:early.button});await early.button.click();
+await early.gestures.emit('keydown');assert.equal(requests,before);assert.equal(early.button.textContent,'Sound off');
+earlySound.dispose();
+// Pause blocks the initial unlock until a later active-game gesture.
+const paused=controls(),pausedSound=createSound(paused.button,()=>{});pausedSound.pause(true);
+await paused.gestures.emit('pointerdown');assert.equal(requests,before);
+pausedSound.pause(false);await paused.gestures.emit('click');assert.equal(requests,before+6);pausedSound.dispose();
+// An in-flight load must not undo a mute, and remains a single setup.
+const pending=controls(),pendingSound=createSound(pending.button,()=>{});
+const ready=pending.gestures.emit('pointerdown');await pending.button.click();await ready;
+assert.equal(pending.button.textContent,'Sound off');assert.equal(context.nodes[0].gain.value,0);pendingSound.dispose();
+// A failed unlock exposes a retry without repeated fetches on every keypress.
+const realFetch=globalThis.fetch;globalThis.fetch=async()=>{throw new Error('offline')};
+const retry=controls(),retrySound=createSound(retry.button,()=>{});await retry.gestures.emit('keydown');
+assert.equal(retry.button.textContent,'Retry sound');globalThis.fetch=realFetch;
+await retry.gestures.emit('keydown');assert.equal(retry.button.textContent,'Retry sound');
+await retry.button.click();assert.equal(retry.button.textContent,'Sound on');retrySound.dispose();
+console.log('Audio tests passed: default-on gesture unlock, concurrent activation, early/pending mute, pause, retry, cleanup, engine and coastal mix.');

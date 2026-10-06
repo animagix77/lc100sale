@@ -18,8 +18,8 @@ export function engineVoice({rpm,load}){
  const rev=clamp((rpm-720)/3480,0,1),work=clamp(load,0,1);
  return {fundamental:clamp(rpm,720,4200)/15,cutoff:520+rev*500+work*180,gains:[.105+work*.045,.034+work*.023,.010+work*.010,.004+work*.005]};
 }
-export function createSound(button,focus,onMix=()=>{}){
- let ctx,master,compressor,buffers,loading,on=false,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash;
+export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocument){
+ let ctx,master,compressor,buffers,loading,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash;
  let nextGull=0,nextSplash=0;const sources=new Set(),controller=new AbortController();
  const label=()=>{button.textContent=on?'Sound on':'Sound off';button.setAttribute('aria-pressed',String(on));};
  const smooth=(param,value,seconds=.12)=>param.setTargetAtTime(value,ctx.currentTime,seconds);
@@ -43,12 +43,29 @@ export function createSound(button,focus,onMix=()=>{}){
  }
  function apply(){if(master)smooth(master.gain,on&&!paused?.72:0,.14);if(!on||paused)onMix(false,0);}
  function shot(name,volume,pan=0,rate=1){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner();s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();p.disconnect();};s.start();}
- button.addEventListener('click',async()=>{
+ // Enabled by default; the first in-game gesture unlocks browser audio.
+ // A deliberate mute is never undone by subsequent driving input.
+ let starting;
+ async function start(){
+  if(disposed||!on||paused)return;
+  if(starting)return starting;
+  starting=(async()=>{
+   try{if(!loading){button.textContent='Loading sound…';loading=setup();}else if(ctx?.state==='suspended')await ctx.resume();await loading;if(!disposed){label();apply();}}
+   catch{if(disposed)return;on=false;loading=null;ctx?.close().catch(()=>{});sources.clear();ctx=master=buffers=null;engine=[];label();button.textContent='Retry sound';onMix(false,0);}
+  })();
+  await starting;starting=null;
+ }
+ function activate(event){
+  if(button.contains(event.target)||event.repeat||event.metaKey||event.ctrlKey||event.altKey)return;
+  return start();
+ }
+ async function toggle(){
   if(disposed)return;on=!on;label();focus();apply();
-  if(!on)return;
-  try{if(!loading){button.textContent='Loading sound…';loading=setup();}else await ctx.resume();await loading;if(!disposed){label();apply();}}
-  catch{if(disposed)return;on=false;loading=null;ctx?.close().catch(()=>{});sources.clear();ctx=master=buffers=null;engine=[];label();button.textContent='Retry sound';onMix(false,0);}
- });label();
+  if(on)await start();
+ }
+ button.addEventListener('click',toggle);
+ for(const type of ['pointerdown','click','keydown'])gestures.addEventListener(type,activate);
+ label();
  return {
   pause(value){paused=value;apply();},
   update(state){
@@ -62,6 +79,6 @@ export function createSound(button,focus,onMix=()=>{}){
    if(m.splash>.025&&now>nextSplash){shot(Math.random()<.5?'wave1':'wave2',m.splash, (Math.random()-.5)*.7,1.1+Math.random()*.25);nextSplash=now+.75+Math.random()*.6;}
    onMix(true,m.load);
   },
-  dispose(){disposed=true;on=false;controller.abort();for(const source of sources){try{source.stop();source.disconnect();}catch{}}sources.clear();ctx?.close().catch(()=>{});onMix(false,0);}
+  dispose(){button.removeEventListener('click',toggle);for(const type of ['pointerdown','click','keydown'])gestures.removeEventListener(type,activate);disposed=true;on=false;controller.abort();for(const source of sources){try{source.stop();source.disconnect();}catch{}}sources.clear();ctx?.close().catch(()=>{});onMix(false,0);}
  };
 }
