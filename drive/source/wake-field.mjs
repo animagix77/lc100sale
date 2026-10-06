@@ -10,15 +10,21 @@ export class WakeField{
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){const edge=Math.min(i,j,n-1-i,n-1-j),d=nx+i*this.spacing-shore(nz+j*this.spacing);this.mask[j*n+i]=smooth(0,7,edge)*(1-smooth(5,10,d))}
   this.dirty=true;return true;
  }
- stamp(x,z,speed,slip=0){if(!Number.isFinite(this.x)||Math.abs(speed)+slip<.35)return;const n=this.size,s=this.spacing,gx=(x-this.x)/s,gz=(z-this.z)/s;if(gx<3||gz<3||gx>n-4||gz>n-4)return;const force=clamp(Math.abs(speed)*.14+slip*.035,.08,.85);
+ stamp(x,z,speed,slip=0,heading=0){if(!Number.isFinite(this.x)||Math.abs(speed)+slip<.35)return;const n=this.size,s=this.spacing,gx=(x-this.x)/s,gz=(z-this.z)/s;if(gx<3||gz<3||gx>n-4||gz>n-4)return;const force=clamp(Math.abs(speed)*.23+slip*.045,.10,1.35),direction=Math.sign(speed)||1,fx=-Math.sin(heading)*direction,fz=-Math.cos(heading)*direction;
   for(let j=Math.floor(gz)-3;j<=Math.ceil(gz)+3;j++)for(let i=Math.floor(gx)-3;i<=Math.ceil(gx)+3;i++){if(i<1||j<1||i>=n-1||j>=n-1)continue;const k=j*n+i,r2=((i-gx)**2+(j-gz)**2)*s*s;
-   // A tyre depression and displaced shoulder conserve approximately equal areas.
-   this.velocity[k]+=force*(Math.exp(-r2/.65)*.30-Math.exp(-r2/.16))*this.mask[k];
+   const dx=(i-gx)*s,dz=(j-gz)*s,along=dx*fx+dz*fz,side=dx*fz-dz*fx;
+   // A broad raised bow in front of each tyre and a depressed trough behind it.
+   // Its width spans multiple mesh vertices, including on smaller screens.
+   const bow=Math.exp(-((along-.70)**2/.34+side*side/.68));
+   const trough=Math.exp(-((along+.28)**2/.38+side*side/.40));
+   const shape=bow*.90-trough*.95;
+   this.velocity[k]+=force*shape*this.mask[k];
+   this.height[k]=clamp(this.height[k]+force*.022*shape*this.mask[k],-.38,.42);
   }this.impulses++;this.dirty=true;
  }
  step(dt){if(!Number.isFinite(this.x))return;this.clock+=Math.min(dt,.08);const n=this.size,s2=this.spacing**2,h=this.height,v=this.velocity,step=1/60;
-  while(this.clock>=step){this.clock-=step;for(let j=1;j<n-1;j++)for(let i=1;i<n-1;i++){const k=j*n+i,lap=(h[k-1]+h[k+1]+h[k-n]+h[k+n]-4*h[k])/s2;v[k]=(v[k]+lap*3.24*step)*Math.exp(-1.15*step)*this.mask[k]}
-   for(let k=0;k<this.count;k++){h[k]=clamp((h[k]+v[k]*step)*this.mask[k],-.28,.28)}
+  while(this.clock>=step){this.clock-=step;for(let j=1;j<n-1;j++)for(let i=1;i<n-1;i++){const k=j*n+i,lap=(h[k-1]+h[k+1]+h[k-n]+h[k+n]-4*h[k])/s2;v[k]=(v[k]+lap*3.24*step)*Math.exp(-(.90+(1-this.mask[k])*10)*step)*(this.mask[k]>0?1:0)}
+   for(let k=0;k<this.count;k++){h[k]=clamp((h[k]+v[k]*step)*Math.exp(-.22*step)*(this.mask[k]>0?1:0),-.38,.42)}
   }this.dirty=true;
  }
  pack(){const n=this.size,s=this.spacing,h=this.height,d=this.data;this.peak=0;

@@ -10,7 +10,7 @@ export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=3
  const rpm=clamp(720+rolling+Math.sqrt(wheelspin)*260+throttle*260,720,4200);
  const load=clamp(throttle*.72+slip*.06,0,1),wet=clamp((7-shoreDistance)/5,0,1);
  const work=ground.length?clamp(moving*.12+slip*.13,0,1):0;
- return {rpm,load,wet,sand:work*(1-wet)*(.25+soft*.23),splash:work*wet*.42,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
+ return {rpm,load,wet,sand:work*(1-wet)*(.055+soft*.055),splash:work*wet*.23,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
 }
 export function createSound(button,focus,onMix=()=>{}){
  let ctx,master,compressor,buffers,loading,on=false,paused=false,disposed=false,engineFilter,idle,loaded,rumble,sand,coast,splash;
@@ -28,7 +28,7 @@ export function createSound(button,focus,onMix=()=>{}){
   engineFilter=ctx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=1000;engineFilter.Q.value=.5;engineFilter.connect(master);
   idle=loop('v8-idle',engineFilter,.58);loaded=loop('v8-load',engineFilter,0);
   const osc=ctx.createOscillator();osc.type='sine';osc.frequency.value=45;const g=gain(.025);osc.connect(g);g.connect(master);osc.start();sources.add(osc);rumble={source:osc,g};
-  const sandFilter=ctx.createBiquadFilter();sandFilter.type='highpass';sandFilter.frequency.value=350;sandFilter.connect(master);sand=loop('sand',sandFilter);
+  const sandFilter=ctx.createBiquadFilter();sandFilter.type='highpass';sandFilter.frequency.value=550;const gritLow=ctx.createBiquadFilter();gritLow.type='lowpass';gritLow.frequency.value=2200;sandFilter.connect(gritLow);gritLow.connect(master);sand=loop('sand',sandFilter);
   coast=loop('coast',master,.2);
   nextGull=ctx.currentTime+4;apply();
  }

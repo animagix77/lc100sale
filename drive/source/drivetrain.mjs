@@ -1,5 +1,5 @@
 import {clamp,smooth} from './terrain.mjs';
-export const RANGES={HI:{name:'4HI',maxSpeed:8,cruise:3.55,force:2550,reverse:2.4},LO:{name:'4LO',maxSpeed:3.15,cruise:1.45,force:4900,reverse:1.7}};
+export const RANGES={HI:{name:'4HI',maxSpeed:11.176,cruise:3.55,force:2550,reverse:2.4},LO:{name:'4LO',maxSpeed:3.15,cruise:1.45,force:4900,reverse:1.7}};
 // Angular tyre dynamics: motor torque accelerates the wheel; ground reaction consumes torque.
 // An implicit contact spring avoids oscillation at the 120 Hz physics step.
 export function stepTyre(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake}){

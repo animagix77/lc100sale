@@ -7,7 +7,7 @@ import {oceanHeight} from './ocean-height.mjs';
 // phase stays continuous while the mesh streams along the infinite coastline.
 export class Ocean{
  constructor(scene,{mobile=false}={}){
-  this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?72:128;this.nz=mobile?144:256;
+  this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;
   this.wake=new WakeField({size:mobile?97:129,spacing:mobile?2/3:.5});this.wakePixels=new Uint16Array(this.wake.count*4);this.wakeTexture=new THREE.DataTexture(this.wakePixels,this.wake.size,this.wake.size,THREE.RGBAFormat,THREE.HalfFloatType);this.wakeTexture.minFilter=this.wakeTexture.magFilter=THREE.LinearFilter;this.wakeTexture.generateMipmaps=false;this.wakeTexture.needsUpdate=true;
   this.wakeOrigin=uniform(new THREE.Vector2());this.wakeSpan=(this.wake.size-1)*this.wake.spacing;this.lastTime=0;
   const wakeAt=Fn(([x,z])=>texture(this.wakeTexture,vec2(x,z).sub(this.wakeOrigin).div(this.wakeSpan).mul((this.wake.size-1)/this.wake.size).add(.5/this.wake.size)).level(0));
@@ -57,7 +57,7 @@ export class Ocean{
   this.center=center;this.originKey=key;
   const positions=[],indices=[],nx=this.nx,nz=this.nz;
   for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++){
-   const nearZ=this.mobile?96:192,outerZ=(nz-nearZ)/2,nearX=this.mobile?40:80;
+   const nearZ=this.mobile?128:192,outerZ=(nz-nearZ)/2,nearX=this.mobile?64:80;
    const z=center+(j<outerZ?-640+j*(592/outerZ):j<=outerZ+nearZ?-48+(j-outerZ)*96/nearZ:48+(j-outerZ-nearZ)*592/outerZ);
    const d=i<=nearX?12-i*40/nearX:-28-1172*Math.pow((i-nearX)/(nx-nearX),1.55);
    positions.push(shore(z)+d-origin.x,-.18,z-origin.z);
@@ -67,7 +67,7 @@ export class Ocean{
   this.mesh.geometry.dispose();this.mesh.geometry=g;
  }
  height(x,z,time){return oceanHeight(x,z,time)+this.wake.sample(x,z)}
- disturb(mark,speed){this.wake.stamp(mark.x,mark.z,speed,mark.slip)}
+ disturb(mark,speed,heading){this.wake.stamp(mark.x,mark.z,speed,mark.slip,heading)}
  clear(){this.wake.clear()}
  dispose(){this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose()}
 }

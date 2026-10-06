@@ -25,13 +25,28 @@ export class DrivePhysics{
   const w=this.tyres[i],contact=!!this.vehicle.wheelIsInContact(i),c=this.vehicle.wheelContactPoint(i);const x=c?c.x+this.origin.x:p.x,z=c?c.z+this.origin.z:p.z;
   const onBoard=this.recovery?.supports(x,z,c?.y),onSolid=this.obstacles?.has(this.vehicle.wheelGroundObject(i)),soil=onBoard||onSolid?0:softnessAt(x,z),depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
   const wheelSpeed=w.omega*.45,top=drive<0?gear.reverse:gear.maxSpeed;
-  const motor=drive*clamp((top-Math.sign(drive)*wheelSpeed)/(this.range==='LO'?.9:2.4),0,1);
+  let motor=drive*clamp((top-Math.sign(drive)*wheelSpeed)/(this.range==='LO'?.9:2.4),0,1);
+  if(drive>0&&this.range==='HI'&&!input.cruise){
+   // Road-speed governor with drag compensation reaches 25 mph on firm level ground.
+   // Wheelspin still limits drive torque independently of vehicle speed.
+   const resistance=(115+soft*220+Math.abs(this.speed)*14+2450*.08)*Math.max(0,this.speed)/4;
+   motor=clamp(drive*(top-this.speed)/.6+resistance,0,drive)*clamp(top+1-wheelSpeed,0,1);
+  }
   const force=stepTyre(w,{dt,roadSpeed:this.speed,driveForce:motor,load,soft:soil,depth,contact,brake:braking});
   this.vehicle.setWheelEngineForce(i,-force);this.vehicle.setWheelBrake(i,brake+soil*w.sink*6.5);this.vehicle.setWheelSteering(i,i<2?this.steer:0);this.vehicle.setWheelFrictionSlip(i,1.9-soil*.6);this.vehicle.setWheelSideFrictionStiffness(i,.92-soil*.22);
   totalDepth+=depth;totalSlip+=w.slip;
  }
- this.rb.resetForces(false);const drag=(115+soft*220)+Math.abs(this.speed)*14;this.rb.addForce({x:-v.x*drag,y:0,z:-v.z*drag},true);
+ this.rb.resetForces(false);this.rb.resetTorques(false);const drag=(115+soft*220)+Math.abs(this.speed)*14;this.rb.addForce({x:-v.x*drag,y:0,z:-v.z*drag},true);
  const waterDepth=Math.max(0,-p.y+.48);if(waterDepth>0)this.rb.addForce({x:-v.x*waterDepth*4200,y:Math.min(24000,waterDepth*30000),z:-v.z*waterDepth*4200},true);
+ // Progressive bump stops transfer large wheel hits to the chassis at that corner.
+ // Ordinary suspension stroke stays compliant; deep compression lifts and rotates
+ // the actual rigid body rather than moving only the rendered wheel.
+ this.bumpSupport=0;
+ for(let i=0;i<4;i++){
+  if(!this.vehicle.wheelIsInContact(i))continue;
+  const point=this.vehicle.wheelContactPoint(i),length=this.vehicle.wheelSuspensionLength(i),compression=Math.max(0,.30-length);
+  if(point&&compression>0){const support=Math.min(10000,compression*compression*280000);this.rb.addForceAtPoint({x:0,y:support,z:0},point,true);this.bumpSupport+=support;}
+ }
  this.vehicle.updateVehicle(dt,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC);this.world.step();
  // Contact work is integrated in physics time, so digging does not depend on rendering FPS.
  for(let i=0;i<4;i++){

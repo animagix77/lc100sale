@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {drivingMix,createSound} from './sound.mjs';
 const tyre={contact:true,omega:6,slip:0,soft:.7};
 const dry=drivingMix({speed:3,tyres:[tyre],input:{gas:true},shoreDistance:35});
+assert(dry.sand<.05,'Rolling sand remains quiet under the engine');
 const wet=drivingMix({speed:3,tyres:[tyre],input:{gas:true},shoreDistance:2});
 assert(dry.sand>0&&dry.splash===0);assert(wet.sand===0&&wet.splash>0&&wet.surf>dry.surf);
 const spin=drivingMix({tyres:[{...tyre,omega:12,slip:4}],input:{gas:true}});
