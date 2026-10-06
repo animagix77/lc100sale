@@ -68,7 +68,7 @@
    icon.style.setProperty('--icon-delay',innerWidth>1000?(icons.indexOf(icon)*220)+'ms':'0ms');
    icon.classList.add('is-drawing');observer.unobserve(entry.target);
   }
- },{threshold:0,rootMargin:matchMedia('(max-width: 700px)').matches?'0px 0px -6% 0px':'0px 0px -40% 0px'});
+ },{threshold:0,rootMargin:matchMedia('(max-width: 700px)').matches?'0px 0px -6% 0px':'0px 0px -8% 0px'});
  icons.forEach(icon=>{icon.classList.add('motion-ready');observer.observe(icon.closest('li'))});
  preference.addEventListener('change',()=>{
   if(!preference.matches)return;
