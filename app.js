@@ -87,7 +87,7 @@ fetch('assets/rotation-frames.json').then(r=>r.ok?r.json():null).then(m=>{
 }).catch(()=>{});
 
 function setDetailState(n,detail){
- window.lcCallout?.prepare(detail?n:null);
+ if(window.lcCallout?.prepare(detail?n:null)===false)return false;
  const panel=$('inspection-detail'),open=$('detail-open');
  panel.hidden=!detail;panel.dataset.detail=String(n);
  $('bubble-video').hidden=!detail?.live;$('bubble-photo').hidden=!!detail?.live;
@@ -96,7 +96,9 @@ function setDetailState(n,detail){
  if(n===2){open.dataset.photo=document.querySelector('#photo-08-cargo .photo-open').dataset.photo;open.dataset.photoSource='false';open.setAttribute('aria-label','Open the rear cargo photo')}
  if(n===5){open.dataset.photo=document.querySelector('#photo-24-grab-handle .photo-open').dataset.photo;open.dataset.photoSource='true';open.setAttribute('aria-label','Open the front grab-handle photo')}
 
+ return true;
 }
+window.addEventListener('lc100:callout-ready',()=>updateDetail(last));
 function revealDetail(n){
  window.lcCallout?.show(n);
 }
@@ -106,8 +108,7 @@ function updateDetail(n){
  if(videoReady){updateVideoDetail(n);return;}
  const aligned=shown&&Math.min(7,Math.floor(shown.angle/45+1e-8))===n;
  const detail=aligned&&!videoReady?(n===0?{point:[1050,505],label:'4.7L V8',src:'assets/gallery/27-engine-cover-edited.jpg',size:'cover',position:'50% 61%'}:n===1?{point:[1350,676],label:'KM3 · 2019',src:'assets/gallery/07-tire-source.jpg',size:'cover',position:'center'}:n===2?{point:[1250,555],label:'REAR CARGO',src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',size:'165%',position:'50% 67%'}:n===3?{point:[1120,360],label:'ROOF BARS'}:n===5?{point:[1245,470],label:'GRAB HANDLE',src:'assets/gallery/24-grab-handle.jpeg',size:'250%',position:'51% 42%'}:null):null;
- setDetailState(n,detail);
- if(!detail)return;
+ if(!setDetailState(n,detail)||!detail)return;
  const anchor=shown.anchors?.[n===1?'tire':n===2?'cargo':n===3?'roof':n===5?'handle':'engine'];
  if(anchor)detail.point=[anchor[0]*1672,anchor[1]*941];
  document.querySelector('.leader').toggleAttribute('hidden',n!==0&&!anchor&&!shown.primary);
@@ -131,7 +132,7 @@ function updateDetail(n){
   const targetTop=Math.max(currentTop,copyBottom+16);
   const controlsTop=document.querySelector('.orbit-bottom').getBoundingClientRect().top-base.top;
   const bottomLimit=n===1?Math.min(controlsTop-16,tireRoofTop-16):controlsTop-16;
-  if(targetTop+bubble.offsetHeight>bottomLimit){window.lcCallout?.prepare(null);$('inspection-detail').hidden=true;return}
+  if(targetTop+bubble.offsetHeight>bottomLimit){window.lcCallout?.prepare(null,{immediate:true});$('inspection-detail').hidden=true;return}
   bubble.style.top=`${targetTop}px`;
  }
  const br=bubble.getBoundingClientRect(),bx=br.left-base.left+br.width/2,by=br.top-base.top+br.height;
@@ -150,8 +151,7 @@ function updateVideoDetail(n){
  n===2?{src:'assets/gallery/08-cargo-with-left-jump-seat-edited.png',label:'REAR CARGO',size:'165%',position:'50% 67%'}:
  n===3?{live:true,label:'ROOF BARS'}:
  n===5?{src:'assets/gallery/24-grab-handle.jpeg',label:'GRAB HANDLE',size:'250%',position:'51% 42%'}:null;
- setDetailState(n,detail);
- if(!detail)return;
+ if(!setDetailState(n,detail)||!detail)return;
  const bubble=$('bubble'),base=$('orbit-pin').getBoundingClientRect(),r=video.getBoundingClientRect();
  $('inspection-detail').dataset.detail=String(n);
  // Match the video's cover crop so callout dots stay on the same body part after resizing.
@@ -173,7 +173,7 @@ function updateVideoDetail(n){
   const newDetail=n===2||n===3;
   top=Math.max(top,document.querySelector('.tour-copy').getBoundingClientRect().bottom-base.top+(newDetail?8:16));
   const limit=newDetail?document.querySelector('.orbit-bottom').getBoundingClientRect().top-base.top-16:imageTop+.38*imageHeight-16;
-  if(top+height>limit){window.lcCallout?.prepare(null);$('inspection-detail').hidden=true;return;}
+  if(top+height>limit){window.lcCallout?.prepare(null,{immediate:true});$('inspection-detail').hidden=true;return;}
  }
  bubble.style.top=`${top}px`;
  if(detail.live){

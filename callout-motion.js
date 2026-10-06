@@ -14,7 +14,15 @@
  bubble.append(ring);leader.setAttribute('pathLength','1');
  panel.classList.add('callout-motion');
  const parts=root=>[root.querySelector('.leader circle'),root.querySelector('.leader path'),root.querySelector('.callout-ring circle'),root.querySelector('.bubble-photo'),root.querySelector('.bubble-video'),root.querySelector('.bubble>span')];
- let current=null,ghost=null,animations=[];
+ let current=null,ghost=null,animations=[],pending,settleTimer=null,building=false;
+ function unlock(){
+  settleTimer=null;
+  if(pending===undefined)return;
+  pending=undefined;
+  // Reconcile the latest scroll position once, not every crossed detail.
+  window.dispatchEvent(new Event('lc100:callout-ready'));
+ }
+ function release(){clearTimeout(settleTimer);settleTimer=null;building=false;pending=undefined;}
  function cancelEntry(){animations.forEach(a=>a.cancel());animations=[];}
  function animate(node,frames,duration,delay=0){
   const a=node.animate(frames,{duration,delay,easing:'cubic-bezier(.4,0,.2,1)',fill:'both'});
@@ -38,17 +46,22 @@
    if(i===1||i===2){
     node.style.opacity=state.opacity;
     // Finish any partial draw, then trim from the same start point (never retract).
-    return animate(node,[{strokeDashoffset:state.strokeDashoffset},{strokeDashoffset:'0',offset:.25},{strokeDashoffset:'-1'}],i===1?340:420,i===1?40:140);
+    return animate(node,[{strokeDashoffset:state.strokeDashoffset},{strokeDashoffset:'0',offset:.25},{strokeDashoffset:'-1'}],i===1?520:620,i===1?80:180);
    }
-   return animate(node,[{opacity:state.opacity},{opacity:0}],i===0?130:160);
+   return animate(node,[{opacity:state.opacity},{opacity:0}],i===0?220:280);
   });
   Promise.all(exits.map(a=>a.finished.catch(()=>{}))).then(()=>{old.remove();if(ghost===old)ghost=null});
  }
  window.lcCallout={
-  prepare(next){
-   if(next===current)return;
-   exit();cancelEntry();current=null;
-   panel.dataset.motion='pending';
+  prepare(next,{immediate=false}={}){
+   if(next===current){pending=undefined;return true;}
+   // Scroll cues the build; elapsed time completes it even if scrolling stops
+   // or crosses another detail. Keep only the latest request while it resolves.
+   if(!immediate&&!preference.matches&&current!==null&&(building||settleTimer!==null)){
+    pending=next;return false;
+   }
+   release();exit();cancelEntry();current=null;
+   panel.dataset.motion='pending';return true;
   },
   show(next){
    // Match the ring's start to the leader's actual attachment, including side callouts.
@@ -59,24 +72,27 @@
    if(next===current)return;
    current=next;panel.dataset.motion='entering';
    if(preference.matches){panel.dataset.motion='visible';return;}
+   building=true;
    const [dot,line,outline,photo,video,label]=parts(panel);
    animations=[
-    animate(dot,[{opacity:0},{opacity:1}],150),
-    animate(line,[{strokeDashoffset:'1'},{strokeDashoffset:'0'}],340,130),
-    animate(outline,[{strokeDashoffset:'1'},{strokeDashoffset:'0'}],440,450),
-    animate(photo,[{opacity:0},{opacity:1}],300,900),
-    animate(video,[{opacity:0},{opacity:1}],300,900),
-    animate(label,[{opacity:0},{opacity:1}],220,1000)
+    animate(dot,[{opacity:0},{opacity:1}],200),
+    animate(line,[{strokeDashoffset:'1'},{strokeDashoffset:'0'}],620,160),
+    animate(outline,[{strokeDashoffset:'1'},{strokeDashoffset:'0'}],700,720),
+    animate(photo,[{opacity:0},{opacity:1}],440,1420),
+    animate(video,[{opacity:0},{opacity:1}],440,1420),
+    animate(label,[{opacity:0},{opacity:1}],320,1510)
    ];
    const entry=animations;
    Promise.all(entry.map(a=>a.finished.catch(()=>{}))).then(()=>{
     if(animations!==entry)return;
-    panel.dataset.motion='visible';cancelEntry();
+    panel.dataset.motion='visible';building=false;cancelEntry();
+    settleTimer=setTimeout(unlock,220);
    });
   }
  };
  preference.addEventListener('change',()=>{
   if(!preference.matches)return;
-  cancelEntry();ghost?.remove();ghost=null;panel.dataset.motion='visible';
+  const reconcile=pending!==undefined;release();cancelEntry();ghost?.remove();ghost=null;panel.dataset.motion='visible';
+  if(reconcile)window.dispatchEvent(new Event('lc100:callout-ready'));
  });
 })();
