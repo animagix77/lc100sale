@@ -2,14 +2,37 @@ import {clamp,smooth} from './terrain.mjs';
 export const RANGES={HI:{name:'4HI',maxSpeed:11.176,cruise:3.55,force:2550,reverse:2.4},LO:{name:'4LO',maxSpeed:3.15,cruise:1.45,force:4900,reverse:1.7}};
 // Angular tyre dynamics: motor torque accelerates the wheel; ground reaction consumes torque.
 // An implicit contact spring avoids oscillation at the 120 Hz physics step.
-export function stepTyre(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake}){
+function tyreResponse(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake,tractionControl=false}){
  const radius=.45,inertia=18,sink=smooth(.24,.78,depth),mu=(1.12-.40*soft)*(1-.50*sink),cap=contact?Math.max(0,load)*mu:0;
  const stiffness=8500-5000*soft,torque=driveForce*radius;
- let force=contact?clamp(stiffness*(w.omega*radius+dt*torque*radius/inertia-roadSpeed)/(1+stiffness*dt*radius*radius/inertia),-cap,cap):0;
- w.omega+=(torque-force*radius-w.omega*.7)/inertia*dt;
- if(brake)w.omega*=Math.exp(-dt*24);
- w.omega=clamp(w.omega,-45,45);w.angle=(w.angle+w.omega*dt)%(Math.PI*2);
- w.slip=contact?Math.abs(w.omega*radius-roadSpeed):Math.abs(w.omega*radius);
- w.depth=depth;w.soft=soft;w.force=force;w.sink=sink;w.contact=contact;
- return force;
+ const force=contact?clamp(stiffness*(w.omega*radius+dt*torque*radius/inertia-roadSpeed)/(1+stiffness*dt*radius*radius/inertia),-cap,cap):0;
+ let omega=w.omega+(torque-force*radius-w.omega*.7)/inertia*dt;
+ // Brake-based spin assistance, not an axle locker. A bounded brake reaction
+ // restrains excess slip so an unloaded wheel does not consume all engine RPM.
+ // It cannot create road force at a wheel with no contact.
+ if(tractionControl){const relative=omega-roadSpeed/radius,excess=Math.max(0,Math.abs(relative)-3.5);omega-=Math.sign(relative)*Math.min(excess*(1-Math.exp(-dt*14)),1050/inertia*dt);}
+ if(brake)omega*=Math.exp(-dt*24);
+ return {force,omega:clamp(omega,-45,45),sink};
+}
+export function stepTyre(w,options){
+ const {force,omega,sink}=tyreResponse(w,options),{dt,roadSpeed,depth,soft,contact}=options;
+ w.omega=omega;w.angle=(w.angle+w.omega*dt)%(Math.PI*2);
+ w.slip=contact?Math.abs(w.omega*.45-roadSpeed):Math.abs(w.omega*.45);
+ Object.assign(w,{depth,soft,force,sink,contact});return force;
+}
+// Equal torque at each open axle. Locking the center constrains the *mean*
+// front/rear wheel speeds, never left/right. An implicit, bounded reaction
+// transfers torque between axles without adding engine torque or tire grip.
+export function stepDriveline(wheels,contacts,{dt,motor,locked,brake=false}){
+ const sample=(i,transfer)=>({dt,...contacts[i],driveForce:motor+(i<2?-transfer:transfer),brake});
+ let transfer=0;
+ if(locked){
+  const difference=t=>wheels.reduce((sum,w,i)=>sum+(i<2?1:-1)*tyreResponse(w,sample(i,t)).omega,0);
+  let low=-24000,high=24000;
+  if(difference(low)<=0)transfer=low;
+  else if(difference(high)>=0)transfer=high;
+  else {for(let n=0;n<20;n++){const mid=(low+high)/2;if(difference(mid)>0)low=mid;else high=mid}transfer=(low+high)/2;}
+ }
+ const forces=wheels.map((w,i)=>stepTyre(w,sample(i,transfer)));
+ return {forces,transfer,axleSlip:(wheels[0].omega+wheels[1].omega-wheels[2].omega-wheels[3].omega)/2};
 }

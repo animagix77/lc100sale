@@ -1,15 +1,16 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {clamp,smooth,shore,softnessAt} from './terrain.mjs';
-import {RANGES,stepTyre} from './drivetrain.mjs';
+import {RANGES,stepDriveline} from './drivetrain.mjs';
 export {RAPIER};
 export const wheelLayout=[{name:'FL',x:-.962,z:-1.42,front:true},{name:'FR',x:.962,z:-1.42,front:true},{name:'RL',x:-.962,z:1.43,front:false},{name:'RR',x:.962,z:1.43,front:false}];
 export class DrivePhysics{
  static async create(sand=null){await RAPIER.init();return new DrivePhysics(sand)}
- constructor(sand=null){this.world=new RAPIER.World({x:0,y:-9.81,z:0});this.world.timestep=1/120;this.world.numSolverIterations=8;this.rb=this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,3,0).setLinearDamping(.08).setAngularDamping(.7).setCanSleep(false).setCcdEnabled(true));this.chassis=this.world.createCollider(RAPIER.ColliderDesc.cuboid(.85,.47,2.12).setTranslation(0,.32,0).setMass(2450).setFriction(.55),this.rb);this.vehicle=this.world.createVehicleController(this.rb);this.vehicle.indexUpAxis=1;this.vehicle.setIndexForwardAxis=2;this.steer=0;this.speed=0;this.travel=0;this.time=0;this.origin={x:0,z:0};this.sand=sand;this.range='HI';this.tyres=wheelLayout.map(()=>({omega:0,angle:0,slip:0,depth:0,soft:0,force:0,travel:0,contact:false}));this.marks=[];this.stuckTime=0;this.stuck=false;
+ constructor(sand=null){this.world=new RAPIER.World({x:0,y:-9.81,z:0});this.world.timestep=1/120;this.world.numSolverIterations=8;this.rb=this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,3,0).setLinearDamping(.08).setAngularDamping(.7).setCanSleep(false).setCcdEnabled(true));this.chassis=this.world.createCollider(RAPIER.ColliderDesc.cuboid(.85,.47,2.12).setTranslation(0,.32,0).setMass(2450).setFriction(.55),this.rb);this.vehicle=this.world.createVehicleController(this.rb);this.vehicle.indexUpAxis=1;this.vehicle.setIndexForwardAxis=2;this.steer=0;this.speed=0;this.travel=0;this.time=0;this.origin={x:0,z:0};this.sand=sand;this.range='HI';this.centerLocked=false;this.centerTransfer=0;this.axleSlip=0;this.tyres=wheelLayout.map(()=>({omega:0,angle:0,slip:0,depth:0,soft:0,force:0,travel:0,contact:false}));this.marks=[];this.stuckTime=0;this.stuck=false;
  for(let i=0;i<4;i++){const w=wheelLayout[i];this.vehicle.addWheel({x:w.x,y:.06,z:w.z},{x:0,y:-1,z:0},{x:-1,y:0,z:0},.50,.45);this.vehicle.setWheelSuspensionStiffness(i,21);this.vehicle.setWheelSuspensionCompression(i,2.6);this.vehicle.setWheelSuspensionRelaxation(i,3.5);this.vehicle.setWheelMaxSuspensionTravel(i,.36);this.vehicle.setWheelMaxSuspensionForce(i,26000);this.vehicle.setWheelFrictionSlip(i,1.75);this.vehicle.setWheelSideFrictionStiffness(i,.85)}
  }
  reset(x,z,height){this.rb.setTranslation({x:x-this.origin.x,y:height+1.04,z:z-this.origin.z},true);this.rb.setRotation({x:0,y:0,z:0,w:1},true);this.rb.setLinvel({x:0,y:0,z:0},true);this.rb.setAngvel({x:0,y:0,z:0},true);this.rb.resetForces(true);this.rb.resetTorques(true);this.speed=this.steer=0;this.stuckTime=0;this.stuck=false;this.marks=[];for(const w of this.tyres)Object.assign(w,{omega:0,angle:0,slip:0,travel:0,depth:0})}
  setRange(range){if(!RANGES[range]||Math.abs(this.speed)>.5)return false;this.range=range;return true}
+ setCenterLock(locked){if(Math.abs(this.speed)>.5||this.tyres.some(w=>w.slip>1.5))return false;this.centerLocked=!!locked;return true}
  position(){const p=this.rb.translation();return {x:p.x+this.origin.x,y:p.y,z:p.z+this.origin.z}}
  forward(){const q=this.rb.rotation();return {x:-2*(q.x*q.z+q.w*q.y),y:-2*(q.y*q.z-q.w*q.x),z:-(1-2*(q.x*q.x+q.y*q.y))}}
  step(dt,input){
@@ -21,19 +22,32 @@ export class DrivePhysics{
  if(input.reverse&&!braking)drive=-gear.force*.95;
  if(!drive&&!braking)brake=.65+soft*1.6;if(input.cruise&&this.speed>gear.cruise+.35)brake=Math.max(brake,12);
  let totalDepth=0,totalSlip=0;
+ const omega=this.rb.angvel(),rotation=this.rb.rotation();
+ const right={x:1-2*(rotation.y**2+rotation.z**2),y:2*(rotation.x*rotation.y+rotation.w*rotation.z),z:2*(rotation.x*rotation.z-rotation.w*rotation.y)};
+ const contacts=this.tyres.map((w,i)=>{
+  const contact=!!this.vehicle.wheelIsInContact(i),c=this.vehicle.wheelContactPoint(i),x=c?c.x+this.origin.x:p.x,z=c?c.z+this.origin.z:p.z;
+  const onBoard=this.recovery?.supports(x,z,c?.y),onSolid=this.obstacles?.has(this.vehicle.wheelGroundObject(i));
+  const soil=onBoard||onSolid?0:softnessAt(x,z),depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
+  // Wheel contact velocity includes chassis yaw/roll and front steering. Thus
+  // unequal axle paths in a turn load the center lock through tire scrub.
+  const steer=i<2?this.steer:0,cs=Math.cos(steer),sn=Math.sin(steer),direction={x:f.x*cs-right.x*sn,y:f.y*cs-right.y*sn,z:f.z*cs-right.z*sn};
+  const dx=x-p.x,dy=c?c.y-p.y:0,dz=z-p.z;
+  const roadSpeed=(v.x+omega.y*dz-omega.z*dy)*direction.x+(v.y+omega.z*dx-omega.x*dz)*direction.y+(v.z+omega.x*dy-omega.y*dx)*direction.z;
+  return {roadSpeed,load,soft:soil,depth,contact,tractionControl:true};
+ });
+ // One engine governor sees the mean shaft speed. A freely spinning axle
+ // consumes that speed budget; the center lock can transfer torque to grip.
+ const wheelSpeed=this.tyres.reduce((sum,w)=>sum+w.omega*.45,0)/4,top=drive<0?gear.reverse:gear.maxSpeed;
+ let motor=drive*clamp((top-Math.sign(drive)*wheelSpeed)/(this.range==='LO'?.9:2.4),0,1);
+ if(drive>0&&this.range==='HI'&&!input.cruise){
+  const resistance=(115+soft*220+Math.abs(this.speed)*14+2450*.08)*Math.max(0,this.speed)/4;
+  motor=clamp(drive*(top-this.speed)/.6+resistance,0,drive)*clamp(top+1-wheelSpeed,0,1);
+ }
+ const result=stepDriveline(this.tyres,contacts,{dt,motor,locked:this.centerLocked,brake:braking});
+ this.centerTransfer=result.transfer;this.axleSlip=result.axleSlip;
  for(let i=0;i<4;i++){
-  const w=this.tyres[i],contact=!!this.vehicle.wheelIsInContact(i),c=this.vehicle.wheelContactPoint(i);const x=c?c.x+this.origin.x:p.x,z=c?c.z+this.origin.z:p.z;
-  const onBoard=this.recovery?.supports(x,z,c?.y),onSolid=this.obstacles?.has(this.vehicle.wheelGroundObject(i)),soil=onBoard||onSolid?0:softnessAt(x,z),depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
-  const wheelSpeed=w.omega*.45,top=drive<0?gear.reverse:gear.maxSpeed;
-  let motor=drive*clamp((top-Math.sign(drive)*wheelSpeed)/(this.range==='LO'?.9:2.4),0,1);
-  if(drive>0&&this.range==='HI'&&!input.cruise){
-   // Road-speed governor with drag compensation reaches 25 mph on firm level ground.
-   // Wheelspin still limits drive torque independently of vehicle speed.
-   const resistance=(115+soft*220+Math.abs(this.speed)*14+2450*.08)*Math.max(0,this.speed)/4;
-   motor=clamp(drive*(top-this.speed)/.6+resistance,0,drive)*clamp(top+1-wheelSpeed,0,1);
-  }
-  const force=stepTyre(w,{dt,roadSpeed:this.speed,driveForce:motor,load,soft:soil,depth,contact,brake:braking});
-  this.vehicle.setWheelEngineForce(i,-force);this.vehicle.setWheelBrake(i,brake+soil*w.sink*6.5);this.vehicle.setWheelSteering(i,i<2?this.steer:0);this.vehicle.setWheelFrictionSlip(i,1.9-soil*.6);this.vehicle.setWheelSideFrictionStiffness(i,.92-soil*.22);
+  const w=this.tyres[i],{soft:soil,depth}=contacts[i];
+  this.vehicle.setWheelEngineForce(i,-result.forces[i]);this.vehicle.setWheelBrake(i,brake+soil*w.sink*6.5);this.vehicle.setWheelSteering(i,i<2?this.steer:0);this.vehicle.setWheelFrictionSlip(i,1.9-soil*.6);this.vehicle.setWheelSideFrictionStiffness(i,.92-soil*.22);
   totalDepth+=depth;totalSlip+=w.slip;
  }
  this.rb.resetForces(false);this.rb.resetTorques(false);const drag=(115+soft*220)+Math.abs(this.speed)*14;this.rb.addForce({x:-v.x*drag,y:0,z:-v.z*drag},true);

@@ -8,7 +8,7 @@ async function scenario(dug=true){const field=new FlatSand(),p=await DrivePhysic
  function refresh(){if(collider)p.world.removeCollider(collider,false);const verts=[],indices=[],n=80;for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const x=80+i*.5,z=-20+j*.5;verts.push(x,field.height(x,z),z);if(i<n&&j<n){const a=j*(n+1)+i;indices.push(a,a+n+1,a+1,a+1,a+n+1,a+n+2)}}collider=p.world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(verts),new Uint32Array(indices)).setFriction(.9))}
  // A realistic, deliberately dug depression at all four contact patches.
  if(dug)for(const x of [99,101])for(const z of [-1.5,1.5])for(let i=0;i<14;i++)field.stamp(x,z,1,.17,1.2);
- refresh();p.reset(100,0,0);for(let i=0;i<360;i++)p.step(dt,{brake:true});p.setRange('LO');
+ refresh();p.reset(100,0,0);for(let i=0;i<360;i++)p.step(dt,{brake:true});p.setRange('LO');if(dug)assert(p.setCenterLock(true),'Deep-rut recovery uses center lock');
  function run(seconds,input){for(let i=0;i<seconds*120;i++){p.step(dt,input);if(i%16===0)refresh();p.marks=[]}}
  return {p,field,refresh,run};}
 const back=await scenario();const before=back.p.position();back.run(6,{reverse:true});const escaped=back.p.position().z-before.z;console.log('Reverse from ruts',{escaped,speed:back.p.speed,depth:back.field.deepest});assert(escaped>3,'Reverse must climb out of a dug rut, not remain artificially braked');back.p.dispose();
