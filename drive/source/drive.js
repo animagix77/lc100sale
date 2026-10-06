@@ -1,4 +1,5 @@
 import {createMusic} from './music.mjs';
+import {createKeyboardControls} from './keyboard.mjs';
 import {createSound} from './sound.mjs';
 import * as THREE from 'three/webgpu';
 import {positionLocal,mix,color,smoothstep} from 'three/tsl';
@@ -68,7 +69,8 @@ function setPaused(value){if(!loaded)return;if(previewMode){paused=value;canvas.
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer?.setSize(innerWidth,innerHeight)}
 function exit(){if(parent!==window)parent.postMessage({type:'lc100:drive-close'},location.origin);else location.href='../#test-drive'}
 $('exit').addEventListener('click',exit);$('pause').addEventListener('click',()=>setPaused(true));$('resume').addEventListener('click',()=>setPaused(false));$('reset').addEventListener('click',()=>{reset();setPaused(false)});
-addEventListener('keydown',e=>{if(previewMode)return;if(e.code==='Escape'){e.preventDefault();setPaused(!paused);return}if(e.code==='KeyL'){e.preventDefault();if(loaded)chooseRange(physics.range==='HI'?'LO':'HI');return}if(e.code==='KeyR'){e.preventDefault();if(!e.repeat)deployBoards();return}if(['Space','KeyS','ArrowDown'].includes(e.code))cancelCruise();if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)&&!['BUTTON','INPUT'].includes(e.target.tagName)){e.preventDefault();keys.add(e.code)}});addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();if(loaded&&!previewMode)setPaused(true)});document.addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(true)});addEventListener('resize',resize);
+const keyboard=createKeyboardControls({keys,state:()=>({loaded,paused,preview:previewMode}),focus:()=>canvas.focus({preventScroll:true}),cancelCruise,pause:setPaused,range:()=>chooseRange(physics.range==='HI'?'LO':'HI'),recover:deployBoards});
+addEventListener('keydown',keyboard.keydown);addEventListener('keyup',keyboard.keyup);addEventListener('blur',()=>{keys.clear();if(loaded&&!previewMode)setPaused(true)});document.addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(true)});addEventListener('resize',resize);
 for(const button of document.querySelectorAll('[data-control]')){const key=button.dataset.control;button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);touch[key]=true;button.classList.add('pressed')});for(const ev of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(ev,()=>{touch[key]=false;button.classList.remove('pressed')})}
 
 async function init(){try{
