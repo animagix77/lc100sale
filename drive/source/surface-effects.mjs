@@ -30,13 +30,14 @@ export class SurfaceEffects{
   const rand=this.random,fx=-Math.sin(heading),fz=-Math.cos(heading),dir=mark.dir||Math.sign(speed)||1;
   const slip=Math.min(6,mark.slip),pace=Math.min(7,Math.abs(speed)),sideSign=mark.wheel%2===0?-1:1;
   if(profile.wet){
-   // Small ballistic droplets form a tyre-width fan, never a billboard cloud.
+   // Water leaves the trailing tread edge in a narrow rearward fan.
    const waterPace=Math.min(11.2,Math.abs(speed)),spin=Math.min(2,slip*.20);
    if(waterPace+spin>.45&&++this.splashStep[mark.wheel]%(waterPace<2?2:1)===0){
     const count=waterPace>6?3:waterPace>2?2:1;
     for(let j=0;j<count;j++){
-     const outward=sideSign*(.25+waterPace*.17)*(.65+rand()*.55),back=(.25+waterPace*.12+spin*.25)*(.7+rand()*.6);
-     this.spawn(this.splash,{x:mark.x+Math.cos(heading)*sideSign*.16,z:mark.z-Math.sin(heading)*sideSign*.16,y:profile.water+.06,
+     const outward=sideSign*(.08+waterPace*.045)*(.65+rand()*.55),back=(.55+waterPace*.22+spin*.25)*(.7+rand()*.6);
+     const x=mark.x-fx*dir*.36+Math.cos(heading)*sideSign*.06,z=mark.z-fz*dir*.36-Math.sin(heading)*sideSign*.06;
+     this.spawn(this.splash,{x,z,y:this.waterHeight(x,z,time)+.06,
       vx:-fx*dir*back+Math.cos(heading)*outward,vz:-fz*dir*back-Math.sin(heading)*outward,
       vy:.35+waterPace*.16+spin*.2+rand()*.35,size:.011+rand()*.010+waterPace*.0007,ttl:.22+waterPace*.018+rand()*.08,angle:0});
     }
