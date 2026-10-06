@@ -16,3 +16,7 @@ CC0: https://creativecommons.org/publicdomain/zero/1.0/
 
 ## Music
 “No Particular Hurry” is an original 108 BPM D minor instrumental, expanded from the site's 75-second preview into a 96-bar, 217.33-second arrangement. No borrowed melody or music samples. Editable composition: `../source/compose-soundtrack.py`.
+
+
+## LC FM station music
+Five original synthesized instrumental arrangements created for this project: Glovebox After Hours (jazz), Curb Appeal (hip-hop), Low Range, High Spirits (EDM), Hairspray & Horsepower (80s rock), Smells Like Wet Floor Mats (90s rock). No external samples or borrowed melodies. Composition source: `../source/compose-radio.py`; metadata: `../source/radio-tracks.json`. Original No Particular Hurry remains the default preset.
