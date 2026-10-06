@@ -1,0 +1,18 @@
+/* Keep every depth plane on the same crop; overscan hides edges during pointer travel. */
+.editorial .story-panorama .camp-depth{
+ position:absolute;inset:0;display:block;padding:0;margin:0;background:none;
+ overflow:hidden;pointer-events:none;opacity:0;transition:opacity .55s ease;z-index:1;
+}
+.editorial .story-panorama .photo-open .camp-depth img{
+ position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;
+ object-fit:cover;object-position:50% 62%;transform:scale(1.065);
+ transition:none;will-change:transform;
+}
+.editorial .story-panorama .camp-depth .camp-foreground{
+ mask-image:linear-gradient(to bottom,transparent 84%,#000 98%);
+}
+.editorial .story-panorama .camp-depth-ready>.camp-depth{opacity:1}
+.editorial .story-panorama .photo-open>span:not(.camp-depth){z-index:2}
+@media(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse),(max-width:700px){
+ .editorial .story-panorama .camp-depth{display:none}
+}
