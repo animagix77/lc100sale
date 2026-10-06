@@ -19,7 +19,7 @@ CC0: https://creativecommons.org/publicdomain/zero/1.0/
 
 
 ## LC FM station music
-Five original synthesized instrumental arrangements created for this project: Glovebox After Hours (jazz), Curb Appeal (hip-hop), Low Range, High Spirits (EDM), Hairspray & Horsepower (80s rock), Smells Like Wet Floor Mats (90s rock). No external samples or borrowed melodies. Composition source: `../source/compose-radio.py`; metadata: `../source/radio-tracks.json`. Original No Particular Hurry remains the default preset.
+Seven original synthesized instrumental arrangements created for this project: Glovebox After Hours (jazz), Curb Appeal (hip-hop), Low Range, High Spirits (EDM), Hairspray & Horsepower (80s rock), Smells Like Wet Floor Mats (90s rock), All Hat, All Terrain (country), Bias Wrecker (K-pop-inspired synth pop). No external samples or borrowed melodies. Composition source: `../source/compose-radio.py`; metadata: `../source/radio-tracks.json`. Original No Particular Hurry remains the default preset.
 
 ## Smooth engine drone
 The current engine sound is an original synthesized harmonic drone, replacing the recorded idle/load loops entirely to remove their puttering exhaust texture. Four phase-aligned sine partials follow RPM with smoothed frequency and gain, filtered for a muted petrol-V8 character. No random detuning or rhythmic amplitude modulation. This is a stylized game sound, not an authenticated Toyota recording. Ocean, sand, gulls and water accents remain from the credited recordings above.

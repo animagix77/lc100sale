@@ -1,10 +1,10 @@
-"""Five original LC FM instrumentals. Synthesized instruments; no borrowed melodies or samples."""
+"""Seven original LC FM instrumentals. Synthesized instruments; no borrowed melodies or samples."""
 import numpy as np, wave, json, subprocess
 from pathlib import Path
 from functools import lru_cache
 SR=32000
 import argparse
-parser=argparse.ArgumentParser();parser.add_argument('--output-dir',default=str(Path(__file__).parent));args=parser.parse_args()
+parser=argparse.ArgumentParser();parser.add_argument('--output-dir',default=str(Path(__file__).parent));parser.add_argument("--tracks",nargs="+",help="Render only these station IDs");args=parser.parse_args()
 OUT=Path(args.output_dir);OUT.mkdir(parents=True,exist_ok=True)
 rng=np.random.default_rng(2004100)
 def hz(m):return 440*2**((m-69)/12)
@@ -32,6 +32,16 @@ def voice(kind,m,d):
   x=np.tanh(raw*(3.8 if kind=='guitar' else 2.8))*.5
   # Cabinet low-pass, deterministic and free of broadband fuzz.
   ff=np.fft.rfftfreq(len(x),1/SR);x=np.fft.irfft(np.fft.rfft(x)/(1+(ff/3700)**6),len(x))
+ elif kind=='acoustic':
+  # Clean steel-string pluck: bright attack, warm body and no amp distortion.
+  x=sum(np.sin(phase*k)*(.60/k**1.35)*np.exp(-t*(1.5+k*.65)) for k in range(1,16))
+  x+=.10*np.sin(phase*.998)*np.exp(-t*2)+.035*np.sin(2*np.pi*190*t)*np.exp(-t*22)
+ elif kind=='steel':
+  bend=2**((-.8*np.exp(-t*16)+.045*np.sin(2*np.pi*5*t)*(1-np.exp(-t*5)))/12)
+  ph=2*np.pi*np.cumsum(f*bend)/SR
+  x=sum(np.sin(ph*k)*.40/k**1.9 for k in range(1,7))*np.exp(-t*1.5)
+ elif kind=='poppluck':
+  x=sum((np.sin(phase*k*.999)+np.sin(phase*k*1.001))*.24/k**1.4*np.exp(-t*(3+k*.65)) for k in range(1,10))
  elif kind=='lead':
   ph=phase+.028*np.sin(2*np.pi*5*t);x=sum(np.sin(ph*k)*np.exp(-t*(.8+k*.5))*.35/k**1.5 for k in range(1,8))
  elif kind=='pad':x=sum((np.sin(phase*k*.998)+np.sin(phase*k*1.002))*.09/k**2 for k in range(1,6))
@@ -52,7 +62,13 @@ tracks=[
  dict(id='hiphop',title='Curb Appeal',bpm=86,bars=72,roots=[41,44,39,46],chords=[[56,60,63,67],[56,60,63,65],[55,58,62,65],[58,62,65,68]]),
  dict(id='edm',title='Low Range, High Spirits',bpm=122,bars=96,roots=[38,34,41,36],chords=[[62,65,69],[58,62,65],[60,65,69],[60,64,67]]),
  dict(id='rock80',title='Hairspray & Horsepower',bpm=118,bars=96,roots=[40,36,43,38],chords=[[52,59,64],[48,55,60],[55,62,67],[50,57,62]]),
+ dict(id='country',title='All Hat, All Terrain',bpm=104,bars=88,roots=[38,43,45,47],chords=[[50,54,57],[55,59,62],[57,61,64],[59,62,66]]),
+ dict(id='kpop',title='Bias Wrecker',bpm=124,bars=104,roots=[42,38,45,40],chords=[[66,69,73],[62,66,69],[64,69,73],[64,68,71]]),
  dict(id='rock90',title='Smells Like Wet Floor Mats',bpm=100,bars=80,roots=[40,43,38,45],chords=[[52,59,64],[55,62,67],[50,57,62],[57,64,69]])]
+if args.tracks:
+ unknown=set(args.tracks)-{t['id'] for t in tracks}
+ if unknown:parser.error('Unknown tracks: '+', '.join(sorted(unknown)))
+ tracks=[t for t in tracks if t['id'] in args.tracks]
 metadata=[]
 for cfg in tracks:
  kind=cfg['id'];beat=60/cfg['bpm'];bar=beat*4;seconds=cfg['bars']*bar+3;N=int(seconds*SR)
@@ -70,12 +86,12 @@ for cfg in tracks:
  for b in range(cfg['bars']):
   start=b*bar;part=b%32;intro=b<8;outro=b>=cfg['bars']-8;breakdown=32<=b<40;chorus=16<=part<32 and not outro
   ci=(b//2)%4;root=cfg['roots'][ci];chord=cfg['chords'][ci];level=.65 if intro or outro else .6 if breakdown else 1
-  rock=kind.startswith('rock');jazz=kind=='jazz';hip=kind=='hiphop';edm=kind=='edm'
+  rock=kind.startswith('rock');jazz=kind=='jazz';hip=kind=='hiphop';edm=kind=='edm';country=kind=='country';kpop=kind=='kpop'
   if not intro or b>=4:
    for q in range(4):
     at=start+q*beat
-    if edm or q in ([0,2] if jazz else [0,2,3] if chorus else [0,2]):add(DRUMS['kick'],at,.35 if jazz else .6*level)
-    if q%2:add(DRUMS['clap' if edm else 'snare'],at,.3 if jazz else .62*level,send=.12 if rock else .035)
+    if edm or (kpop and chorus) or q in ([0,2] if jazz else [0,2,3] if chorus else [0,2]):add(DRUMS['kick'],at,.35 if jazz else .6*level)
+    if q%2:add(DRUMS['clap' if edm or kpop else 'snare'],at,.3 if jazz else .40*level if country else .62*level,send=.12 if rock else .035)
     if not breakdown:
      add(DRUMS['ride' if jazz else 'hat'],at,.7 if jazz else .9*level,pan=.3)
      swing=.66 if jazz else .57 if hip else .5
@@ -95,6 +111,30 @@ for cfg in tracks:
     for q in range(8):note('bass',root,start+(q*.5+.25)*beat,beat*.21,.65*level)
    if b>=4:
     for q in range(8):note('lead',chord[[0,2,1,2,0,1,2,1][q]]+12,start+(q*.5+.25)*beat,beat*.48,.24*level,pan=np.sin(q)*.4,send=.6)
+  elif country:
+   # Alternating root/fifth bass, brushed strums and picked acoustic answers.
+   for q in range(4):note('upright',root if q%2==0 else root+7,start+q*beat,beat*.85,.60*level)
+   for pos in [0,.5,1,1.5,2,2.5,3,3.5]:
+    for j,m in enumerate(chord):note('acoustic',m,start+pos*beat+j*.013,beat*(.8 if pos%1 else 1.6),(.14 if pos%1 else .22)*level,pan=-.42,send=.14)
+   if not breakdown:
+    for q,index in enumerate([0,2,1,2,0,1,2,1]):note('acoustic',chord[index]+12,start+q*.5*beat,beat*.65,.12*level,pan=.5,send=.2)
+   if b>=4 and b%2==1:
+    for k,pos in enumerate([.5,2,3]):note('steel',chord[(k+b//2)%3]+12,start+pos*beat,beat*1.4,.28*level,pan=.15,send=.65)
+  elif kpop:
+   # Glossy synth-pop groove: syncopated bass, bell-like hooks and a halftime break.
+   for j,m in enumerate(chord):note('pad',m,start,bar+.25,.32*level,pan=(j-1)*.5,send=.32)
+   if not intro:
+    for pos in ([0,1.5,2,2.75,3.5] if not breakdown else [0,2]):
+     note('bass',root-12 if root>42 else root,start+pos*beat,beat*.42,.67*level)
+   hook=[0,2,1,2,0,1,2,1] if chorus else [0,1,2,1]
+   for q,index in enumerate(hook):
+    pos=q*(.5 if chorus else 1)+(.25 if q%2 else 0)
+    note('poppluck',chord[index]+(12 if chorus else 0),start+pos*beat,beat*.62,.30*level,pan=.25 if q%2 else -.25,send=.55)
+   if chorus:
+    for q in range(4):
+     for j,m in enumerate(chord):note('piano',m,start+(q+.5)*beat,beat*.4,.11*level,pan=(j-1)*.4,send=.18)
+   if not intro and not breakdown and b%4 in [2,3]:
+    for k,pos in enumerate([.75,1.5,2.75,3.5]):note('lead',chord[[2,1,0,1][k]]+12,start+pos*beat,beat*.7,.27,pan=.05,send=.48)
   else:
    inst='guitar' if chorus else 'muted';steps=[0,.5,1,1.5,2,2.5,3,3.5] if not breakdown else [0,2]
    for pos in steps:
@@ -106,7 +146,7 @@ for cfg in tracks:
    elif not chorus:
     for q in range(8):note('guitar',chord[[0,1,2,1,0,2,1,2][q]]+12,start+q*.5*beat,beat,.12,pan=.15,send=.45)
   # New composed phrases, with eight-bar call/response and section variation.
-  if not intro and not breakdown and not outro and (jazz or hip or chorus):
+  if not intro and not breakdown and not outro and (jazz or hip or (chorus and not country and not kpop)):
    motif=[0,2,1,3,2,1,0,2];phrase=b%8;indices=[motif[phrase],(motif[phrase]+1)%len(chord),(motif[phrase]+2)%len(chord)]
    for k,pos in enumerate([.5,1.75,3] if hip else [0,1.5,2.66] if jazz else [.5,2,3.25]):
     m=chord[indices[k]%len(chord)]+(12 if not hip else 0)

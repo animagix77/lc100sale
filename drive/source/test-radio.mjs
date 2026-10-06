@@ -19,12 +19,12 @@ const ids=['radio-panel','radio-power','radio-volume','radio-presets','radio-fre
 globalThis.document={body:new Element(),getElementById:id=>els[id],createElement:tag=>{const e=new Element();if(tag==='audio')media=e;return e}};
 const button=new Element(),powerEvents=[];let focus=0;const radio=createMusic(button,()=>focus++,{onPower:on=>powerEvents.push(on)});
 const flush=async()=>{await new Promise(r=>setTimeout(r,800))};
-assert.equal(STATIONS.length,6);assert.equal(media.requests.length,0,'no audio before user opts in');
+assert.equal(STATIONS.length,8);assert.equal(media.requests.length,0,'no audio before user opts in');
 button.fire('click');assert(!els['radio-panel'].hidden);els['radio-presets'].children[1].fire('click');assert.equal(media.requests.length,0,'select while off stays lazy');
 els['radio-power'].fire('click');await flush();assert(radio.powered);assert(!media.paused);assert.equal(media.src,STATIONS[1].file);assert.deepEqual(powerEvents,[true]);assert(els['radio-panel'].hidden,'power-on clears the antenna shot');
-for(let i=0;i<6;i++){els['radio-presets'].children[i].fire('click');await flush();assert.equal(media.src,STATIONS[i].file);assert(!media.paused);assert.equal(radio.station.id,STATIONS[i].id)}
-assert.deepEqual(powerEvents,[true],'tuning does not repeat the antenna cut');assert.equal(els['radio-frequency'].getAttribute('aria-label'),STATIONS[5].frequency+' FM');
-const requests=media.requests.length;els['radio-presets'].children[5].fire('click');await flush();assert.equal(media.requests.length,requests,'same station does not restart');
+for(let i=0;i<STATIONS.length;i++){els['radio-presets'].children[i].fire('click');await flush();assert.equal(media.src,STATIONS[i].file);assert(!media.paused);assert.equal(radio.station.id,STATIONS[i].id)}
+assert.deepEqual(powerEvents,[true],'tuning does not repeat the antenna cut');assert.equal(els['radio-frequency'].getAttribute('aria-label'),STATIONS.at(-1).frequency+' FM');
+const requests=media.requests.length;els['radio-presets'].children.at(-1).fire('click');await flush();assert.equal(media.requests.length,requests,'same station does not restart');
 els['radio-prev'].fire('click');assert.equal(els['radio-status'].textContent,'TUNING…');els['radio-next'].fire('click');els['radio-presets'].children[2].fire('click');await flush();assert.equal(media.src,STATIONS[2].file,'last rapid station selection wins');
 els['radio-volume'].value=0;els['radio-volume'].fire('input');radio.setEffectsMix(true,.5);assert.equal(els['radio-volume'].attrs['aria-valuetext'],'0 percent');
 radio.pause(true);assert(media.paused);radio.pause(false);await flush();assert(!media.paused);
@@ -32,4 +32,4 @@ els['radio-power'].fire('click');await new Promise(r=>setTimeout(r,240));assert(
 media.reject=true;els['radio-power'].fire('click');await flush();assert(!radio.powered);assert(els['radio-status'].textContent.includes('SIGNAL LOST'));
 const previousLoads=media.loads;media.reject=false;els['radio-power'].fire('click');await flush();assert(radio.powered&&!media.paused);assert(media.loads>previousLoads,'retry reloads the failed media file');
 els['radio-next'].fire('click');radio.pause(true);await flush();assert(media.paused,'pause cancels an in-flight retune');radio.pause(false);await flush();els['radio-next'].fire('click');radio.dispose();await flush();assert(media.paused&&media.removed&&context.closed);assert(focus>0);assert.equal(media.getAttribute('src'),null);
-console.log('Radio: lazy loading, six presets, rapid retune, power/antenna events, volume, pause/resume, failure/retry and disposal passed.');
+console.log('Radio: lazy loading, eight presets, rapid retune, power/antenna events, volume, pause/resume, failure/retry and disposal passed.');
