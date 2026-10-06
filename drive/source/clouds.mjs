@@ -14,6 +14,6 @@ export class SunsetClouds {
    for(let i=0;i<5;i++)this.parts.push({x:x+(i-2)*width*.36,y:y+Math.sin(i/4*Math.PI)*5+rand(bank*5+i+100)*3,z:z+rand(bank*5+i+200)*18,sx:width*(.40+rand(bank*5+i+300)*.25),sy:5+rand(bank*5+i+400)*6,sz:22+rand(bank*5+i+500)*22});
   }
  }
- update(camera,time){const d=this.dummy,drift=this.reduced?0:Math.sin(time*.008)*16;this.parts.forEach((p,i)=>{d.position.set(camera.position.x+p.x+drift,camera.position.y+p.y,camera.position.z+p.z);d.scale.set(p.sx,p.sy,p.sz);d.rotation.set(0,.2,0);d.updateMatrix();this.mesh.setMatrixAt(i,d.matrix)});this.mesh.instanceMatrix.needsUpdate=true;}
+ update(camera,time){const d=this.dummy,drift=this.reduced?0:Math.sin(time*.008*(this.wind||1))*16;this.parts.forEach((p,i)=>{d.position.set(camera.position.x+p.x+drift,camera.position.y+p.y,camera.position.z+p.z);d.scale.set(p.sx,p.sy,p.sz);d.rotation.set(0,.2,0);d.updateMatrix();this.mesh.setMatrixAt(i,d.matrix)});this.mesh.instanceMatrix.needsUpdate=true;}
  dispose(){this.scene.remove(this.mesh);this.mesh.geometry.dispose();this.mesh.material.dispose();this.mesh.dispose();}
 }

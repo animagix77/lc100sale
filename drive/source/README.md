@@ -95,3 +95,8 @@ Shift buttons read current keyboard/touch/cruise input directly, avoiding a stal
 Station retunes use an uneven heterodyne carrier with 8–29 Hz pitch modulation, swept resonant static and soft distortion. A single short voice follows the frequency reel timing; rapid retunes replace it and power/pause/volume controls silence it.
 
 Country (101.9, “All Hat, All Terrain”, 3:26) uses clean acoustic picking, alternating bass and synthesized steel-guitar bends. K-pop (96.7, “Bias Wrecker”, 3:24) uses glossy synth-pop hooks, syncopated bass and contrasting breakdowns. Both are original instrumentals. To render only these additions: `compose-radio.py --tracks country kpop --output-dir <directory>`. Eight preset buttons use a four-column grid.
+
+## Local clock and centered recovery boards
+The full drive starts with lighting based on the visitor's device clock, using an approximate 6 am / 6 pm daylight cycle until a location is available. The Weather panel can hold the original sunset instead. Sky, directional and ambient light, sun/moon, cloud tint, fog and water reflections transition together, with readable night lighting. The silent landing-page preview retains sunset. This version does not request or transmit location or fetch weather; the live-weather integration is pending explicit provider/data-sharing approval. The rendering module supports bounded rain/snow and wind-driven swell for the later integration. Reduced motion suppresses precipitation.
+
+The two stowed recovery boards and their straps are centered at z=0.92 m between the roof rack crossbars. Four-board deployment and return still use those same mounts.

@@ -7,6 +7,7 @@ import {oceanHeight} from './ocean-height.mjs';
 // phase stays continuous while the mesh streams along the infinite coastline.
 export class Ocean{
  constructor(scene,{mobile=false}={}){
+  this.skyTop=uniform(new THREE.Color('#46576c'));this.skyHorizon=uniform(new THREE.Color('#b58073'));this.sunColor=uniform(new THREE.Color('#ffe2af'));this.sunDirection=uniform(new THREE.Vector3(-430,105,-650).normalize());this.brightness=uniform(1);this.waveScale=uniform(1);
   this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;
   this.wake=new WakeField({size:mobile?97:129,spacing:mobile?2/3:.5});this.wakePixels=new Uint16Array(this.wake.count*4);this.wakeTexture=new THREE.DataTexture(this.wakePixels,this.wake.size,this.wake.size,THREE.RGBAFormat,THREE.HalfFloatType);this.wakeTexture.minFilter=this.wakeTexture.magFilter=THREE.LinearFilter;this.wakeTexture.generateMipmaps=false;this.wakeTexture.needsUpdate=true;
   this.wakeOrigin=uniform(new THREE.Vector2());this.wakeSpan=(this.wake.size-1)*this.wake.spacing;this.lastTime=0;
@@ -18,7 +19,7 @@ export class Ocean{
    const phase=d.mul(.30).sub(z.mul(.025)).add(sin(z.mul(.071)).mul(1.2)).add(sin(z.mul(.13)).mul(.3)).sub(t.mul(1.35));
    const swell=sin(phase).mul(.36).add(sin(d.mul(.14).add(z.mul(.046)).sub(t.mul(.78))).mul(.20));
    const cross=sin(x.mul(.41).add(z.mul(.23)).sub(t.mul(1.05))).mul(.065);
-   return float(-.18).add(swell.add(cross).mul(offshore)).add(sin(t.mul(.8).sub(z.mul(.026))).mul(.075).mul(float(1).sub(offshore)));
+   return float(-.18).add(swell.add(cross).mul(offshore)).add(sin(t.mul(.8).sub(z.mul(.026))).mul(.075).mul(float(1).sub(offshore))).add(.18).mul(this.waveScale).sub(.18);
   });
   const material=new THREE.MeshBasicNodeMaterial({transparent:true,depthWrite:false,side:THREE.FrontSide});
   material.positionNode=Fn(()=>{const world=positionGeometry.xz.add(origin);return vec3(positionGeometry.x,height(world.x,world.y).add(wakeAt(world.x,world.y).r),positionGeometry.z)})();
@@ -27,13 +28,13 @@ export class Ocean{
   const n=normalize(vec3(height(x.sub(.14),z).sub(height(x.add(.14),z)).add(fineA.mul(.055)).sub(wake.g.mul(.28)),float(.28),height(x,z.sub(.14)).sub(height(x,z.add(.14))).add(fineB.mul(.055)).sub(wake.b.mul(.28))));
   const eye=normalize(cameraPosition.sub(positionWorld)),fresnel=pow(float(1).sub(max(dot(eye,n),0)),4).mul(.60).add(.04);
   const skyRay=reflect(eye.negate(),n);
-  const reflectedSky=mix(color('#b58073'),color('#46576c'),smoothstep(.025,.60,skyRay.y));
+  const reflectedSky=mix(this.skyHorizon,this.skyTop,smoothstep(.025,.60,skyRay.y));
   const deep=mix(color('#327e79'),color('#153b53'),smoothstep(2,100,d.negate()));
   const scatter=color('#45a399').mul(smoothstep(-.15,.35,h)).mul(.24);
-  const sunDirection=normalize(vec3(-430,105,-650));
+  const sunDirection=this.sunDirection;
   const alignment=max(dot(eye,reflect(sunDirection.negate(),n)),0);
   const glitter=pow(alignment,120).mul(.12).add(pow(alignment,550).mul(.75));
-  const reflected=reflectedSky.add(color('#ffe2af').mul(glitter));
+  const reflected=reflectedSky.add(this.sunColor.mul(glitter));
   const waterColor=mix(deep.add(scatter),reflected,fresnel);
   // Broken crest foam and a separate wash front replace the previous straight stripes.
   const foamNoise=mx_noise_float(vec3(x.mul(.82).add(t.mul(.12)),z.mul(.82),t.mul(.20))).mul(.5).add(.5);
@@ -44,7 +45,7 @@ export class Ocean{
   const wash=float(1).sub(smoothstep(.25,1.7,abs(d.sub(front)))).mul(smoothstep(.27,.62,foamNoise)).mul(.78);
   const lace=float(1).sub(smoothstep(.1,.65,abs(d.sub(front).add(2.2)))).mul(smoothstep(.55,.78,foamNoise)).mul(.3);
   const foam=max(max(crestFoam, wash.add(lace)),wake.a.mul(smoothstep(.18,.60,foamNoise)));
-  material.colorNode=mix(waterColor,color('#f5dec0'),foam);
+  material.colorNode=mix(waterColor,color('#f5dec0'),foam).mul(this.brightness);
   material.opacityNode=mix(float(.94),float(.68),smoothstep(0,10,d)).mul(float(1).sub(smoothstep(8,12,d)));
   this.material=material;this.mesh=new THREE.Mesh(new THREE.BufferGeometry(),material);this.mesh.renderOrder=1;this.mesh.frustumCulled=false;scene.add(this.mesh);
  }
@@ -66,7 +67,7 @@ export class Ocean{
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();
   this.mesh.geometry.dispose();this.mesh.geometry=g;
  }
- height(x,z,time){return oceanHeight(x,z,time)+this.wake.sample(x,z)}
+ height(x,z,time){return oceanHeight(x,z,time,this.waveScale.value)+this.wake.sample(x,z)}
  disturb(mark,speed,heading){this.wake.stamp(mark.x,mark.z,speed,mark.slip,heading)}
  clear(){this.wake.clear()}
  dispose(){this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose()}

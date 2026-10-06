@@ -4,6 +4,7 @@ import {RecoveryView} from './recovery-view.mjs';
 const scene=new THREE.Scene(),truck=new THREE.Group();scene.add(truck);truck.position.set(5,2,7);truck.rotation.y=.4;
 const r={state:'roof',age:0,physics:{origin:{x:0,z:0}},boards:[]},view=new RecoveryView(scene,truck,new THREE.Group(),r);view.update();
 assert.equal(view.mounts.length,2);assert.equal(view.models.filter(m=>m.visible).length,2,'Original two-board roof silhouette stays intact');
+assert(view.mounts.every(m=>Math.abs(m.position.z-.92)<1e-8),'Boards sit at the center of the rack');assert.equal(view.mounts[0].position.x+view.mounts[1].position.x,0,'Roof pair is centered side to side');
 const roof=view.models.slice(0,2).map(m=>m.position.clone());
 r.boards=Array.from({length:4},(_,i)=>({position:{x:i%2?6:4,y:.2,z:i<2?4:7},rotation:new THREE.Quaternion()}));
 r.state='deploying';r.age=.42;view.update();assert(view.models.every(m=>m.visible),'Four animated recovery boards');assert(view.mounts.every(m=>!m.userData.straps.visible));
