@@ -2,15 +2,18 @@ import {clamp,smooth} from './terrain.mjs';
 export const RANGES={HI:{name:'4HI',maxSpeed:11.176,cruise:3.55,force:2550,reverse:2.4},LO:{name:'4LO',maxSpeed:3.15,cruise:1.45,force:4900,reverse:1.7}};
 // Angular tyre dynamics: motor torque accelerates the wheel; ground reaction consumes torque.
 // An implicit contact spring avoids oscillation at the 120 Hz physics step.
-function tyreResponse(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake,tractionControl=false}){
+function tyreResponse(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake,tractionControl=false,throttle=0}){
  const radius=.45,inertia=18,sink=smooth(.24,.78,depth),mu=(1.12-.40*soft)*(1-.50*sink),cap=contact?Math.max(0,load)*mu:0;
- const stiffness=8500-5000*soft,torque=driveForce*radius;
+ // Loose sand shears under sustained throttle at low progress. Tire rotation
+ // can continue against the contact patch instead of behaving like sticky tarmac.
+ const shear=soft*clamp(throttle,0,1)*(1-smooth(.5,2.5,Math.abs(roadSpeed)));
+ const stiffness=(8500-5000*soft)*(1-.82*shear),torque=driveForce*radius;
  const force=contact?clamp(stiffness*(w.omega*radius+dt*torque*radius/inertia-roadSpeed)/(1+stiffness*dt*radius*radius/inertia),-cap,cap):0;
  let omega=w.omega+(torque-force*radius-w.omega*.7)/inertia*dt;
  // Brake-based spin assistance, not an axle locker. A bounded brake reaction
  // restrains excess slip so an unloaded wheel does not consume all engine RPM.
  // It cannot create road force at a wheel with no contact.
- if(tractionControl){const relative=omega-roadSpeed/radius,excess=Math.max(0,Math.abs(relative)-3.5);omega-=Math.sign(relative)*Math.min(excess*(1-Math.exp(-dt*14)),1050/inertia*dt);}
+ if(tractionControl){const relative=omega-roadSpeed/radius,excess=Math.max(0,Math.abs(relative)-(3.5+4*shear));omega-=Math.sign(relative)*Math.min(excess*(1-Math.exp(-dt*14)),1050/inertia*dt);}
  if(brake)omega*=Math.exp(-dt*24);
  return {force,omega:clamp(omega,-45,45),sink};
 }

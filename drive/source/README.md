@@ -86,3 +86,6 @@ The engine governor uses mean shaft speed and supplies equal drive torque to the
 
 ## Radio tuning
 Station changes roll fixed-width frequency digits in tuning direction over 760 ms. Reduced motion settles the digits immediately. While powered, a synthesized bandpass-static sweep with soft distortion and a quiet whistle bridges the faded tracks; the new music fades in after the tuning beat and successful playback. Only one sweep plays at a time. Off-state preset selection remains silent and lazy. Volume, pause, failure, power-off and disposal cancel the sweep. Engine ducking cannot override the retuning fade. `test-radio-tuning.mjs` and `test-radio.mjs` cover these transitions and cleanup.
+
+## Uphill sand wheelspin
+Under manual forward throttle, loose sand on an incline has more tire shear as forward progress falls. Spin assistance allows additional slip, and the shaft governor leaves a small low-speed wheelspin margin. Actual wheel angular dynamics still drive the visible tires, engine RPM, sand particles and digging; this is not a cosmetic minimum rotation. The change fades with speed and does not raise the 25 mph road limit. Firm surfaces, cruise, reverse and normal flat-sand tuning retain their previous behavior. `test-climb-spin.mjs` checks sustained loaded spin, release/braking, grip limits, uphill contact marks and both range/center-lock settings.

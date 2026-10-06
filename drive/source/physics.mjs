@@ -22,6 +22,7 @@ export class DrivePhysics{
  if(input.reverse&&!braking)drive=-gear.force*.95;
  if(!drive&&!braking)brake=.65+soft*1.6;if(input.cruise&&this.speed>gear.cruise+.35)brake=Math.max(brake,12);
  let totalDepth=0,totalSlip=0;
+ const climbingThrottle=!braking&&input.gas?smooth(.10,.30,f.y):0;
  const omega=this.rb.angvel(),rotation=this.rb.rotation();
  const right={x:1-2*(rotation.y**2+rotation.z**2),y:2*(rotation.x*rotation.y+rotation.w*rotation.z),z:2*(rotation.x*rotation.z-rotation.w*rotation.y)};
  const contacts=this.tyres.map((w,i)=>{
@@ -33,15 +34,16 @@ export class DrivePhysics{
   const steer=i<2?this.steer:0,cs=Math.cos(steer),sn=Math.sin(steer),direction={x:f.x*cs-right.x*sn,y:f.y*cs-right.y*sn,z:f.z*cs-right.z*sn};
   const dx=x-p.x,dy=c?c.y-p.y:0,dz=z-p.z;
   const roadSpeed=(v.x+omega.y*dz-omega.z*dy)*direction.x+(v.y+omega.z*dx-omega.x*dz)*direction.y+(v.z+omega.x*dy-omega.y*dx)*direction.z;
-  return {roadSpeed,load,soft:soil,depth,contact,tractionControl:true};
+  return {roadSpeed,load,soft:soil,depth,contact,tractionControl:true,throttle:climbingThrottle};
  });
  // One engine governor sees the mean shaft speed. A freely spinning axle
  // consumes that speed budget; the center lock can transfer torque to grip.
  const wheelSpeed=this.tyres.reduce((sum,w)=>sum+w.omega*.45,0)/4,top=drive<0?gear.reverse:gear.maxSpeed;
- let motor=drive*clamp((top-Math.sign(drive)*wheelSpeed)/(this.range==='LO'?.9:2.4),0,1);
+ const spinAllowance=climbingThrottle*soft*2.2*(1-smooth(.5,2.5,Math.abs(this.speed)));
+ let motor=drive*clamp((top+spinAllowance-Math.sign(drive)*wheelSpeed)/(this.range==='LO'?.9:2.4),0,1);
  if(drive>0&&this.range==='HI'&&!input.cruise){
   const resistance=(115+soft*220+Math.abs(this.speed)*14+2450*.08)*Math.max(0,this.speed)/4;
-  motor=clamp(drive*(top-this.speed)/.6+resistance,0,drive)*clamp(top+1-wheelSpeed,0,1);
+  motor=clamp(drive*(top-this.speed)/.6+resistance,0,drive)*clamp(top+1+spinAllowance-wheelSpeed,0,1);
  }
  const result=stepDriveline(this.tyres,contacts,{dt,motor,locked:this.centerLocked,brake:braking});
  this.centerTransfer=result.transfer;this.axleSlip=result.axleSlip;
