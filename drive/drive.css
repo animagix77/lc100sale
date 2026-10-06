@@ -34,3 +34,8 @@
 #intro-start:not(:disabled){color:#17292d}#intro-start:not(:disabled)::before{background:#f59a62}#intro-start:disabled{opacity:1}
 @media(max-width:600px){#intro-start{min-width:0;width:100%}.drive-intro footer>div{min-width:0;flex:1}}
 @media(prefers-reduced-motion:reduce){#intro-start,#intro-start::before{transition:none}}
+
+/* Unknown-duration setup gets an activity sweep, never a fabricated percentage. */
+#intro-start[data-loading="busy"]::after{content:"";position:absolute;inset:0 auto 0 -45%;width:40%;background:linear-gradient(90deg,transparent,#ffdeac30,transparent);pointer-events:none;animation:keys-working 1.7s ease-in-out infinite}
+@keyframes keys-working{to{transform:translateX(370%)}}
+@media(prefers-reduced-motion:reduce){#intro-start[data-loading="busy"]::after{animation:none;left:30%}}
