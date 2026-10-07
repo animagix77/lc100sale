@@ -116,3 +116,11 @@ The default expedition follows 24 gates over a 2.14 km loop: coast, dunes, meado
 Riverbanks have swaying instanced broadleaf crowns, physical trunks, low undergrowth along the driving line, and taller grass outside it. `volcano-view.mjs` adds a crater lake, four animated emissive lava streams draped on remote flanks, a faceted plume and bounded ballistic ejecta. Ejecta stays inside 26 m of the crater center; lava flows remain over 45 m from the route. These are scenic effects, without damage or projectiles aimed at the truck. Desktop/mobile pools are fixed, reduced motion freezes the eruption and foliage, and all world effects survive floating-origin shifts.
 
 `test-expedition-drive.mjs` drives all 24 gates with real deforming terrain and scenery colliders in 4LO with center lock, including both fords and the descent, without resetting. `test-volcano.mjs` checks eruption separation, crater containment, geometry budgets, origin shifts and woodland clearance. The separate rut test uses untracked coastal dunes outside the expedition trail.
+
+
+## Expedition detail pass
+Mountain ground has world-anchored grain, broad color variation and restrained volcanic strata, with near-camera normal relief fading out at distance. `mountain-details.mjs` streams bounded fractured boulders and scree; boulders use their rendered geometry for collisions and stay outside the marked driving line. Desktop/mobile instance limits and cell caching keep the scene bounded through origin shifts.
+
+Riverbank trees use layered angular crowns and visible branches; wind-bent fern fronds replace the former shrub blobs. Lava has moving hot seams, cooling crust, darker flow edges and a gently displaced crater lake, bordered by jagged basalt. Irregular ash billows expand above it while ejecta brightens on ascent and cools on descent. Reduced motion freezes the time-driven effects; mobile uses lighter geometry and smaller pools.
+
+Validation covers all 24 gates with mountain colliders, rock placement and collision alignment, fixed geometry budgets, scenery wind/reduced motion, rut behavior, origin shifts and disposal.

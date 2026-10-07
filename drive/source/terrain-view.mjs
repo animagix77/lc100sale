@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix} from 'three/tsl';
+import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,normalView,positionView,cameraPosition} from 'three/tsl';
 import {RAPIER} from './physics.mjs';
 import {baseHeight,shore,smooth,noise,surfaceAt} from './terrain.mjs';
 const SIZE=32,N=64;
@@ -16,10 +16,21 @@ export class TerrainView{
  const front=sin(this.clock.mul(.8).sub(z.mul(.026)).add(sin(z.mul(.16)).mul(.22))).mul(4.8).add(1).add(sin(z.mul(.46).add(this.clock.mul(.35))).mul(.42));
  const fresh=float(1).sub(smoothstep(front.add(7),front.add(11),d));
  const damp=float(1).sub(smoothstep(12,22,d));
- const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh));mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z);return mat};
+ const detail=attribute('terrainDetail','vec4'),surface=attribute('surface','vec3');
+ const close=float(1).sub(smoothstep(55,140,cameraPosition.distance(positionWorld)));
+ const broad=mx_noise_float(vec3(world.x.mul(.12),positionWorld.y.mul(.18),world.y.mul(.12)));
+ const grain=mx_noise_float(vec3(world.x.mul(2.8),positionWorld.y.mul(1.3),world.y.mul(2.8)));
+ const layers=sin(positionWorld.y.mul(.85).add(broad.mul(8))).mul(.5).add(.5);
+ const stratified=mix(float(1),layers.mul(.12).add(.88),detail.x);
+ const textureShade=broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1));
+ const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh)).mul(stratified).mul(textureShade);mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z);if(!flat){
+   const relief=grain.mul(.022).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z));
+   const dx=positionView.dFdx(),dy=positionView.dFdy(),r1=dy.cross(normalView),r2=normalView.cross(dx),det=dx.dot(r1);
+   mat.normalNode=normalView.mul(det.abs()).sub(r1.mul(relief.dFdx()).add(r2.mul(relief.dFdy())).mul(det.sign())).normalize();
+  }return mat};
  this.material=make(false);this.farMaterial=make(true);this.far=null}
  geometry(tx,tz,n=N,size=SIZE,far=false,omit=null){
-  const ps=[],colors=[],idx=[],heights=[],baseColors=[],surfaces=[],offset=this.p.origin,c=new THREE.Color();
+  const ps=[],colors=[],idx=[],heights=[],baseColors=[],surfaces=[],details=[],offset=this.p.origin,c=new THREE.Color();
   for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){
    const x=tx+i*size/n,z=tz+j*size/n,base=baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
    ps.push(x-offset.x,y,z-offset.z);heights.push(base);
@@ -27,14 +38,14 @@ export class TerrainView{
    const sx=(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
    c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
    c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6).lerp(basalt,surface.volcanic*.97).lerp(trailStone,surface.volcanic*surface.trail*.45);c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
-   surfaces.push(surface.mud,surface.snow,surface.puddle);baseColors.push(c.r,c.g,c.b);c.multiplyScalar(rutShade(deformation));colors.push(c.r,c.g,c.b);
+   surfaces.push(surface.mud,surface.snow,surface.puddle);details.push(surface.volcanic,surface.grass,surface.river,surface.trail);baseColors.push(c.r,c.g,c.b);c.multiplyScalar(rutShade(deformation));colors.push(c.r,c.g,c.b);
    if(i<n&&j<n){
     const midx=x+size/n*.5,midz=z+size/n*.5;
     if(omit&&midx>=omit.x0&&midx<omit.x1&&midz>=omit.z0&&midz<omit.z1)continue;
     const a=j*(n+1)+i,b=a+1,c=a+n+1,e=c+1;idx.push(a,c,b,b,c,e);
    }
   }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(ps,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setAttribute('surface',new THREE.Float32BufferAttribute(surfaces,3));g.setIndex(idx);g.computeVertexNormals();
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(ps,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setAttribute('surface',new THREE.Float32BufferAttribute(surfaces,3));g.setAttribute('terrainDetail',new THREE.Float32BufferAttribute(details,4));g.setIndex(idx);g.computeVertexNormals();
   // Cache undeformed heights/colors: digging only touches the sparse field and GPU buffers.
   if(!far){g.userData.baseHeights=new Float32Array(heights);g.userData.baseColors=new Float32Array(baseColors)}
   return g;

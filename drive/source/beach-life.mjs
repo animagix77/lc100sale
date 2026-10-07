@@ -10,11 +10,56 @@ import {oceanHeight} from './ocean-height.mjs';
 const rand=(a,b=0)=>{const v=Math.sin(a*127.1+b*311.7)*43758.5453;return v-Math.floor(v)};
 const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attributes.position.count*3);for(let i=0;i<a.length;i+=3){a[i]=c.r;a[i+1]=c.g;a[i+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g};
 const combine=gs=>{const clean=gs.map(g=>{const a=g.index?g.toNonIndexed():g;for(const k of Object.keys(a.attributes))if(!['position','normal','color'].includes(k))a.deleteAttribute(k);return a});const out=mergeGeometries(clean);for(const g of new Set([...gs,...clean]))g.dispose();return out};
-function beam(a,b,r,hex){const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*.72,r,p.distanceTo(q),6);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,hex)}
+function beam(a,b,r,hex,segments=6,openEnded=false){const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*.72,r,p.distanceTo(q),segments,1,openEnded);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,hex)}
 function box(x,y,z,w,h,d,hex){return paint(new THREE.BoxGeometry(w,h,d).translate(x,y,z),hex)}
 function grassGeometry(){const positions=[],indices=[];for(let i=0;i<15;i++){const angle=i*2.399,height=.50+rand(i,8)*.65,lean=.18+rand(i,2)*.42,width=.065+rand(i,3)*.05,dx=Math.cos(angle),dz=Math.sin(angle),base=positions.length/3;for(let j=0;j<=4;j++){const t=j/4,w=width*(1-t)*.5;for(const side of [-1,1])positions.push(dx*(.10+lean*t*t)-dz*w*side,height*t,dz*(.10+lean*t*t)+dx*w*side);if(j<4){const a=base+j*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();return g}
 function logGeometry(){return combine([beam([-1,.07,0],[.05,.16,.06],.15,'#a8957b'),beam([.05,.16,.06],[1.1,.11,-.12],.12,'#a8957b'),beam([-.12,.14,.05],[.55,.30,.70],.065,'#95816b'),beam([-.73,.10,.04],[-.93,.23,-.45],.05,'#95816b'),beam([.55,.30,.70],[.78,.24,.91],.035,'#95816b')])}
 function wrackGeometry(){const gs=[];for(let i=0;i<8;i++){const g=new THREE.IcosahedronGeometry(.12+rand(i,19)*.10,0);g.scale(1,.25,.55);g.translate((rand(i,20)-.5)*.65,.025,(rand(i,21)-.5)*.4);gs.push(paint(g,i%3===0?'#b5ab91':'#665e42'))}return combine(gs)}
+
+function woodlandCrownGeometry(mobile){
+ const branch=(a,b,r,hex)=>beam(a,b,r,hex,4,true);
+ const parts=[branch([0,4.3,0],[.12,6.7,.12],.16,'#685b43')];
+ const foliage=['#6e854d','#88a25b','#567545','#94a765','#668348'];
+ // Individual branch forks and overlapping leaf shelves give the trees open silhouettes.
+ const count=mobile?9:12;
+ for(let i=0;i<count;i++){
+  const tier=Math.floor(i/3),angle=i*2.399+.5,radius=1.05+rand(i,36)*.7-tier*.13;
+  const x=Math.cos(angle)*radius,z=Math.sin(angle)*radius,y=4.65+tier*.58+rand(i,38)*.32;
+  const fork=[x*.56,y-.48,z*.56],tip=[x,y,z];
+  parts.push(branch([.02,3.6+tier*.65,.03],fork,.075-tier*.009,'#655b44'));
+  parts.push(branch(fork,tip,.047-tier*.005,'#746344'));
+  const leaf=paint(new THREE.IcosahedronGeometry(.94+rand(i,40)*.24,0),foliage[i%foliage.length]);
+  leaf.scale(1.1,.60+rand(i,41)*.18,.91);leaf.rotateY(angle);leaf.translate(x,y+.30,z);parts.push(leaf);
+ }
+ for(let i=0;i<3;i++){
+  const leaf=paint(new THREE.IcosahedronGeometry(1.02-i*.10,0),foliage[(i+1)%foliage.length]);
+  leaf.scale(1,.74,1);leaf.translate(i===1?.42:-.25,6.30+i*.48,i===2?.38:-.10);parts.push(leaf);
+ }
+ return combine(parts);
+}
+function fernGeometry(mobile){
+ const positions=[],colors=[],indices=[],greens=['#527848','#81a55c','#668a4b'];
+ const add=(v,c)=>{positions.push(...v);colors.push(c.r,c.g,c.b);return positions.length/3-1};
+ const quad=(a,b,c,d,color)=>{const at=add(a,color);add(b,color);add(c,color);add(d,color);indices.push(at,at+1,at+2,at,at+2,at+3)};
+ for(let f=0;f<(mobile?6:8);f++){
+  const angle=f*2.399,length=.72+rand(f,45)*.38,height=.42+rand(f,46)*.38,dx=Math.cos(angle),dz=Math.sin(angle),color=new THREE.Color(greens[f%greens.length]);
+  const point=t=>[dx*(.035+length*t),.035+height*Math.sin(t*Math.PI*.78),dz*(.035+length*t)];
+  for(let j=0;j<5;j++){
+   const a=point(j/5),b=point((j+1)/5),w=.012*(1-j*.12);
+   quad([a[0]-dz*w,a[1],a[2]+dx*w],[a[0]+dz*w,a[1],a[2]-dx*w],[b[0]+dz*w*.7,b[1],b[2]-dx*w*.7],[b[0]-dz*w*.7,b[1],b[2]+dx*w*.7],color);
+  }
+  for(let j=0;j<5;j++){
+   const t=.20+j*.16,root=point(t),width=Math.sin(t*Math.PI)*(.19+length*.13),reach=.06+length*.07;
+   for(const side of [-1,1]){
+    const tip=[root[0]-dz*width*side+dx*reach,root[1]-.025,root[2]+dx*width*side+dz*reach];
+    const mid=[(root[0]+tip[0])*.5,(root[1]+tip[1])*.5+.025,(root[2]+tip[2])*.5],thickness=.065*(1-t*.65);
+    quad(root,[mid[0]-dx*thickness,mid[1],mid[2]-dz*thickness],tip,[mid[0]+dx*thickness,mid[1],mid[2]+dz*thickness],color);
+   }
+  }
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();return g;
+}
+
 function boatGeometry(){
  const g=[],v=[],idx=[],stations=[[-5.7,.05,1.35],[-3.9,1.62,1.1],[1.8,1.75,1.1],[4.7,1.4,1.05]];
  for(const [z,w,top] of stations)v.push(-w,top,z,w,top,z,-w*.65,-.48,z,w*.65,-.48,z);
@@ -46,12 +91,16 @@ export class BeachLife{
   const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.72,flatShading:true}),480);
   const treeCount=mobile?180:300;
   this.trunks=make(new THREE.CylinderGeometry(.16,.34,5.5,6).translate(0,2.75,0),new THREE.MeshStandardMaterial({color:'#534d3d',roughness:1}),treeCount);
-  const crowns=combine([paint(new THREE.IcosahedronGeometry(2.3,1).scale(1,.85,1).translate(-.7,5.3,0),'#71854c'),paint(new THREE.IcosahedronGeometry(2,1).scale(1,1.1,1).translate(.6,6.7,.1),'#8b9958'),paint(new THREE.IcosahedronGeometry(1.8,1).translate(1.2,5.3,-.6),'#526f43')]);
+  const crowns=woodlandCrownGeometry(mobile);
   const leaves=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1});
   leaves.positionNode=positionLocal.add(vec3(sin(this.time.mul(.65).add(attribute('treePhase','float'))).mul(positionLocal.y.pow(2)).mul(.006).mul(this.windStrength),0,0));
   crowns.setAttribute('treePhase',new THREE.InstancedBufferAttribute(new Float32Array(treeCount),1));
   this.crowns=make(crowns,leaves,treeCount);this.crowns.castShadow=true;this.crowns.receiveShadow=true;this.trunks.castShadow=true;
-  this.shrubs=make(new THREE.IcosahedronGeometry(1,0).scale(1,.7,1).translate(0,.45,0),new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,flatShading:true}),mobile?360:600);
+  const fern=fernGeometry(mobile),fernCount=mobile?360:600,fernMat=new THREE.MeshStandardNodeMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:1});
+  const fernPhase=attribute('fernPhase','float'),fernYaw=attribute('fernYaw','float'),flutter=sin(this.time.mul(1.4).add(fernPhase)).mul(.075).add(sin(this.time.mul(2.4).sub(fernPhase)).mul(.025)).mul(positionLocal.y.pow(2)).mul(this.windStrength);
+  fernMat.positionNode=positionLocal.add(vec3(flutter.mul(cos(fernYaw)),flutter.abs().mul(-.30),flutter.mul(sin(fernYaw))));
+  fern.setAttribute('fernPhase',new THREE.InstancedBufferAttribute(new Float32Array(fernCount),1));fern.setAttribute('fernYaw',new THREE.InstancedBufferAttribute(new Float32Array(fernCount),1));
+  this.shrubs=make(fern,fernMat,fernCount);this.shrubs.receiveShadow=true;
   this.boats=[];const bg=boatGeometry(),bm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7});this.geometries.push(bg);this.materials.push(bm);
   for(let i=0;i<5;i++){const mesh=new THREE.Mesh(bg,bm);scene.add(mesh);this.boats.push({mesh,id:0,x:0,z:0})}
  }
@@ -83,11 +132,11 @@ export class BeachLife{
    const y=baseHeight(x,z),slope=Math.hypot(baseHeight(x+1,z)-baseHeight(x-1,z),baseHeight(x,z+1)-baseHeight(x,z-1));if(slope>1.8)continue;
    if(r.distance>8&&ti<this.trunks.instanceMatrix.count&&rand(ix+11,iz)<green*.82){
     const scale=.85+rand(ix,iz+19)*.7;d.position.set(x-origin.x,y-.05,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);d.scale.set(scale,scale,scale);d.updateMatrix();
-    this.trunks.setMatrixAt(ti,d.matrix);this.crowns.setMatrixAt(ti,d.matrix);this.crowns.geometry.attributes.treePhase.setX(ti,x*.12+z*.06);ti++;
+    this.trunks.setMatrixAt(ti,d.matrix);d.scale.set(scale*(.88+rand(ix+8,iz)*.25),scale,scale*(.88+rand(ix+9,iz)*.25));d.updateMatrix();this.crowns.setMatrixAt(ti,d.matrix);this.crowns.geometry.attributes.treePhase.setX(ti,x*.12+z*.06);ti++;
    }
-   if(r.distance>4.5&&si<this.shrubs.instanceMatrix.count){d.position.set(x+1.9-origin.x,y,z-1.5-origin.z);d.rotation.set(0,rand(ix,iz)*6.28,0);d.scale.set(1.1+rand(ix+2,iz),.65+rand(ix+3,iz),1.1+rand(ix+4,iz));d.updateMatrix();this.shrubs.setMatrixAt(si,d.matrix);c.set('#3e6546').lerp(new THREE.Color('#8eaa60'),rand(ix+6,iz));this.shrubs.setColorAt(si++,c);}
+   if(r.distance>4.5&&si<this.shrubs.instanceMatrix.count){d.position.set(x+1.9-origin.x,y,z-1.5-origin.z);d.rotation.set(0,rand(ix,iz)*6.28,0);d.scale.set(1.1+rand(ix+2,iz),.65+rand(ix+3,iz),1.1+rand(ix+4,iz));d.updateMatrix();this.shrubs.setMatrixAt(si,d.matrix);c.set('#bdcfac').lerp(new THREE.Color('#f2e7b8'),rand(ix+6,iz));this.shrubs.setColorAt(si,c);this.shrubs.geometry.attributes.fernPhase.setX(si,x*.2+z*.11);this.shrubs.geometry.attributes.fernYaw.setX(si,d.rotation.y);si++;}
   }
-  for(const [mesh,count] of [[this.trunks,ti],[this.crowns,ti],[this.shrubs,si]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}this.crowns.geometry.attributes.treePhase.needsUpdate=true;if(this.shrubs.instanceColor)this.shrubs.instanceColor.needsUpdate=true;
+  for(const [mesh,count] of [[this.trunks,ti],[this.crowns,ti],[this.shrubs,si]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}this.crowns.geometry.attributes.treePhase.needsUpdate=true;this.shrubs.geometry.attributes.fernPhase.needsUpdate=true;this.shrubs.geometry.attributes.fernYaw.needsUpdate=true;if(this.shrubs.instanceColor)this.shrubs.instanceColor.needsUpdate=true;
   // The same stable, world-space rock bed supplies rendering and rigid collision.
   for(const rock of riverRocksNear(cx*64+32,cz*64+32,132)){
    if(ri>=this.rocks.instanceMatrix.count)break;
