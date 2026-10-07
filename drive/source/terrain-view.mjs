@@ -4,6 +4,7 @@ import {RAPIER} from './physics.mjs';
 import {baseHeight,shore,smooth,noise,surfaceAt} from './terrain.mjs';
 const SIZE=32,N=64;
 const meadow=new THREE.Color('#697c48'),snowColor=new THREE.Color('#dce7ef'),mudColor=new THREE.Color('#594b3b'),stone=new THREE.Color('#777f80');
+const basalt=new THREE.Color('#39363b'),trailStone=new THREE.Color('#75646a');
 const wet=new THREE.Color('#584c4b'),dry=new THREE.Color('#ce925c'),shadeColor=new THREE.Color('#885466'),crest=new THREE.Color('#dca165');
 // Rut walls catch the sunset; compressed troughs stay visibly darker than untouched sand.
 function rutShade(offset){return offset<0?1-Math.min(.44,-offset*.82):1+Math.min(.08,offset*.5)}
@@ -25,7 +26,7 @@ export class TerrainView{
    const d=x-shore(z);c.lerpColors(wet,dry,smooth(12,24,d));
    const sx=(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
    c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
-   c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6);c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
+   c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6).lerp(basalt,surface.volcanic*.97).lerp(trailStone,surface.volcanic*surface.trail*.45);c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
    surfaces.push(surface.mud,surface.snow,surface.puddle);baseColors.push(c.r,c.g,c.b);c.multiplyScalar(rutShade(deformation));colors.push(c.r,c.g,c.b);
    if(i<n&&j<n){
     const midx=x+size/n*.5,midz=z+size/n*.5;

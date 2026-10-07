@@ -7,13 +7,13 @@ export class BeachObstacles {
  refresh(life){
   if(this.key===life.key)return;this.clear();this.key=life.key;
   const matrix=new THREE.Matrix4(),v=new THREE.Vector3();
-  for(const mesh of [life.logs,life.rocks].filter(Boolean)){const g=mesh.geometry,a=g.attributes.position;
+  for(const mesh of [life.logs,life.rocks,life.trunks].filter(Boolean)){const g=mesh.geometry,a=g.attributes.position;
   const indices=g.index?new Uint32Array(g.index.array):Uint32Array.from({length:a.count},(_,i)=>i);
   for(let i=0;i<mesh.count;i++){
    mesh.getMatrixAt(i,matrix);const vertices=new Float32Array(a.count*3);
    for(let j=0;j<a.count;j++){v.fromBufferAttribute(a,j).applyMatrix4(matrix);v.toArray(vertices,j*3)}
    const c=this.p.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices,indices).setFriction(.85).setRestitution(.02));
-   this.colliders.push(c);this.handles.add(c.handle);this.kinds.set(c.handle,mesh===life.logs?'wood':'rock');
+   this.colliders.push(c);this.handles.add(c.handle);this.kinds.set(c.handle,mesh===life.rocks?'rock':'wood');
   }
   }
  }
