@@ -1,3 +1,4 @@
+import {ContactFeedback} from './contact-feedback.mjs';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {clamp,smooth,shore,softnessAt} from './terrain.mjs';
 import {RANGES,stepDriveline} from './drivetrain.mjs';
@@ -5,10 +6,10 @@ export {RAPIER};
 export const wheelLayout=[{name:'FL',x:-.962,z:-1.42,front:true},{name:'FR',x:.962,z:-1.42,front:true},{name:'RL',x:-.962,z:1.43,front:false},{name:'RR',x:.962,z:1.43,front:false}];
 export class DrivePhysics{
  static async create(sand=null){await RAPIER.init();return new DrivePhysics(sand)}
- constructor(sand=null){this.world=new RAPIER.World({x:0,y:-9.81,z:0});this.world.timestep=1/120;this.world.numSolverIterations=8;this.rb=this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,3,0).setLinearDamping(.08).setAngularDamping(.7).setCanSleep(false).setCcdEnabled(true));this.chassis=this.world.createCollider(RAPIER.ColliderDesc.cuboid(.85,.47,2.12).setTranslation(0,.32,0).setMass(2450).setFriction(.55),this.rb);this.vehicle=this.world.createVehicleController(this.rb);this.vehicle.indexUpAxis=1;this.vehicle.setIndexForwardAxis=2;this.steer=0;this.speed=0;this.travel=0;this.time=0;this.origin={x:0,z:0};this.sand=sand;this.controls={};this.lighting={braking:false,reversing:false};this.range='HI';this.centerLocked=false;this.centerTransfer=0;this.axleSlip=0;this.tyres=wheelLayout.map(()=>({omega:0,angle:0,slip:0,depth:0,soft:0,force:0,travel:0,contact:false}));this.marks=[];this.stuckTime=0;this.stuck=false;
+ constructor(sand=null){this.feedback=new ContactFeedback();this.soundEvents=[];this.world=new RAPIER.World({x:0,y:-9.81,z:0});this.world.timestep=1/120;this.world.numSolverIterations=8;this.rb=this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,3,0).setLinearDamping(.08).setAngularDamping(.7).setCanSleep(false).setCcdEnabled(true));this.chassis=this.world.createCollider(RAPIER.ColliderDesc.cuboid(.85,.47,2.12).setTranslation(0,.32,0).setMass(2450).setFriction(.55),this.rb);this.vehicle=this.world.createVehicleController(this.rb);this.vehicle.indexUpAxis=1;this.vehicle.setIndexForwardAxis=2;this.steer=0;this.speed=0;this.travel=0;this.time=0;this.origin={x:0,z:0};this.sand=sand;this.controls={};this.lighting={braking:false,reversing:false};this.range='HI';this.centerLocked=false;this.centerTransfer=0;this.axleSlip=0;this.tyres=wheelLayout.map(()=>({omega:0,angle:0,slip:0,depth:0,soft:0,force:0,travel:0,contact:false}));this.marks=[];this.stuckTime=0;this.stuck=false;
  for(let i=0;i<4;i++){const w=wheelLayout[i];this.vehicle.addWheel({x:w.x,y:.06,z:w.z},{x:0,y:-1,z:0},{x:-1,y:0,z:0},.50,.45);this.vehicle.setWheelSuspensionStiffness(i,21);this.vehicle.setWheelSuspensionCompression(i,2.6);this.vehicle.setWheelSuspensionRelaxation(i,3.5);this.vehicle.setWheelMaxSuspensionTravel(i,.36);this.vehicle.setWheelMaxSuspensionForce(i,26000);this.vehicle.setWheelFrictionSlip(i,1.75);this.vehicle.setWheelSideFrictionStiffness(i,.85)}
  }
- reset(x,z,height){this.rb.setTranslation({x:x-this.origin.x,y:height+1.04,z:z-this.origin.z},true);this.rb.setRotation({x:0,y:0,z:0,w:1},true);this.rb.setLinvel({x:0,y:0,z:0},true);this.rb.setAngvel({x:0,y:0,z:0},true);this.rb.resetForces(true);this.rb.resetTorques(true);this.controls={};this.lighting={braking:false,reversing:false};this.speed=this.steer=0;this.stuckTime=0;this.stuck=false;this.marks=[];for(const w of this.tyres)Object.assign(w,{omega:0,angle:0,slip:0,travel:0,depth:0})}
+ reset(x,z,height){this.feedback.reset(this.time);this.soundEvents=[];this.rb.setTranslation({x:x-this.origin.x,y:height+1.04,z:z-this.origin.z},true);this.rb.setRotation({x:0,y:0,z:0,w:1},true);this.rb.setLinvel({x:0,y:0,z:0},true);this.rb.setAngvel({x:0,y:0,z:0},true);this.rb.resetForces(true);this.rb.resetTorques(true);this.controls={};this.lighting={braking:false,reversing:false};this.speed=this.steer=0;this.stuckTime=0;this.stuck=false;this.marks=[];for(const w of this.tyres)Object.assign(w,{omega:0,angle:0,slip:0,travel:0,depth:0})}
  setRange(range,input=this.controls){if(!RANGES[range]||input.gas||input.reverse||input.cruise)return false;this.range=range;return true}
  setCenterLock(locked,input=this.controls){if(input.gas||input.reverse||input.cruise)return false;this.centerLocked=!!locked;return true}
  position(){const p=this.rb.translation();return {x:p.x+this.origin.x,y:p.y,z:p.z+this.origin.z}}
@@ -65,6 +66,10 @@ export class DrivePhysics{
   if(point&&compression>0){const support=Math.min(10000,compression*compression*280000);this.rb.addForceAtPoint({x:0,y:support,z:0},point,true);this.bumpSupport+=support;}
  }
  this.vehicle.updateVehicle(dt,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC);this.world.step();
+ const hits=[];this.world.contactPairsWith(this.chassis,other=>{if(!this.obstacles?.has(other))return;this.world.contactPair(this.chassis,other,m=>{let impulse=0;for(let i=0;i<m.numContacts();i++)impulse+=m.contactImpulse(i);const n=m.normal();hits.push({id:other.handle,kind:this.obstacles.kind?.(other)||'rock',impulse,closing:Math.abs(v.x*n.x+v.y*n.y+v.z*n.z),pan:n.x*right.x+n.z*right.z})})});
+ const wheelSounds=wheelLayout.map((_,i)=>({contact:!!this.vehicle.wheelIsInContact(i),length:this.vehicle.wheelSuspensionLength(i),kind:this.obstacles?.kind?.(this.vehicle.wheelGroundObject(i))||'sand'}));
+ this.soundEvents.push(...this.feedback.sample(this.time,dt,wheelSounds,this.speed,v.y,hits));if(this.soundEvents.length>8)this.soundEvents.splice(0,this.soundEvents.length-8);
+
  // Contact work is integrated in physics time, so digging does not depend on rendering FPS.
  for(let i=0;i<4;i++){
   const w=this.tyres[i],c=this.vehicle.wheelContactPoint(i);if(!c||!this.vehicle.wheelIsInContact(i))continue;

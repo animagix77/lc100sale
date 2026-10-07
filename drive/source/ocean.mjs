@@ -8,6 +8,7 @@ import {oceanHeight} from './ocean-height.mjs';
 export class Ocean{
  constructor(scene,{mobile=false}={}){
   this.skyTop=uniform(new THREE.Color('#46576c'));this.skyHorizon=uniform(new THREE.Color('#b58073'));this.sunColor=uniform(new THREE.Color('#ffe2af'));this.sunDirection=uniform(new THREE.Vector3(-430,105,-650).normalize());this.brightness=uniform(1);this.waveScale=uniform(1);
+  this.vehicleLights=Array.from({length:4},()=>({position:uniform(new THREE.Vector3()),direction:uniform(new THREE.Vector3(0,0,-1)),radiance:uniform(new THREE.Color(0,0,0)),cone:uniform(new THREE.Vector4(.9,.96,48,1.45))}));this.lightTarget=new THREE.Vector3();
   this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;
   this.wake=new WakeField({size:mobile?97:129,spacing:mobile?2/3:.5});this.wakePixels=new Uint16Array(this.wake.count*4);this.wakeTexture=new THREE.DataTexture(this.wakePixels,this.wake.size,this.wake.size,THREE.RGBAFormat,THREE.HalfFloatType);this.wakeTexture.minFilter=this.wakeTexture.magFilter=THREE.LinearFilter;this.wakeTexture.generateMipmaps=false;this.wakeTexture.needsUpdate=true;
   this.wakeOrigin=uniform(new THREE.Vector2());this.wakeSpan=(this.wake.size-1)*this.wake.spacing;this.lastTime=0;
@@ -45,7 +46,21 @@ export class Ocean{
   const wash=float(1).sub(smoothstep(.25,1.7,abs(d.sub(front)))).mul(smoothstep(.27,.62,foamNoise)).mul(.78);
   const lace=float(1).sub(smoothstep(.1,.65,abs(d.sub(front).add(2.2)))).mul(smoothstep(.55,.78,foamNoise)).mul(.3);
   const foam=max(max(crestFoam, wash.add(lace)),wake.a.mul(smoothstep(.18,.60,foamNoise)));
-  material.colorNode=mix(waterColor,color('#f5dec0'),foam).mul(this.brightness);
+  // The custom water shader must explicitly receive the vehicle's local lights.
+  // Wave/wake normals break the reflection into moving highlights (GGX specular).
+  let vehicleSheen=vec3(0);
+  for(const light of this.vehicleLights){
+   const delta=light.position.sub(positionWorld),distance=length(delta).max(.15),L=delta.div(distance),H=normalize(L.add(eye)),nl=max(dot(n,L),0),nv=max(dot(n,eye),.03),nh=max(dot(n,H),0),vh=max(dot(eye,H),0);
+   const cone=smoothstep(light.cone.x,light.cone.y,dot(L.negate(),light.direction)),range=float(1).sub(smoothstep(light.cone.z.mul(.65),light.cone.z,distance));
+   const attenuation=cone.mul(range).div(float(1).add(pow(distance,light.cone.w)));
+   const a2=float(.026),denom=nh.mul(nh).mul(a2.sub(1)).add(1),distribution=a2.div(denom.mul(denom).mul(Math.PI));
+   const fres=float(.025).add(pow(float(1).sub(vh),5).mul(.975)),visibility=nl.div(nl.mul(.82).add(.18)).mul(nv.div(nv.mul(.82).add(.18)));
+   const spec=distribution.mul(fres).mul(visibility).div(nl.mul(nv).mul(4).max(.02)).mul(nl);
+   const response=spec.mul(2.6).add(nl.mul(.018).add(foam.mul(nl).mul(.10)));
+   vehicleSheen=vehicleSheen.add(light.radiance.mul(attenuation).mul(response));
+  }
+  material.colorNode=mix(waterColor,color('#f5dec0'),foam).mul(this.brightness).add(vehicleSheen);
+
   material.opacityNode=mix(float(.94),float(.68),smoothstep(0,10,d)).mul(float(1).sub(smoothstep(8,12,d)));
   this.material=material;this.mesh=new THREE.Mesh(new THREE.BufferGeometry(),material);this.mesh.renderOrder=1;this.mesh.frustumCulled=false;scene.add(this.mesh);
  }
@@ -66,6 +81,10 @@ export class Ocean{
   }
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();
   this.mesh.geometry.dispose();this.mesh.geometry=g;
+ }
+ updateVehicleLights(rig){
+  if(!rig)return;rig.truck.updateWorldMatrix(true,true);
+  [ ...rig.beams,rig.rearGlow,rig.backup ].forEach((light,i)=>{const slot=this.vehicleLights[i];light.getWorldPosition(slot.position.value);light.target.getWorldPosition(this.lightTarget);slot.direction.value.copy(this.lightTarget).sub(slot.position.value).normalize();slot.radiance.value.copy(light.color).multiplyScalar(light.intensity);slot.cone.value.set(Math.cos(light.angle),Math.cos(light.angle*(1-light.penumbra)),light.distance,light.decay)});
  }
  height(x,z,time){return oceanHeight(x,z,time,this.waveScale.value)+this.wake.sample(x,z)}
  disturb(mark,speed,heading){this.wake.stamp(mark.x,mark.z,speed,mark.slip,heading)}

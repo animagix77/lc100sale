@@ -1,3 +1,4 @@
+import {impactBank} from './impact-audio.mjs';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Audio follows wheel rotation and load, including wheelspin at zero road speed.
 export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=30,waterContact}){
@@ -20,7 +21,7 @@ export function engineVoice({rpm,load}){
 }
 export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocument){
  let ctx,master,compressor,buffers,loading,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash;
- let nextGull=0,nextSplash=0;const sources=new Set(),controller=new AbortController();
+ let nextGull=0,nextSplash=0,nextImpact=0,impactVariant=0;const sources=new Set(),controller=new AbortController();
  const label=()=>{button.textContent=on?'Sound on':'Sound off';button.setAttribute('aria-pressed',String(on));};
  const smooth=(param,value,seconds=.12)=>param.setTargetAtTime(value,ctx.currentTime,seconds);
  function gain(value){const n=ctx.createGain();n.gain.value=value;return n;}
@@ -31,6 +32,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
   const names=['sand','coast','gull1','gull2','wave1','wave2'];
   buffers=Object.fromEntries(await Promise.all(names.map(async name=>{const response=await fetch(`audio/${name}.m4a?v=steady-2`,{signal:controller.signal});if(!response.ok)throw new Error(name);return [name,await ctx.decodeAudioData(await response.arrayBuffer())];})));
   if(disposed)return;
+  Object.assign(buffers,impactBank(ctx));
   engineFilter=ctx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=1000;engineFilter.Q.value=.5;engineFilter.connect(master);
   // A phase-aligned harmonic drone replaces the pulsed exhaust recordings.
   // No random detuning, firing bursts or amplitude LFOs: throttle changes tone,
@@ -79,6 +81,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    smooth(sand.g.gain,m.sand);smooth(sand.source.playbackRate,.78+Math.min(Math.abs(state.speed)*.055,.5));smooth(coast.g.gain,m.surf,.7);
    if(now>nextGull){shot(Math.random()<.5?'gull1':'gull2',.14+Math.random()*.1,(Math.random()-.5)*1.6,.94+Math.random()*.12);nextGull=now+12+Math.random()*18;}
    if(m.splash>.025&&now>nextSplash){shot(Math.random()<.5?'wave1':'wave2',m.splash, (Math.random()-.5)*.7,1.04+Math.min(Math.abs(state.speed)/11.2,1)*.22,.70);nextSplash=now+m.splashInterval+Math.random()*.12;}
+   if(state.impacts?.length&&now>=nextImpact){const hit=state.impacts.reduce((a,b)=>a.energy>b.energy?a:b);const kind=['wood','rock','suspension'].includes(hit.kind)?hit.kind:'suspension';shot(kind+(impactVariant++%3),.14+clamp(hit.energy,0,1)*.46,hit.pan||0,.94+Math.random()*.12);nextImpact=now+.07;}
    onMix(true,m.load);
   },
   dispose(){button.removeEventListener('click',toggle);for(const type of ['pointerdown','click','keydown'])gestures.removeEventListener(type,activate);disposed=true;on=false;controller.abort();for(const source of sources){try{source.stop();source.disconnect();}catch{}}sources.clear();ctx?.close().catch(()=>{});onMix(false,0);}

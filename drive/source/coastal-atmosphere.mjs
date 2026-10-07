@@ -10,7 +10,7 @@ export class CoastalAtmosphere{
   // Wide, feathered coastal mist, confined offshore rather than a screen overlay.
   const hazeMat=new THREE.MeshBasicNodeMaterial({color:'#debba0',transparent:true,depthWrite:false,side:THREE.DoubleSide});
   hazeMat.opacityNode=float(1).sub(smoothstep(.12,1,uv().sub(.5).length().mul(2))).pow(2).mul(this.hazeOpacity);
-  this.haze=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),hazeMat,5);this.haze.frustumCulled=false;scene.add(this.haze);
+  this.haze=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),hazeMat,5);this.haze.frustumCulled=false;this.haze.renderOrder=2;scene.add(this.haze);
   this.capacity=mobile?52:112;this.sandPositions=new Float32Array(this.capacity*6);const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(this.sandPositions,3));sg.setDrawRange(0,0);
   this.sand=new THREE.LineSegments(sg,new THREE.LineBasicMaterial({color:'#e4bd85',transparent:true,opacity:.2,depthWrite:false}));this.sand.frustumCulled=false;scene.add(this.sand);
   // A small illustrated silhouette with flexing wing tips, not particle sprites.
@@ -26,11 +26,11 @@ export class CoastalAtmosphere{
  }
  update(p,time,origin,camera,weather={}){
   const t=this.reduced?0:time,wind=coastalWind(t,weather.wind),wet=Math.max(weather.rain||0,weather.snow||0),night=(weather.altitude??8)<-6,d=this.dummy;
-  this.clock.value=t;this.hazeOpacity.value=(weather.fog?.15:.035+wind*.025+wet*.05)*(night?.42:1);
+  this.clock.value=t;this.hazeOpacity.value=(weather.fog?.36:.15+wind*.045+wet*.10)*(night?.68:1);
   this.haze.material.color.set(night?'#8492b5':(weather.altitude??8)<14?'#debba0':'#c3d9dc');
   const region=Math.floor(p.z/120);
-  for(let i=0;i<5;i++){const id=region+i-2,z=id*120+Math.sin(t*.035+id)*14,x=shore(z)-28-rand(id)*25;
-   d.position.set(x-origin.x,3+rand(id+40)*2,z-origin.z);d.quaternion.copy(camera.quaternion);d.scale.set(125+rand(id+60)*35,9+rand(id+70)*6,1);d.updateMatrix();this.haze.setMatrixAt(i,d.matrix);
+  for(let i=0;i<5;i++){const id=region+i-2,z=id*120+Math.sin(t*.035+id)*14,x=shore(z)-6-rand(id)*14;
+   d.position.set(x-origin.x,2.5+rand(id+40)*2,z-origin.z);d.quaternion.copy(camera.quaternion);d.scale.set(105+rand(id+60)*35,13+rand(id+70)*8,1);d.updateMatrix();this.haze.setMatrixAt(i,d.matrix);
   }this.haze.instanceMatrix.needsUpdate=true;
   this.sand.visible=!this.reduced&&wet<.12;let count=0;
   if(this.sand.visible){const n=Math.min(this.capacity,Math.round(this.capacity*clamp(wind,.12,1))),pace=.5+wind*2;

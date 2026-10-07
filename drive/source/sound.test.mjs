@@ -18,7 +18,7 @@ assert.equal(drivingMix({speed:-3,tyres:[tyre]}).sand,drivingMix({speed:3,tyres:
 class Param{value=0;setValueAtTime(v){this.value=v}linearRampToValueAtTime(v){this.value=v}setTargetAtTime(v){assert(Number.isFinite(v));this.value=v}}
 class Node{gain=new Param();frequency=new Param();Q=new Param();playbackRate=new Param();pan=new Param();threshold=new Param();knee=new Param();ratio=new Param();attack=new Param();release=new Param();connect(){return this}disconnect(){}start(){this.started=true}stop(){this.stopped=true}}
 let context,requests=0;const urls=[];
-globalThis.AudioContext=class{currentTime=0;destination=new Node();nodes=[];constructor(){context=this}node(){const n=new Node();this.nodes.push(n);return n}createGain(){return this.node()}createDynamicsCompressor(){return this.node()}createBiquadFilter(){return this.node()}createOscillator(){return this.node()}createBufferSource(){return this.node()}createStereoPanner(){return this.node()}async resume(){}async decodeAudioData(){return {duration:5}}async close(){this.closed=true}};
+globalThis.AudioContext=class{currentTime=0;sampleRate=48000;createBuffer(channels,length){const data=new Float32Array(length);return {duration:length/this.sampleRate,getChannelData:()=>data}}destination=new Node();nodes=[];constructor(){context=this}node(){const n=new Node();this.nodes.push(n);return n}createGain(){return this.node()}createDynamicsCompressor(){return this.node()}createBiquadFilter(){return this.node()}createOscillator(){return this.node()}createBufferSource(){return this.node()}createStereoPanner(){return this.node()}async resume(){}async decodeAudioData(){return {duration:5}}async close(){this.closed=true}};
 globalThis.fetch=async(url)=>{requests++;urls.push(url);return {ok:true,arrayBuffer:async()=>new ArrayBuffer(1)}};
 class Events{
  handlers=new Map();
@@ -36,7 +36,7 @@ await Promise.all([gestures.emit('pointerdown'),gestures.emit('keydown')]);asser
 const oscillators=context.nodes.filter(n=>n.type==='sine');assert.equal(oscillators.length,4,'Four continuous harmonic voices replace exhaust pulses');
 sound.update({speed:3,tyres:[tyre],input:{gas:true}});assert.equal(mix[0],true);const voice=engineVoice(dry);assert(voice.gains.every(g=>g>0&&g<.2));for(let i=1;i<4;i++)assert(Math.abs(oscillators[i].frequency.value/oscillators[0].frequency.value-(i+1))<1e-9,'Exact harmonics avoid beating');
 const stable=oscillators.map(n=>n.frequency.value);sound.update({speed:3,tyres:[tyre],input:{gas:true}});assert.deepEqual(oscillators.map(n=>n.frequency.value),stable,'Steady throttle does not modulate the drone');
-sound.pause(true);assert.equal(context.nodes[0].gain.value,0);assert.deepEqual(mix,[false,0]);
+context.currentTime=3;const beforeImpact=context.nodes.length;sound.update({speed:3,tyres:[tyre],impacts:[{kind:'wood',energy:.8,pan:-.6}]});assert(context.nodes.length>beforeImpact,'Obstacle contact plays its own one-shot');sound.pause(true);assert.equal(context.nodes[0].gain.value,0);assert.deepEqual(mix,[false,0]);
 sound.pause(false);assert.equal(context.nodes[0].gain.value,.72);
 context.currentTime=10;sound.update({speed:3,tyres:[tyre],shoreDistance:2,input:{gas:true}});
 assert(context.nodes.filter(n=>n.started).length>=7,'Gull and splash one-shots play');
