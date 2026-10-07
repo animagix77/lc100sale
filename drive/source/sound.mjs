@@ -79,7 +79,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    engine.forEach(({source,g,order},i)=>{smooth(source.frequency,voice.fundamental*order,.45);smooth(g.gain,voice.gains[i],.35)});
    smooth(engineFilter.frequency,voice.cutoff,.4);
    smooth(sand.g.gain,m.sand);smooth(sand.source.playbackRate,.78+Math.min(Math.abs(state.speed)*.055,.5));smooth(coast.g.gain,m.surf,.7);
-   if(now>nextGull){shot(Math.random()<.5?'gull1':'gull2',.14+Math.random()*.1,(Math.random()-.5)*1.6,.94+Math.random()*.12);nextGull=now+12+Math.random()*18;}
+   if(state.shoreDistance<100&&now>nextGull){shot(Math.random()<.5?'gull1':'gull2',.14+Math.random()*.1,(Math.random()-.5)*1.6,.94+Math.random()*.12);nextGull=now+12+Math.random()*18;}
    if(m.splash>.025&&now>nextSplash){shot(Math.random()<.5?'wave1':'wave2',m.splash, (Math.random()-.5)*.7,1.04+Math.min(Math.abs(state.speed)/11.2,1)*.22,.70);nextSplash=now+m.splashInterval+Math.random()*.12;}
    if(state.impacts?.length&&now>=nextImpact){const hit=state.impacts.reduce((a,b)=>a.energy>b.energy?a:b);const kind=['wood','rock','suspension'].includes(hit.kind)?hit.kind:'suspension';shot(kind+(impactVariant++%3),.14+clamp(hit.energy,0,1)*.46,hit.pan||0,.94+Math.random()*.12);nextImpact=now+.07;}
    onMix(true,m.load);

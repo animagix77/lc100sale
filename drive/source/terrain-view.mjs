@@ -1,8 +1,9 @@
 import * as THREE from 'three/webgpu';
 import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix} from 'three/tsl';
 import {RAPIER} from './physics.mjs';
-import {baseHeight,shore,smooth,noise} from './terrain.mjs';
+import {baseHeight,shore,smooth,noise,surfaceAt} from './terrain.mjs';
 const SIZE=32,N=64;
+const meadow=new THREE.Color('#697c48'),snowColor=new THREE.Color('#dce7ef'),mudColor=new THREE.Color('#594b3b'),stone=new THREE.Color('#777f80');
 const wet=new THREE.Color('#584c4b'),dry=new THREE.Color('#ce925c'),shadeColor=new THREE.Color('#885466'),crest=new THREE.Color('#dca165');
 // Rut walls catch the sunset; compressed troughs stay visibly darker than untouched sand.
 function rutShade(offset){return offset<0?1-Math.min(.44,-offset*.82):1+Math.min(.08,offset*.5)}
@@ -14,25 +15,25 @@ export class TerrainView{
  const front=sin(this.clock.mul(.8).sub(z.mul(.026)).add(sin(z.mul(.16)).mul(.22))).mul(4.8).add(1).add(sin(z.mul(.46).add(this.clock.mul(.35))).mul(.42));
  const fresh=float(1).sub(smoothstep(front.add(7),front.add(11),d));
  const damp=float(1).sub(smoothstep(12,22,d));
- const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh));mat.roughnessNode=mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25)));return mat};
+ const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh));mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z);return mat};
  this.material=make(false);this.farMaterial=make(true);this.far=null}
  geometry(tx,tz,n=N,size=SIZE,far=false,omit=null){
-  const ps=[],colors=[],idx=[],heights=[],baseColors=[],offset=this.p.origin,c=new THREE.Color();
+  const ps=[],colors=[],idx=[],heights=[],baseColors=[],surfaces=[],offset=this.p.origin,c=new THREE.Color();
   for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){
    const x=tx+i*size/n,z=tz+j*size/n,base=baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
    ps.push(x-offset.x,y,z-offset.z);heights.push(base);
    const d=x-shore(z);c.lerpColors(wet,dry,smooth(12,24,d));
    const sx=(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
    c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
-   c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
-   baseColors.push(c.r,c.g,c.b);c.multiplyScalar(rutShade(deformation));colors.push(c.r,c.g,c.b);
+   c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6);c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
+   surfaces.push(surface.mud,surface.snow,surface.puddle);baseColors.push(c.r,c.g,c.b);c.multiplyScalar(rutShade(deformation));colors.push(c.r,c.g,c.b);
    if(i<n&&j<n){
     const midx=x+size/n*.5,midz=z+size/n*.5;
     if(omit&&midx>=omit.x0&&midx<omit.x1&&midz>=omit.z0&&midz<omit.z1)continue;
     const a=j*(n+1)+i,b=a+1,c=a+n+1,e=c+1;idx.push(a,c,b,b,c,e);
    }
   }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(ps,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(idx);g.computeVertexNormals();
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(ps,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setAttribute('surface',new THREE.Float32BufferAttribute(surfaces,3));g.setIndex(idx);g.computeVertexNormals();
   // Cache undeformed heights/colors: digging only touches the sparse field and GPU buffers.
   if(!far){g.userData.baseHeights=new Float32Array(heights);g.userData.baseColors=new Float32Array(baseColors)}
   return g;

@@ -1,6 +1,7 @@
+import {riverMask,riverLevel} from './expedition.mjs';
 import {ContactFeedback} from './contact-feedback.mjs';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {clamp,smooth,shore,softnessAt} from './terrain.mjs';
+import {clamp,smooth,shore,softnessAt,surfaceAt} from './terrain.mjs';
 import {RANGES,stepDriveline} from './drivetrain.mjs';
 export {RAPIER};
 export const wheelLayout=[{name:'FL',x:-.962,z:-1.42,front:true},{name:'FR',x:.962,z:-1.42,front:true},{name:'RL',x:-.962,z:1.43,front:false},{name:'RR',x:.962,z:1.43,front:false}];
@@ -30,13 +31,13 @@ export class DrivePhysics{
  const contacts=this.tyres.map((w,i)=>{
   const contact=!!this.vehicle.wheelIsInContact(i),c=this.vehicle.wheelContactPoint(i),x=c?c.x+this.origin.x:p.x,z=c?c.z+this.origin.z:p.z;
   const onBoard=this.recovery?.supports(x,z,c?.y),onSolid=this.obstacles?.has(this.vehicle.wheelGroundObject(i));
-  const soil=onBoard||onSolid?0:softnessAt(x,z),depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
+  const contactSurface=surfaceAt(x,z),soil=onBoard||onSolid?0:contactSurface.soft,depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
   // Wheel contact velocity includes chassis yaw/roll and front steering. Thus
   // unequal axle paths in a turn load the center lock through tire scrub.
   const steer=i<2?this.steer:0,cs=Math.cos(steer),sn=Math.sin(steer),direction={x:f.x*cs-right.x*sn,y:f.y*cs-right.y*sn,z:f.z*cs-right.z*sn};
   const dx=x-p.x,dy=c?c.y-p.y:0,dz=z-p.z;
   const roadSpeed=(v.x+omega.y*dz-omega.z*dy)*direction.x+(v.y+omega.z*dx-omega.x*dz)*direction.y+(v.z+omega.x*dy-omega.y*dx)*direction.z;
-  return {roadSpeed,load,soft:soil,depth,contact,tractionControl:true,throttle:climbingThrottle};
+  return {roadSpeed,load,soft:soil,depth:Math.max(0,depth-contactSurface.snow*.34),contact,tractionControl:true,grip:onBoard||onSolid?1:contactSurface.grip,throttle:climbingThrottle};
  });
  // One engine governor sees the mean shaft speed. A freely spinning axle
  // consumes that speed budget; the center lock can transfer torque to grip.
@@ -51,11 +52,11 @@ export class DrivePhysics{
  this.centerTransfer=result.transfer;this.axleSlip=result.axleSlip;
  for(let i=0;i<4;i++){
   const w=this.tyres[i],{soft:soil,depth}=contacts[i];
-  this.vehicle.setWheelEngineForce(i,-result.forces[i]);this.vehicle.setWheelBrake(i,brake+soil*w.sink*6.5);this.vehicle.setWheelSteering(i,i<2?this.steer:0);this.vehicle.setWheelFrictionSlip(i,1.9-soil*.6);this.vehicle.setWheelSideFrictionStiffness(i,.92-soil*.22);
+  this.vehicle.setWheelEngineForce(i,-result.forces[i]);this.vehicle.setWheelBrake(i,brake+soil*w.sink*6.5);this.vehicle.setWheelSteering(i,i<2?this.steer:0);this.vehicle.setWheelFrictionSlip(i,(1.9-soil*.6)*contacts[i].grip);this.vehicle.setWheelSideFrictionStiffness(i,(.92-soil*.22)*contacts[i].grip);
   totalDepth+=depth;totalSlip+=w.slip;
  }
  this.rb.resetForces(false);this.rb.resetTorques(false);const drag=(115+soft*220)+Math.abs(this.speed)*14;this.rb.addForce({x:-v.x*drag,y:0,z:-v.z*drag},true);
- const waterDepth=Math.max(0,-p.y+.48);if(waterDepth>0)this.rb.addForce({x:-v.x*waterDepth*4200,y:Math.min(24000,waterDepth*30000),z:-v.z*waterDepth*4200},true);
+ const waterSurface=riverMask(p.x,p.z)>.1?riverLevel(p.x):-.18,waterDepth=Math.max(0,waterSurface-p.y+.66);if(waterDepth>0)this.rb.addForce({x:-v.x*waterDepth*4200,y:Math.min(24000,waterDepth*30000),z:-v.z*waterDepth*4200},true);
  // Progressive bump stops transfer large wheel hits to the chassis at that corner.
  // Ordinary suspension stroke stays compliant; deep compression lifts and rotates
  // the actual rigid body rather than moving only the rendered wheel.
@@ -70,6 +71,13 @@ export class DrivePhysics{
  const wheelSounds=wheelLayout.map((_,i)=>({contact:!!this.vehicle.wheelIsInContact(i),length:this.vehicle.wheelSuspensionLength(i),kind:this.obstacles?.kind?.(this.vehicle.wheelGroundObject(i))||'sand'}));
  this.soundEvents.push(...this.feedback.sample(this.time,dt,wheelSounds,this.speed,v.y,hits));if(this.soundEvents.length>8)this.soundEvents.splice(0,this.soundEvents.length-8);
 
+ // Powder beneath the chassis yields under contact, unlike rocks or hard ground.
+ if(this.sand?.compactSnow&&surfaceAt(p.x,p.z).snow>.15&&Math.round(this.time/dt)%12===0){
+  for(const across of [-.65,0,.65])for(const along of [-1.65,-.8,0,.8,1.65]){
+   const x=p.x+right.x*across+f.x*along,z=p.z+right.z*across+f.z*along,underside=p.y+right.y*across+f.y*along-.22;
+   this.sand.compactSnow(x,z,underside);
+  }
+ }
  // Contact work is integrated in physics time, so digging does not depend on rendering FPS.
  for(let i=0;i<4;i++){
   const w=this.tyres[i],c=this.vehicle.wheelContactPoint(i);if(!c||!this.vehicle.wheelIsInContact(i))continue;

@@ -1,3 +1,4 @@
+import {riverMask,riverHeight,waterExists} from './expedition.mjs';
 import * as THREE from 'three/webgpu';
 import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,fract,mx_noise_float,texture} from 'three/tsl';
 import {shore} from './terrain.mjs';
@@ -58,6 +59,7 @@ export class Ocean{
     tireFoam=max(tireFoam,ring.mul(broken).mul(float(1).sub(phase)).mul(wheel.z));
    }
   }
+  this.tireFoamNode=tireFoam;
   const foam=max(max(max(crestFoam, wash.add(lace)),wake.a.mul(smoothstep(.18,.60,foamNoise))),tireFoam);
   // The custom water shader must explicitly receive the vehicle's local lights.
   // Wave/wake normals break the reflection into moving highlights (GGX specular).
@@ -102,7 +104,7 @@ export class Ocean{
    const v=slot.value,c=physics.vehicle.wheelContactPoint(i),contact=physics.vehicle.wheelIsInContact(i);
    let wet=false;
    if(contact&&c){const x=c.x+physics.origin.x,z=c.z+physics.origin.z;
-    wet=x-shore(z)<10&&this.height(x,z,time)>c.y+.025;
+    wet=waterExists(x,z)&&this.height(x,z,time)>c.y+.025;
     if(wet){v.x=x;v.y=z;}
    }
    v.z+=((wet?.60*still:0)-v.z)*k;
@@ -113,7 +115,7 @@ export class Ocean{
   if(!rig)return;rig.truck.updateWorldMatrix(true,true);
   [ ...rig.beams,rig.rearGlow,rig.backup ].forEach((light,i)=>{const slot=this.vehicleLights[i];light.getWorldPosition(slot.position.value);light.target.getWorldPosition(this.lightTarget);slot.direction.value.copy(this.lightTarget).sub(slot.position.value).normalize();slot.radiance.value.copy(light.color).multiplyScalar(light.intensity);slot.cone.value.set(Math.cos(light.angle),Math.cos(light.angle*(1-light.penumbra)),light.distance,light.decay)});
  }
- height(x,z,time){return oceanHeight(x,z,time,this.waveScale.value)+this.wake.sample(x,z)}
+ height(x,z,time){return (riverMask(x,z)>.1?riverHeight(x,z,time):oceanHeight(x,z,time,this.waveScale.value))+this.wake.sample(x,z)}
  disturb(mark,speed,heading){this.wake.stamp(mark.x,mark.z,speed,mark.slip,heading)}
  clear(){this.wake.clear();this.wheelFoam.forEach((slot,i)=>slot.value.set(0,0,0,i*.21))}
  dispose(){this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose()}

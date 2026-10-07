@@ -6,8 +6,8 @@ export class WeatherView{
   Object.assign(this,{scene,sun,hemi,light,ocean,clouds,reduced});this.state={altitude:8,cloud:.2,wind:8,rain:0,snow:0,fog:false};this.time=0;
   this.top=uniform(new THREE.Color('#49355e'));this.horizon=uniform(new THREE.Color('#f2ad79'));this.low=uniform(new THREE.Color('#ed8a75'));const y=positionLocal.y.div(1200);skyMat.colorNode=mix(mix(this.low,this.horizon,smoothstep(-.03,.025,y)),this.top,smoothstep(.015,.30,y));
   this.colors={top:new THREE.Color(),horizon:new THREE.Color(),low:new THREE.Color(),light:new THREE.Color(),cloud:new THREE.Color(),water:new THREE.Color()};this.tmp=new THREE.Color();this.direction=new THREE.Vector3();
-  this.count=mobile?220:420;this.positions=new Float32Array(this.count*6);this.seeds=Array.from({length:this.count},()=>[Math.random(),Math.random(),Math.random()]);
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(this.positions,3));this.precip=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:'#cce1ea',transparent:true,opacity:.30,depthWrite:false}));this.precip.frustumCulled=false;scene.add(this.precip);this.set(this.state);
+  this.count=mobile?420:850;this.positions=new Float32Array(this.count*6);this.seeds=Array.from({length:this.count},()=>[Math.random(),Math.random(),Math.random()]);
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(this.positions,3));this.precip=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:'#cce1ea',transparent:true,opacity:.30,depthWrite:false}));this.precip.frustumCulled=false;scene.add(this.precip);this.flakeDummy=new THREE.Object3D();this.snowflakes=new THREE.InstancedMesh(new THREE.OctahedronGeometry(.045,0),new THREE.MeshBasicMaterial({color:'#f5f8ff',transparent:true,opacity:.8,depthWrite:false}),this.count);this.snowflakes.frustumCulled=false;this.snowflakes.visible=false;scene.add(this.snowflakes);this.set(this.state);
  }
  set(state){this.state=state;const {altitude:a,cloud:c}=state,night=a<-6,dusk=a<14;
   const palette=night?['#111b36','#46516f','#26364e']:dusk?['#49355e','#f2ad79','#ed8a75']:['#367898','#c4d2cc','#91b3b8'];
@@ -28,12 +28,13 @@ export class WeatherView{
   this.clouds.mesh.material.color.lerp(this.colors.cloud,k);this.clouds.mesh.count=Math.round(25+s.cloud*65);this.clouds.wind=1+s.wind/15;
   this.ocean.skyTop.value.copy(this.top.value);this.ocean.skyHorizon.value.copy(this.horizon.value);this.ocean.sunColor.value.copy(this.colors.light).multiplyScalar((1-s.cloud)*this.day);
   this.ocean.sunDirection.value.copy(this.direction).normalize();this.ocean.brightness.value+=(this.brightness-this.ocean.brightness.value)*k;this.ocean.waveScale.value+=((.8+Math.min(s.wind,60)/60*.7)-this.ocean.waveScale.value)*k;
-  const strength=Math.max(s.rain,s.snow);this.precip.visible=strength>0&&!this.reduced;
-  if(this.precip.visible){const snow=s.snow>0,fall=snow?2:15,n=Math.round(this.count*strength),span=32;this.precip.geometry.setDrawRange(0,n*2);this.precip.material.opacity=snow?.65:.30;
+  const strength=Math.max(s.rain,s.snow);this.precip.visible=s.rain>.01&&s.snow<.1&&!this.reduced;this.snowflakes.visible=s.snow>.01&&!this.reduced;
+  if(this.precip.visible||this.snowflakes.visible){const snow=this.snowflakes.visible,fall=snow?2:15,n=Math.round(this.count*strength),span=32;this.precip.geometry.setDrawRange(0,n*2);this.precip.material.opacity=snow?.65:.30;
    for(let i=0;i<n;i++){const r=this.seeds[i],y=(r[1]*18-this.time*fall)%18,x=(r[0]-.5)*span+Math.sin(this.time+r[2]*10)*(snow?.8:.1),z=(r[2]-.5)*span,at=i*6;
-    this.positions.set([p.x+x,p.y+((y+18)%18)-3,p.z+z,p.x+x+s.wind*.004,p.y+((y+18)%18)-3+(snow?.06:.65),p.z+z],at);
-   }this.precip.geometry.attributes.position.needsUpdate=true;
+    this.positions.set([p.x+x,p.y+((y+18)%18)-3,p.z+z,p.x+x+s.wind*.004,p.y+((y+18)%18)-3+.65,p.z+z],at);
+    if(snow){this.flakeDummy.position.set(p.x+x+Math.sin(this.time*.7+r[1]*12)*1.5,p.y+((y+18)%18)-3,p.z+z);this.flakeDummy.rotation.set(this.time+r[0],this.time*.3,0);const distance=this.flakeDummy.position.distanceTo(camera.position);this.flakeDummy.scale.setScalar(distance<1.2?0:(.6+r[2]*1.2)*Math.min(1,distance/5));this.flakeDummy.updateMatrix();this.snowflakes.setMatrixAt(i,this.flakeDummy.matrix);}
+   }this.precip.geometry.attributes.position.needsUpdate=true;if(snow){this.snowflakes.count=n;this.snowflakes.instanceMatrix.needsUpdate=true;}
   }
  }
- dispose(){this.scene.remove(this.precip);this.precip.geometry.dispose();this.precip.material.dispose()}
+ dispose(){this.snowflakes.removeFromParent();this.snowflakes.geometry.dispose();this.snowflakes.material.dispose();this.snowflakes.dispose();this.scene.remove(this.precip);this.precip.geometry.dispose();this.precip.material.dispose()}
 }

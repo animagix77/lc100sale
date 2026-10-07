@@ -1,8 +1,9 @@
+import {routeSample,riverMask,riverZ} from './expedition.mjs';
 import {coastalWind} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
 import {positionLocal,attribute,uniform,sin,vec3} from 'three/tsl';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {baseHeight,shore,noise,smooth} from './terrain.mjs';
+import {baseHeight,shore,noise,smooth,surfaceAt} from './terrain.mjs';
 import {oceanHeight} from './ocean-height.mjs';
 const rand=(a,b=0)=>{const v=Math.sin(a*127.1+b*311.7)*43758.5453;return v-Math.floor(v)};
 const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attributes.position.count*3);for(let i=0;i<a.length;i+=3){a[i]=c.r;a[i+1]=c.g;a[i+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g};
@@ -32,38 +33,67 @@ export class BeachLife{
   const geometry=grassGeometry(),grassMat=new THREE.MeshStandardNodeMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
   const phase=attribute('windPhase','float'),height=attribute('position','vec3').y;
   const wind=sin(this.time.mul(1.65).add(phase)).mul(.13).add(sin(this.time.mul(.67).add(phase.mul(.37))).mul(.10));
-  grassMat.positionNode=positionLocal.add(vec3(wind.mul(this.windStrength).mul(height.pow(2)),0,wind.mul(this.windStrength).mul(height.pow(2)).mul(.4)));
-  const capacity=mobile?2800:5400;geometry.setAttribute('windPhase',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
+  const bend=attribute('grassBend','vec3');
+  grassMat.positionNode=positionLocal.add(vec3(bend.x.mul(height.pow(2)),bend.y.mul(height).mul(-.48),bend.z.mul(height.pow(2)))).add(vec3(wind.mul(this.windStrength).mul(height.pow(2)),0,wind.mul(this.windStrength).mul(height.pow(2)).mul(.4)));
+  const capacity=mobile?8500:14500;this.grassData=[];this.bendAttribute=new THREE.InstancedBufferAttribute(new Float32Array(capacity*3),3);geometry.setAttribute('grassBend',this.bendAttribute);geometry.setAttribute('windPhase',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
   this.grass=make(geometry,grassMat,capacity);
   this.logs=make(logGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),180);
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),300);
-  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}),100);
+  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}),160);
   this.boats=[];const bg=boatGeometry(),bm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7});this.geometries.push(bg);this.materials.push(bm);
   for(let i=0;i<5;i++){const mesh=new THREE.Mesh(bg,bm);scene.add(mesh);this.boats.push({mesh,id:0,x:0,z:0})}
  }
  refresh(p,origin){
   const cx=Math.floor(p.x/64),cz=Math.floor(p.z/64),key=`${cx},${cz},${origin.x},${origin.z}`;if(key===this.key)return;this.key=key;
-  let gi=0,li=0,wi=0,ri=0;const d=this.dummy,c=new THREE.Color();this.samples=[];
+  let gi=0,li=0,wi=0,ri=0;const d=this.dummy,c=new THREE.Color();this.samples=[];this.grassData=[];
   // Fixed world cells prevent plants and driftwood reshuffling when new terrain arrives.
   for(let tz=cz-2;tz<=cz+2;tz++)for(let tx=cx-2;tx<=cx+2;tx++){
    const seed=tx*391+tz*977;
-   for(let i=0;i<(this.mobile?205:375);i++){
+   for(let i=0;i<(this.mobile?380:700);i++){
     const x=tx*64+rand(seed,i*3)*64,z=tz*64+rand(seed,i*3+1)*64,coast=x-shore(z),patch=noise(x*.085,z*.085);
-    if(coast<29||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.9||gi>=this.grass.instanceMatrix.count)continue;
-    d.position.set(x-origin.x,baseHeight(x,z)-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=.5+rand(seed,i+700)*.85;d.scale.set(scale,scale,scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.set('#819366').lerp(new THREE.Color('#c4ba87'),rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.055+z*.025);gi++;
+    const surface=surfaceAt(x,z),meadow=surface.grass>.22;
+    if((meadow&&Math.hypot(x-(cx*64+32),z-(cz*64+32))<76)||coast<29||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||(!meadow&&(coast>155||patch<.42))||rand(seed,i*3+2)>smooth(28,43,coast)*.95||gi>=this.grass.instanceMatrix.count)continue;
+    d.position.set(x-origin.x,baseHeight(x,z)-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=meadow?1.05+rand(seed,i+700)*.65:.5+rand(seed,i+700)*.85;d.scale.set(meadow?1.5:scale,scale*(meadow?1.15:1),meadow?1.5:scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.set(meadow?'#718e4b':'#819366').lerp(new THREE.Color(meadow?'#b1b774':'#c4ba87'),rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.055+z*.025);this.grassData.push({x,z,yaw:d.rotation.y,bx:0,by:0,bz:0});this.bendAttribute.setXYZ(gi,0,0,0);gi++;
    }
    for(let i=0;i<24;i++){
     const x=tx*64+rand(seed,i+1300)*64,z=tz*64+rand(seed,i+1500)*64,coast=x-shore(z);
-    if(coast<9||coast>48||coast>16&&coast<29)continue;
-    const log=i%3===0,rock=!log&&i%4===0,mesh=log?this.logs:rock?this.rocks:this.wrack,index=log?li:rock?ri:wi;if(index>=mesh.instanceMatrix.count)continue;
-    const h=baseHeight(x,z),normal=new THREE.Vector3(-(baseHeight(x+.4,z)-baseHeight(x-.4,z))/.8,1,-(baseHeight(x,z+.4)-baseHeight(x,z-.4))/.8).normalize();d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);const scale=log?.55+rand(seed,i+2000)*1.15:.7+rand(seed,i+2100)*1.7;d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':rock?'rock':'wrack',x,z});if(log)li++;else if(rock)ri++;else wi++;
+    const surface=surfaceAt(x,z),inland=surface.river>.2||surface.mud>.5;
+    if(!inland&&(coast<9||coast>48||coast>16&&coast<29))continue;
+    const log=surface.river<.2&&i%3===0,rock=surface.river>.2||(!log&&i%4===0),mesh=log?this.logs:rock?this.rocks:this.wrack,index=log?li:rock?ri:wi;if(index>=mesh.instanceMatrix.count)continue;
+    const h=baseHeight(x,z),normal=new THREE.Vector3(-(baseHeight(x+.4,z)-baseHeight(x-.4,z))/.8,1,-(baseHeight(x,z+.4)-baseHeight(x,z-.4))/.8).normalize();d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);const onRoute=routeSample(x,z).distance<7,scale=surface.river>.2&&onRoute?.55+rand(seed,i+2100)*.5:log?.55+rand(seed,i+2000)*1.15:.7+rand(seed,i+2100)*1.7;d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':rock?'rock':'wrack',x,z});if(log)li++;else if(rock)ri++;else wi++;
    }
   }
-  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;
+  // Exposed and submerged stones define the ford. Small ones on the crossing,
+  // larger stones along the banks; rendered transforms also feed the colliders.
+  for(let ix=Math.floor((p.x-100)/4);ix<=Math.ceil((p.x+100)/4);ix++)for(let side=-2;side<=2;side++){
+   const x=ix*4+rand(ix,side)*2,z=riverZ(x)+side*2.2+rand(side,ix);
+   if(x<40||x>490||Math.hypot(x-p.x,z-p.z)>110||ri>=this.rocks.instanceMatrix.count||Math.hypot(x-248,z+336)<3.5)continue;
+   const onRoute=routeSample(x,z).distance<7,scale=onRoute?.75+rand(ix,side+7)*.35:1.0+rand(ix,side+7)*1.3;
+   d.position.set(x-origin.x,baseHeight(x,z)-.06,z-origin.z);d.rotation.set(0,rand(ix+1,side)*6.28,0);d.scale.setScalar(scale);d.updateMatrix();this.rocks.setMatrixAt(ri++,d.matrix);this.samples.push({kind:'rock',x,z});
+  }
+  const spacing=this.mobile?2.0:1.5;
+  for(let iz=Math.floor((cz*64-48)/spacing);iz<Math.ceil((cz*64+112)/spacing);iz++)for(let ix=Math.floor((cx*64-48)/spacing);ix<Math.ceil((cx*64+112)/spacing);ix++){
+   const x=(ix+rand(ix,iz)*.7)*spacing,z=(iz+rand(iz,ix)*.7)*spacing;
+   if(Math.hypot(x-(cx*64+32),z-(cz*64+32))>76||gi>=this.grass.instanceMatrix.count)continue;
+   const surface=surfaceAt(x,z);if(surface.grass<.30||riverMask(x,z)>.05)continue;
+   d.position.set(x-origin.x,baseHeight(x,z)-.035,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);d.scale.set(1.7,1.45+rand(ix,iz+2)*.65,1.7);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);
+   c.set('#71874b').lerp(new THREE.Color('#b2b570'),rand(ix,iz+4));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.055+z*.025);
+   this.grassData.push({x,z,yaw:d.rotation.y,bx:0,by:0,bz:0});this.bendAttribute.setXYZ(gi,0,0,0);gi++;
+  }
+  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;this.bendAttribute.needsUpdate=true;
   Object.assign(this.stats,{grass:gi,logs:li,wrack:wi,rocks:ri});
  }
- update(p,time,origin,weather={wind:8}){
+ update(p,time,origin,weather={wind:8},heading=0){
   this.refresh(p,origin);this.time.value=this.reduced?0:time;this.windStrength.value=this.reduced?0:coastalWind(time,weather.wind)*2.2;
+  const dt=Math.min(.1,Math.max(0,time-(this.lastGrassTime??time)));this.lastGrassTime=time;
+  const fx=-Math.sin(heading),fz=-Math.cos(heading),rx=Math.cos(heading),rz=-Math.sin(heading);
+  for(let i=0;i<this.grassData.length;i++){
+   const g=this.grassData[i],dx=g.x-p.x,dz=g.z-p.z,long=dx*fx+dz*fz,side=dx*rx+dz*rz,hit=Math.abs(long)<2.8&&Math.abs(side)<1.45;
+   const strength=hit?(1-smooth(.85,1.5,Math.abs(side))):0,sign=side<0?-1:1,worldX=rx*sign*strength,worldZ=rz*sign*strength,c=Math.cos(g.yaw),s=Math.sin(g.yaw),k=1-Math.exp(-dt*(hit?16:.5));
+   g.bx+=((worldX*c-worldZ*s)*.72-g.bx)*k;g.bz+=((worldX*s+worldZ*c)*.72-g.bz)*k;g.by+=(strength-g.by)*k;
+   this.bendAttribute.setXYZ(i,g.bx,g.by,g.bz);
+  }
+  this.bendAttribute.needsUpdate=true;
   const region=Math.floor(p.z/220);
   for(let i=0;i<this.boats.length;i++){
    const boat=this.boats[i],id=region+i-2,z=id*220+55+rand(id,7)*65+Math.sin(time*.012+id)*12,x=shore(z)-75-rand(id,19)*65;

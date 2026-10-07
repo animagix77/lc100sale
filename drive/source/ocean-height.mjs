@@ -1,3 +1,4 @@
+import {waterExists} from './expedition.mjs';
 import {shore,smooth} from './terrain.mjs';
 // CPU counterpart to Ocean's displacement, for tire/water interaction positions.
 export function oceanHeight(x,z,time,scale=1){
@@ -9,6 +10,6 @@ export function oceanHeight(x,z,time,scale=1){
 }
 export function surfaceProfile(mark,speed,ground,time,water=oceanHeight(mark.x,mark.z,time)){
  const activity=Math.abs(speed)+Math.max(0,mark.slip);
- const wet=mark.x-shore(mark.z)<10&&water>ground+.025;
+ const wet=waterExists(mark.x,mark.z)&&water>ground+.025;
  return {wet,water,activity,emit:activity>.35,dust:!wet&&mark.x-shore(mark.z)>10};
 }

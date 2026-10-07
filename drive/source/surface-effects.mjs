@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu';
 import {attribute,texture,uv,length,smoothstep,float,mx_noise_float,vec3} from 'three/tsl';
+import {surfaceAt} from './terrain.mjs';
 import {surfaceProfile,oceanHeight} from './ocean-height.mjs';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export class SurfaceEffects{
@@ -16,16 +17,16 @@ export class SurfaceEffects{
    const mesh=new THREE.InstancedMesh(geometry,material,count);mesh.frustumCulled=false;mesh.renderOrder=kind==='wake'?2:3;scene.add(mesh);
    return {kind,mesh,alpha,opacity,cursor:0,particles:Array.from({length:count},()=>({life:0}))};
   };
-  this.sand=make('sand',mobile?160:260,new THREE.OctahedronGeometry(.028,0),'#e2af7b',.72);
+  this.sand=make('sand',mobile?160:260,new THREE.OctahedronGeometry(.028,0),'#ffffff',.72);
   this.dust=make('dust',mobile?28:48,new THREE.PlaneGeometry(1,1),'#cfa174',.13,true);
   this.wake=make('wake',mobile?64:110,new THREE.RingGeometry(.70,1,32),'#d9eee6',.18);
   this.splash=make('splash',mobile?120:224,new THREE.SphereGeometry(1,6,4),'#d6eee8',.52);
   this.pools=[this.sand,this.dust,this.wake,this.splash];
-  this.splashStep=[0,0,0,0];this.up=new THREE.Vector3(0,1,0);this.dropDirection=new THREE.Vector3();
+  this.splashStep=[0,0,0,0];this.up=new THREE.Vector3(0,1,0);this.dropDirection=new THREE.Vector3();this.particleColor=new THREE.Color();
  }
  spawn(pool,values){const p=pool.particles[pool.cursor++%pool.particles.length];Object.assign(p,values,{life:values.ttl});this.stats[pool.kind]++;return p}
  emit(mark,heading,speed,time){
-  const ground=this.field.height(mark.x,mark.z),profile=surfaceProfile(mark,speed,ground,time,this.waterHeight(mark.x,mark.z,time));
+  const surface=surfaceAt(mark.x,mark.z),ground=this.field.height(mark.x,mark.z),profile=surfaceProfile(mark,speed,ground,time,this.waterHeight(mark.x,mark.z,time));
   if(!profile.emit)return profile.wet;
   const rand=this.random,fx=-Math.sin(heading),fz=-Math.cos(heading),dir=mark.dir||Math.sign(speed)||1;
   const slip=Math.min(6,mark.slip),pace=Math.min(7,Math.abs(speed)),sideSign=mark.wheel%2===0?-1:1;
@@ -48,9 +49,9 @@ export class SurfaceEffects{
    const count=Math.min(8,Math.ceil(.7+pace*.16+slip*(.65+mark.soft*1.05)));
    for(let j=0;j<count;j++){
     const back=.6+pace*.12+slip*(.35+rand()*.35),side=(rand()-.5)*1.4;
-    this.spawn(this.sand,{x:mark.x+(rand()-.5)*.24,z:mark.z+(rand()-.5)*.24,y:ground+.14,vx:-fx*dir*back+Math.cos(heading)*side,vz:-fz*dir*back-Math.sin(heading)*side,vy:.35+rand()*.65+slip*.16,size:.5+rand(),ttl:.40+rand()*.28,angle:rand()*6.28});
+    this.spawn(this.sand,{tint:surface.snow>.4?'#edf3f4':surface.mud>.4?'#655345':'#e2af7b',x:mark.x+(rand()-.5)*.24,z:mark.z+(rand()-.5)*.24,y:ground+.14,vx:-fx*dir*back+Math.cos(heading)*side,vz:-fz*dir*back-Math.sin(heading)*side,vy:.35+rand()*.65+slip*.16,size:.5+rand(),ttl:.40+rand()*.28,angle:rand()*6.28});
    }
-   if(profile.dust&&mark.wheel>=2&&++this.dustStep[mark.wheel]%2===0){
+   if(profile.dust&&surface.snow<.15&&surface.mud<.15&&mark.wheel>=2&&++this.dustStep[mark.wheel]%2===0){
     this.spawn(this.dust,{x:mark.x,z:mark.z,y:ground+.14,vx:-fx*dir*(.5+pace*.15)+.3,vz:-fz*dir*(.5+pace*.15),vy:.06+rand()*.08,size:.20+pace*.035+mark.soft*.1+slip*.025,ttl:.65+rand()*.35,angle:rand()*6.28});
    }
   }
@@ -83,9 +84,9 @@ export class SurfaceEffects{
      }else{d.rotation.set(age*5,p.angle,age*3);d.scale.setScalar(p.size*Math.max(.1,fade));}
      pool.alpha.setX(i,p.life>0?pool.opacity*fade*(pool.kind==='dust'?Math.min(1,age*12):1):0);
     }else{d.scale.setScalar(0);pool.alpha.setX(i,0)}
-    d.updateMatrix();pool.mesh.setMatrixAt(i,d.matrix);
+    d.updateMatrix();pool.mesh.setMatrixAt(i,d.matrix);if(pool.kind==='sand')pool.mesh.setColorAt(i,this.particleColor.set(p.tint||'#e2af7b'));
    }
-   pool.mesh.instanceMatrix.needsUpdate=true;pool.alpha.needsUpdate=true;
+   pool.mesh.instanceMatrix.needsUpdate=true;if(pool.mesh.instanceColor)pool.mesh.instanceColor.needsUpdate=true;pool.alpha.needsUpdate=true;
   }
  }
  clear(){for(const pool of this.pools)for(const p of pool.particles)p.life=0}

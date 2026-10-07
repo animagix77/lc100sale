@@ -14,3 +14,9 @@ for(const mobile of [false,true]){
  life.dispose();assert.equal(scene.children.length,0);
 }
 const calm=new BeachLife(new THREE.Scene(),{reduced:true});calm.update({x:-14,z:0},5,{x:0,z:0});assert.equal(calm.time.value,0);calm.dispose();console.log('Scenery: placement, wind, boat flotation, world anchoring, bounded streaming and disposal passed');
+
+const meadow=new BeachLife(new THREE.Scene());meadow.update({x:190,z:-278},0,{x:0,z:0});const blade=meadow.grassData.find(g=>Math.hypot(g.x-190,g.z+278)<10);assert(blade,'Meadow has grass beside the route');
+const at={x:blade.x+.4,z:blade.z};for(let i=1;i<=60;i++)meadow.update(at,i/60,{x:0,z:0},{wind:8},0);
+assert(blade.by>.8&&Math.hypot(blade.bx,blade.bz)>.5,'Truck parts and flattens nearby grass');
+for(let i=61;i<=660;i++)meadow.update({x:at.x-12,z:at.z},i/60,{x:0,z:0},{wind:8},0);assert(blade.by<.02,'Grass springs back after the truck leaves');meadow.dispose();
+console.log('Interactive meadow: physical footprint bends, parts, and regrows grass.');
