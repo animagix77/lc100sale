@@ -18,5 +18,7 @@ const calm=new BeachLife(new THREE.Scene(),{reduced:true});calm.update({x:-14,z:
 const meadow=new BeachLife(new THREE.Scene());meadow.update({x:190,z:-278},0,{x:0,z:0});const blade=meadow.grassData.find(g=>Math.hypot(g.x-190,g.z+278)<10);assert(blade,'Meadow has grass beside the route');
 const at={x:blade.x+.4,z:blade.z};for(let i=1;i<=60;i++)meadow.update(at,i/60,{x:0,z:0},{wind:8},0);
 assert(blade.by>.8&&Math.hypot(blade.bx,blade.bz)>.5,'Truck parts and flattens nearby grass');
-for(let i=61;i<=660;i++)meadow.update({x:at.x-12,z:at.z},i/60,{x:0,z:0},{wind:8},0);assert(blade.by<.02,'Grass springs back after the truck leaves');meadow.dispose();
+for(let i=61;i<=660;i++)meadow.update({x:at.x-12,z:at.z},i/60,{x:0,z:0},{wind:8},0);assert(blade.by>.75,'Crushed grass remains flat behind the vehicle');
+const tracked={x:blade.x,z:blade.z};meadow.update({x:400,z:-460},12,{x:0,z:0});meadow.update({x:at.x-12,z:at.z},13,{x:512,z:-512});const restored=meadow.grassData.find(g=>g.x===tracked.x&&g.z===tracked.z);assert(restored?.by>.75,'Flattened trail survives streaming and origin rebasing');
+for(let i=0;i<120;i++)meadow.update({x:at.x-12,z:at.z},250+i/60,{x:512,z:-512});assert(restored.by<.025,'Flattened grass gradually recovers after several minutes');meadow.dispose();
 console.log('Interactive meadow: physical footprint bends, parts, and regrows grass.');
