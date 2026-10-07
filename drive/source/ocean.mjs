@@ -1,9 +1,9 @@
-import {riverMask,riverHeight,waterExists} from './expedition.mjs';
+import {waterExists} from './expedition.mjs';
 import * as THREE from 'three/webgpu';
 import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,fract,mx_noise_float,texture} from 'three/tsl';
 import {shore} from './terrain.mjs';
 import {WakeField} from './wake-field.mjs';
-import {oceanHeight} from './ocean-height.mjs';
+import {waterSurfaceHeight} from './ocean-height.mjs';
 // GPU swells, fine surface normals and view-dependent sunset reflection. World-space
 // phase stays continuous while the mesh streams along the infinite coastline.
 export class Ocean{
@@ -11,9 +11,9 @@ export class Ocean{
   this.skyTop=uniform(new THREE.Color('#46576c'));this.skyHorizon=uniform(new THREE.Color('#b58073'));this.sunColor=uniform(new THREE.Color('#ffe2af'));this.sunDirection=uniform(new THREE.Vector3(-430,105,-650).normalize());this.brightness=uniform(1);this.waveScale=uniform(1);
   this.vehicleLights=Array.from({length:4},()=>({position:uniform(new THREE.Vector3()),direction:uniform(new THREE.Vector3(0,0,-1)),radiance:uniform(new THREE.Color(0,0,0)),cone:uniform(new THREE.Vector4(.9,.96,48,1.45))}));this.lightTarget=new THREE.Vector3();
   this.wheelFoam=Array.from({length:4},()=>uniform(new THREE.Vector4()));
-  this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;
+  this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=this.focus=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;this.nearX=mobile?64:80;this.shoreColumns=mobile?8:12;this.focusStep=mobile?10:8;
   this.wake=new WakeField({size:mobile?97:129,spacing:mobile?2/3:.5});this.wakePixels=new Uint16Array(this.wake.count*4);this.wakeTexture=new THREE.DataTexture(this.wakePixels,this.wake.size,this.wake.size,THREE.RGBAFormat,THREE.HalfFloatType);this.wakeTexture.minFilter=this.wakeTexture.magFilter=THREE.LinearFilter;this.wakeTexture.generateMipmaps=false;this.wakeTexture.needsUpdate=true;
-  this.wakeOrigin=uniform(new THREE.Vector2());this.wakeSpan=(this.wake.size-1)*this.wake.spacing;this.lastTime=0;
+  this.wakeOrigin=uniform(new THREE.Vector2());this.wakeSpan=(this.wake.size-1)*this.wake.spacing;this.lastTime=0;this.lastDisturbance=[-Infinity,-Infinity,-Infinity,-Infinity];this.disturbanceInterval=1/(mobile?24:30);
   const wakeAt=Fn(([x,z])=>texture(this.wakeTexture,vec2(x,z).sub(this.wakeOrigin).div(this.wakeSpan).mul((this.wake.size-1)/this.wake.size).add(.5/this.wake.size)).level(0));
   const t=this.clock,origin=this.origin;
   const coast=Fn(([z])=>float(-36).add(sin(z.mul(.006)).mul(8)).add(sin(z.mul(.019)).mul(3)));
@@ -24,6 +24,7 @@ export class Ocean{
    const cross=sin(x.mul(.41).add(z.mul(.23)).sub(t.mul(1.05))).mul(.065);
    return float(-.18).add(swell.add(cross).mul(offshore)).add(sin(t.mul(.8).sub(z.mul(.026))).mul(.075).mul(float(1).sub(offshore))).add(.18).mul(this.waveScale).sub(.18);
   });
+  this.surfaceNode=height;
   const material=new THREE.MeshBasicNodeMaterial({transparent:true,depthWrite:false,side:THREE.FrontSide});
   material.positionNode=Fn(()=>{const world=positionGeometry.xz.add(origin);return vec3(positionGeometry.x,height(world.x,world.y).add(wakeAt(world.x,world.y).r),positionGeometry.z)})();
   const world=positionWorld.xz.add(origin),x=world.x,z=world.y,d=x.sub(coast(z));
@@ -77,25 +78,37 @@ export class Ocean{
   material.colorNode=mix(waterColor,color('#f5dec0'),foam).mul(this.brightness).add(vehicleSheen);
 
   material.opacityNode=mix(float(.94),float(.68),smoothstep(0,10,d)).mul(float(1).sub(smoothstep(8,12,d)));
-  this.material=material;this.mesh=new THREE.Mesh(new THREE.BufferGeometry(),material);this.mesh.renderOrder=1;this.mesh.frustumCulled=false;scene.add(this.mesh);
+  // One constant mesh covers the coast and horizon. Its dense patch follows
+  // the truck offshore, so tyre wakes always reach actual surface vertices.
+  // Reuse the buffers when the detail window moves; never add an overlay sheet.
+  const count=(this.nx+1)*(this.nz+1),positions=new Float32Array(count*3),normals=new Float32Array(count*3),indices=new Uint32Array(this.nx*this.nz*6);
+  this.columnOffsets=new Float64Array(this.nx+1);this.rowOffsets=new Float64Array(this.nz+1);
+  const nearZ=mobile?128:192,outerZ=(this.nz-nearZ)/2,nearX=this.nearX;
+  for(let i=0;i<=this.nx;i++)this.columnOffsets[i]=i<=nearX?12-i*40/nearX:-28-1172*Math.pow((i-nearX)/(this.nx-nearX),1.55);
+  for(let j=0;j<=this.nz;j++)this.rowOffsets[j]=j<outerZ?-640+j*(592/outerZ):j<=outerZ+nearZ?-48+(j-outerZ)*96/nearZ:48+(j-outerZ-nearZ)*592/outerZ;
+  let k=0;for(let j=0;j<=this.nz;j++)for(let i=0;i<=this.nx;i++){const a=j*(this.nx+1)+i;normals[a*3+1]=1;if(i<this.nx&&j<this.nz){const b=a+1,c=a+this.nx+1;indices.set([a,b,c,b,c+1,c],k);k+=6}}
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));geometry.setIndex(new THREE.BufferAttribute(indices,1));
+  this.material=material;this.mesh=new THREE.Mesh(geometry,material);this.mesh.renderOrder=1;this.mesh.frustumCulled=false;scene.add(this.mesh);
  }
  update(p,time,origin){
   this.wake.move(p.x??shore(p.z),p.z);this.wake.step(Math.max(0,time-this.lastTime));this.lastTime=time;
   const values=this.wake.pack();for(let i=0;i<values.length;i++)this.wakePixels[i]=THREE.DataUtils.toHalfFloat(values[i]);this.wakeTexture.needsUpdate=true;this.wakeOrigin.value.set(this.wake.x,this.wake.z);
   this.clock.value=time;this.origin.value.set(origin.x,origin.z);
-  const center=Math.floor(p.z/32)*32,key=`${origin.x},${origin.z}`;
-  if(center===this.center&&key===this.originKey)return;
-  this.center=center;this.originKey=key;
-  const positions=[],indices=[],nx=this.nx,nz=this.nz;
-  for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++){
-   const nearZ=this.mobile?128:192,outerZ=(nz-nearZ)/2,nearX=this.mobile?64:80;
-   const z=center+(j<outerZ?-640+j*(592/outerZ):j<=outerZ+nearZ?-48+(j-outerZ)*96/nearZ:48+(j-outerZ-nearZ)*592/outerZ);
-   const d=i<=nearX?12-i*40/nearX:-28-1172*Math.pow((i-nearX)/(nx-nearX),1.55);
-   positions.push(shore(z)+d-origin.x,-.18,z-origin.z);
-   if(i<nx&&j<nz){const a=j*(nx+1)+i,b=a+1,c=a+nx+1;indices.push(a,b,c,b,c+1,c)}
+  // Integer fine-cell shifts preserve the exact local triangles and wave
+  // samples during streaming, including the tablet's .625m by .75m cells.
+  const center=Math.floor(p.z/6)*6,focus=Math.min(-8,-8+this.focusStep*Math.round(((p.x??shore(p.z))-shore(p.z)+8)/this.focusStep)),key=`${origin.x},${origin.z}`;
+  if(center===this.center&&focus===this.focus&&key===this.originKey)return;
+  this.center=center;this.focus=focus;this.originKey=key;
+  // Keep the original shoreline detail while driving on the beach. Offshore,
+  // reserve a few columns back to shore and retain tyre-scale spacing locally.
+  const shoreColumns=focus< -8?this.shoreColumns:0,nearX=this.nearX,right=focus+20,left=focus-20,far=Math.min(-1200,left-256);
+  for(let i=0;i<=this.nx;i++)this.columnOffsets[i]=i<shoreColumns?12+(right-12)*i/shoreColumns:i<=shoreColumns+nearX?right-(i-shoreColumns)*40/nearX:left-(left-far)*Math.pow((i-shoreColumns-nearX)/(this.nx-shoreColumns-nearX),1.55);
+  const positions=this.mesh.geometry.attributes.position;
+  for(let j=0;j<=this.nz;j++){
+   const z=center+this.rowOffsets[j],coast=shore(z)-origin.x;
+   for(let i=0;i<=this.nx;i++)positions.setXYZ(j*(this.nx+1)+i,coast+this.columnOffsets[i],-.18,z-origin.z);
   }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();
-  this.mesh.geometry.dispose();this.mesh.geometry=g;
+  positions.needsUpdate=true;
  }
  updateWheelFoam(dt,physics,time){
   const velocity=physics.rb?.linvel(),speed=velocity?Math.hypot(velocity.x,velocity.z):Math.abs(physics.speed);
@@ -115,8 +128,13 @@ export class Ocean{
   if(!rig)return;rig.truck.updateWorldMatrix(true,true);
   [ ...rig.beams,rig.rearGlow,rig.backup ].forEach((light,i)=>{const slot=this.vehicleLights[i];light.getWorldPosition(slot.position.value);light.target.getWorldPosition(this.lightTarget);slot.direction.value.copy(this.lightTarget).sub(slot.position.value).normalize();slot.radiance.value.copy(light.color).multiplyScalar(light.intensity);slot.cone.value.set(Math.cos(light.angle),Math.cos(light.angle*(1-light.penumbra)),light.distance,light.decay)});
  }
- height(x,z,time){return (riverMask(x,z)>.1?riverHeight(x,z,time):oceanHeight(x,z,time,this.waveScale.value))+this.wake.sample(x,z)}
- disturb(mark,speed,heading){this.wake.stamp(mark.x,mark.z,speed,mark.slip,heading)}
- clear(){this.wake.clear();this.wheelFoam.forEach((slot,i)=>slot.value.set(0,0,0,i*.21))}
+ height(x,z,time){return waterSurfaceHeight(x,z,time,this.waveScale.value,this.wake.sample(x,z))}
+ disturb(mark,speed,heading,time=this.lastTime){
+  const wheel=mark.wheel??0,since=time-this.lastDisturbance[wheel];
+  if(since>=0&&since+1e-9<this.disturbanceInterval)return false;
+  if(!this.wake.stamp(mark.x,mark.z,speed,mark.slip,heading))return false;
+  this.lastDisturbance[wheel]=time;return true;
+ }
+ clear(){this.wake.clear();this.lastDisturbance.fill(-Infinity);this.wheelFoam.forEach((slot,i)=>slot.value.set(0,0,0,i*.21))}
  dispose(){this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose()}
 }

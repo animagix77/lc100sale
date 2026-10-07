@@ -15,7 +15,7 @@ Run `node build.mjs` to prepare `dist/`. No package installation is required. Ja
 ## Photos and vehicle tour
 
 - `assets/gallery/` contains presentation edits and corresponding source photos, including camping images and unretouched mechanic photos. Original-photo comparisons are available in the gallery. Source photos remain the reference for condition; camping accessories in historical photos are excluded unless explicitly listed.
-- `assets/video/orbit-scrub.mp4` drives the continuous vehicle orbit from the first scroll. Earlier primary views and interpolated frames remain in `assets/orbit/` as production references. Orbit artwork is a visualization rather than condition photography.
+- `assets/video/orbit-scrub.mp4` drives the continuous vehicle orbit from the first scroll. The matching `assets/video/orbit-poster.jpg` is the loading/error fallback; the hero has no image-sequence loader or frame downloads. Earlier primary views remain in `assets/orbit/` for the production storyboard. Orbit artwork is a visualization rather than condition photography.
 - `assets/history/` contains the owner-history icons, illustrated Land Cruiser, regional map and geographic provenance. The dotted Maryland → Long Island → Leonia journey represents regional stops rather than an exact road route.
 - `production/`, `video-prompts.json`, and `storyboard.html` retain production notes and prompts.
 
@@ -25,7 +25,7 @@ The ownership story scrolls through three chapters, with the map following the t
 
 ## Listing
 
-Asking $11,000, sold as is, privately in North Jersey. Viewing is by arrangement. Maintenance and vehicle history are owner-reported; service receipts are unavailable. Known faults, EVAP codes, mechanic photos and the suspected cause are disclosed, including the body-shop/welder recommendation. The suspected cause is not presented as a confirmed diagnosis.
+Considering a sale; price $TBD, located in Leonia, NJ. If sold, condition will be disclosed and the truck sold as is. Maintenance and vehicle history are owner-reported; service receipts are unavailable. The October 7, 2026 mechanic visit resulted in a recommendation to replace the EVAP solenoid, canister and gas cap. Work is pending; codes remain unresolved and emissions readiness is unconfirmed. The prior clamp/line feature and its two displayed gallery photos have been retired, with source photos retained. Historical production notes and storyboards predate this update; the live copy in index.html, app.js and rusty.js is current.
 
 Contact: 917-981-5816 or animagix@mac.com.
 

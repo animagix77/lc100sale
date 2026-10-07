@@ -13,7 +13,7 @@
 .immersive header .edition{color:#e8ecec}.immersive .brand small{max-width:none;font-size:10px}
 .orbit{height:850svh;position:relative;scroll-margin-top:0}
 .orbit-pin{position:sticky;top:0;height:100svh;min-height:540px;isolation:isolate;overflow:hidden;background:#84949f;color:#fff}
-.scene,.scene picture,.scene img,.scene video,.scene-shade{position:absolute;inset:0;width:100%;height:100%}
+.scene,.scene img,.scene video,.scene-shade{position:absolute;inset:0;width:100%;height:100%}
 .scene{z-index:-2}.scene img,.scene video{object-fit:cover;object-position:center}
 .scene-shade{background:linear-gradient(180deg,rgba(12,22,31,.44),rgba(13,24,31,.04) 48%,rgba(8,17,20,.04) 66%,rgba(7,14,18,.9));transition:background .3s}
 .launch{position:absolute;top:15%;left:6vw;right:6vw}
@@ -73,20 +73,14 @@
 
 .ownership{background:#182122}.ownership-note{font-size:13px;color:var(--muted);margin:22px 0 0;max-width:800px}
 
-/* The V2 orbit frames are the scene itself; the mobile surround extends its colors. */
-.keyframe-scene{--orbit-image:url('assets/orbit/01-front-driver-quarter-v7.jpg')}
-.orbit-backdrop{display:none}
+/* Current video callout framing. */
 @media(max-width:700px){
- .keyframe-scene .orbit-backdrop{display:block;position:absolute;inset:-50px;background-image:var(--orbit-image);background-size:cover;background-position:center;filter:blur(45px);transform:scale(1.15)}
- .keyframe-scene .scene picture{inset:auto;left:-12.5%;top:42%;width:125%;height:auto;aspect-ratio:1672/941;mask-image:linear-gradient(transparent,#000 8%,#000 94%,transparent)}
- .keyframe-scene .scene picture img{inset:0;width:100%;height:100%;object-fit:cover}
- .keyframe-scene .scene-shade{background:linear-gradient(180deg,#112838b5,#19374455 38%,transparent 52%,#071014c9)}
- .immersive .keyframe-scene .bubble{width:80px;height:80px;right:6%;top:39%}
- .immersive .keyframe-scene .bubble>span{font-size:8px;padding:5px 8px}
+ .orbit-scene .scene-shade{background:linear-gradient(180deg,#112838b5,#19374455 38%,transparent 52%,#071014c9)}
+ .immersive .orbit-scene .bubble{width:80px;height:80px;right:6%;top:39%}
+ .immersive .orbit-scene .bubble>span{font-size:8px;padding:5px 6px 10px}
 }
-
-.immersive .keyframe-scene .bubble>span{padding:6px 10px 16px}
-@media(max-width:700px){.immersive .keyframe-scene .bubble>span{padding:5px 6px 10px}}
+.immersive .orbit-scene .bubble>span{padding:6px 10px 16px}
+@media(max-width:700px){.immersive .orbit-scene .bubble>span{padding:5px 6px 10px}}
 
 /* Owner photo gallery */
 .photo-gallery{background:#131d20}.photo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}.photo-card{min-width:0;background:#202a2d;border:1px solid #425053;scroll-margin-top:24px}.photo-open{display:block;width:100%;padding:0;border:0;background:#0a1012;color:white;text-align:left;position:relative;cursor:zoom-in}.photo-open img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain}.photo-open>span{position:absolute;right:14px;bottom:14px;background:#111d;padding:8px 12px;font:12px monospace;letter-spacing:1px}.photo-caption{padding:28px}.photo-caption .eyebrow{font-size:12px;margin-bottom:14px}.photo-caption p:not(.eyebrow){font-size:16px;color:#bbc5c5}.photo-caption a{font-size:14px;color:var(--accent)}.photo-card h3{font-size:27px}.condition-grid article>a{display:inline-block;margin-top:15px;font-size:14px;color:var(--accent)}
@@ -118,22 +112,13 @@
 }
 @media(max-width:700px){.launch{top:12%}.launch .eyebrow{margin-bottom:16px}.launch .intro{margin:16px 0}.asking-note{font-size:14px;margin-top:10px}.buyer-banner{padding:34px 6vw}.buyer-banner>p:last-child{font-size:16px}}
 
-/* V6: preserve the wide scene's left copy space at every desktop ratio. */
+/* Preserve the video's left copy space at every desktop ratio. */
 @media(min-width:701px){
- .keyframe-scene .orbit-backdrop{display:block;position:absolute;inset:-45px;background-image:var(--orbit-image);background-size:cover;background-position:center;filter:blur(35px);transform:scale(1.08)}
- .keyframe-scene .scene picture{inset:0;width:100%;height:100%;aspect-ratio:auto;transform:none}
- .keyframe-scene .scene picture img{object-fit:cover}
  .launch{right:auto;width:42vw}
  .launch h1{font-size:clamp(62px,7.3vw,125px)}
  .immersive .tour-copy{width:39vw;max-width:510px}
  .scene-shade::after{background:linear-gradient(90deg,rgba(6,17,25,.78),rgba(6,17,25,.64) 35%,rgba(6,17,25,.2) 50%,transparent 64%)}
 }
-@media(max-width:700px){
- /* Crop the generous left scenery on phones so the full truck sits below copy. */
- .keyframe-scene .scene picture{left:-86%;top:34%;width:185%;aspect-ratio:16/9}
- .keyframe-scene .orbit-backdrop{background-position:75% center}
-}
-@media(max-width:700px) and (max-height:740px){.keyframe-scene .scene picture{top:36%}}
 .launch h1>.model-name{color:var(--accent)}
 
 .camping{background:#15282c}.camping-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}.camping .photo-open img{aspect-ratio:3/2;height:auto;width:100%;object-fit:cover;object-position:50% 50%}.camping .camping-portrait .photo-open img{object-position:50% 55%}.camping-exclusion{border-left:3px solid var(--accent);padding-left:20px}.camping-exclusion strong{color:var(--accent)}#photo-toggle[hidden]{display:none}@media(max-width:700px){.camping-grid{grid-template-columns:1fr}}
@@ -151,14 +136,12 @@
 /* Expert review: stronger history, easier touch controls, and calm motion. */
 .engine-history{display:grid;grid-template-columns:1.1fr 1fr;gap:6vw;padding:36px;margin:0 0 42px;background:#102c31;border:1px solid #3d595d}.engine-history h3{font-size:clamp(30px,3.2vw,46px);line-height:1.08;letter-spacing:-1px}.engine-history p:not(.eyebrow){font-size:17px;color:var(--muted);line-height:1.65;max-width:600px}.history-facts{list-style:none;padding:0;margin:0}.history-facts li+li{border-top:1px solid #3d595d;margin-top:18px;padding-top:18px}.history-facts strong{display:block;font-size:23px;color:var(--ink)}.history-facts li>span{display:block;color:var(--muted);font-size:15px;margin-top:4px}.buyer-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:24px;margin-top:28px}.buyer-actions .button{margin-top:0}.buyer-actions>a{font-size:16px}footer>span>a,footer>span>.scroll-ink>a{display:inline-block;margin-top:12px;font-size:12px}
 .immersive .tour-controls button{min-width:44px;min-height:44px}.immersive .tour-controls input{height:44px;background:linear-gradient(#ffffff66,#ffffff66) center/100% 2px no-repeat}.immersive .chapter-dots button{min-height:44px}.immersive .chapter-dots{gap:10px}.immersive .text-link{font-size:14px}#tour-title:focus-visible{outline:2px solid var(--accent);outline-offset:8px}
-@media(min-width:701px) and (max-width:900px){.owner-story{grid-template-columns:1fr;gap:12px}.owner-story-copy{max-width:680px}.engine-history{grid-template-columns:1fr;gap:18px}.immersive .keyframe-scene .bubble{width:124px;height:124px}}
+@media(min-width:701px) and (max-width:900px){.owner-story{grid-template-columns:1fr;gap:12px}.owner-story-copy{max-width:680px}.engine-history{grid-template-columns:1fr;gap:18px}.immersive .orbit-scene .bubble{width:124px;height:124px}}
 @media(max-width:700px){.engine-history{grid-template-columns:1fr;padding:24px;gap:18px}.engine-history h3{font-size:32px}.history-facts strong{font-size:22px}.immersive .chapter-dots{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;width:100%}.immersive .chapter-dots button{min-width:0;width:100%;height:44px}.immersive .tour-controls input{height:44px}.immersive .tour-controls{gap:8px}.immersive .text-link{font-size:14px}.immersive nav a{padding:12px 0}.buyer-actions{flex-direction:column;gap:18px}}
 
 /* Mechanic evidence remains unretouched and opens at full size. */
 .mechanic-evidence{scroll-margin-top:30px;margin-bottom:60px}.mechanic-note{max-width:800px;padding:28px 0 32px;border-top:1px solid var(--line)}.mechanic-note h3{font-size:clamp(30px,3.5vw,48px);line-height:1.08}.mechanic-note p:not(.eyebrow){font-size:17px;color:var(--muted)}.mechanic-note strong{color:var(--ink)}.mechanic-card{border-top:3px solid var(--accent)}.mechanic-card .photo-open img{aspect-ratio:4/3;object-fit:contain}.owner-gallery-label{margin-bottom:26px}
-.tour-evidence{margin:18px 0 16px;max-width:360px}.tour-evidence>p{font:12px/1.4 monospace;letter-spacing:.5px;margin:0 0 9px;color:#ffbe93}.tour-evidence>div{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tour-evidence-photo{pointer-events:auto;cursor:zoom-in;background:#102129;border:1px solid #91a5ac;color:white;padding:0;text-align:left;min-width:0}.tour-evidence-photo img{display:block;width:100%;height:92px;object-fit:contain;background:#081218}.tour-evidence-photo span{display:block;padding:7px 8px;font-size:13px;line-height:1.2}.showing-evidence .tour-copy h2{font-size:clamp(34px,4vw,56px)}
-@media(max-width:700px){.tour-evidence{margin:14px 0;max-width:330px}.tour-evidence-photo img{height:76px}.tour-evidence-photo span{font-size:12px}.showing-evidence .tour-copy h2{font-size:32px}.mechanic-note{padding-top:24px}.mechanic-note p:not(.eyebrow){font-size:16px}}
-@media(max-height:700px){.showing-evidence .tour-copy{top:4%}.showing-evidence .tour-copy h2{font-size:30px;margin-bottom:12px}.showing-evidence .chapter{margin-bottom:10px}.showing-evidence .tour-copy>p:not(.eyebrow){font-size:16px;line-height:1.35}.tour-evidence-photo img{height:60px}.tour-evidence{margin:10px 0}.tour-evidence-photo span{padding:5px 7px}}
+@media(max-width:700px){.mechanic-note{padding-top:24px}.mechanic-note p:not(.eyebrow){font-size:16px}}
 
 /* Direct contact links for arranging a viewing. */
 .contact-actions .button{font-size:17px;min-height:48px}.closing .contact-caption{font-size:16px;max-width:560px;margin:22px auto 0}.buyer-reading{margin-top:26px;gap:22px}.buyer-reading a{font-size:14px}@media(max-width:700px){.contact-actions{align-items:stretch;gap:14px}.contact-actions .button{font-size:16px;padding:14px 12px}.buyer-reading{flex-direction:row}}
@@ -195,14 +178,13 @@ h2 em,h3 em{font-style:normal;color:var(--accent)}
 
 /* Video shares the approved scene framing; its decoded frame also fills the soft surround. */
 .video-backdrop{position:absolute;inset:-45px;width:calc(100% + 90px);height:calc(100% + 90px);object-fit:cover;filter:blur(35px);transform:scale(1.08)}
-.video-scene .orbit-backdrop{display:none}
-@media(min-width:701px){.keyframe-scene .scene video{inset:0;width:100%;height:100%;aspect-ratio:auto;transform:none;object-fit:cover;object-position:50% 65%}}
-@media(max-width:700px){.keyframe-scene .scene video{inset:auto;left:-86%;top:34%;width:185%;height:auto;aspect-ratio:16/9;mask-image:linear-gradient(transparent,#000 8%,#000 94%,transparent)}}
-@media(max-width:700px) and (max-height:740px){.keyframe-scene .scene video{top:36%}}
+@media(min-width:701px){.orbit-scene .scene .orbit-media{inset:0;width:100%;height:100%;aspect-ratio:auto;transform:none;object-fit:cover;object-position:50% 65%}}
+@media(max-width:700px){.orbit-scene .scene .orbit-media{inset:auto;left:-86%;top:34%;width:185%;height:auto;aspect-ratio:16/9;mask-image:linear-gradient(transparent,#000 8%,#000 94%,transparent)}}
+@media(max-width:700px) and (max-height:740px){.orbit-scene .scene .orbit-media{top:36%}}
 
-@media(min-width:501px) and (max-width:700px){.keyframe-scene .scene video{left:-40%;top:28%;width:140%}}
+@media(min-width:501px) and (max-width:700px){.orbit-scene .scene .orbit-media{left:-40%;top:28%;width:140%}}
 
-@media(min-width:701px) and (max-aspect-ratio:4/3){.keyframe-scene .scene video,.keyframe-scene .scene picture img{object-position:100% 65%}}
+@media(min-width:701px) and (max-aspect-ratio:4/3){.orbit-scene .scene .orbit-media{object-position:100% 65%}}
 
 /* A compact invitation opens the full private-sale handoff guide. */
 .purchase-link{margin:32px auto 0;max-width:620px;padding:0}

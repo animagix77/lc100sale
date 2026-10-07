@@ -125,32 +125,6 @@
     "height": 1448
   },
   {
-    "id": "11-mechanic-lines",
-    "title": "A closer look at the lines.",
-    "caption": "Several lines beside hoses and surrounding hardware, with visible wear at the points shown. Supplied by the mechanic, unretouched.",
-    "src": "assets/gallery/11-mechanic-lines.JPG",
-    "original": "assets/gallery/11-mechanic-lines.JPG",
-    "unedited": true,
-    "sourceLabel": "MECHANIC PHOTO · UNRETOUCHED",
-    "alt": "Mechanic close-up of several lines with visible surface wear, nearby hoses and corroded surrounding hardware",
-    "width": 1153,
-    "height": 2048,
-    "titleAccent": "at the lines."
-  },
-  {
-    "id": "12-mechanic-corrosion",
-    "title": "Corrosion, up close.",
-    "caption": "Visible corrosion around hose clamps and adjacent hardware. Supplied by the mechanic, unretouched.",
-    "src": "assets/gallery/12-mechanic-corrosion.JPG",
-    "original": "assets/gallery/12-mechanic-corrosion.JPG",
-    "unedited": true,
-    "sourceLabel": "MECHANIC PHOTO · UNRETOUCHED",
-    "alt": "Mechanic close-up of hoses and heavily corroded clamps and adjacent hardware",
-    "width": 2048,
-    "height": 1153,
-    "titleAccent": "up close."
-  },
-  {
     "id": "13-ikamper-shoreline",
     "title": "Oceanfront. Eight cylinders included.",
     "titleAccent": "Eight cylinders included.",

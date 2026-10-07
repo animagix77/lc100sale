@@ -24,19 +24,43 @@ export function routeSample(x,z){
  const biome=Object.keys(weights).reduce((a,k)=>weights[k]>weights[a]?k:a,'beach');
  return {x:b.x,z:b.z,distance:Math.sqrt(distance),height:b.a.height+(b.b.height-b.a.height)*w,weights,biome,progress:bestProgress/LOOP_LENGTH,dx:b.dx/b.length,dz:b.dz/b.length};
 }
+// The same cross-section shapes the bed, the mean water edge, and wet contact.
+// The upstream spring closes to a point; the mouth continues under the ocean.
+export const riverBounds=Object.freeze({minX:-60,maxX:520});
 export const riverZ=x=>-340+Math.sin((x-140)*.025)*10;
-export const riverLevel=x=>-.18+Math.max(0,x+36)*.052;
+export const riverMouthBlend=x=>smooth(-48,-28,x);
+export const riverLevel=x=>-.18+Math.max(0,x+36)*.052*smooth(-28,0,x);
 export function riverDistance(x,z){return Math.abs(z-riverZ(x))}
-export function riverWidth(x){return 4.8+2.6*Math.exp(-Math.pow((x-248)/32,2))}
-export function riverMask(x,z){return smooth(-32,-8,x)*(1-smooth(475,520,x))*(1-smooth(riverWidth(x)-.5,riverWidth(x)+1.5,riverDistance(x,z)))}
-export function riverHeight(x,z,time=0){return riverLevel(x)+Math.sin(x*.9+z*1.8-time*2.2)*.035+Math.sin(x*2.3+time*3.1)*.015}
+export function riverWidth(x){return (4.8+2.6*Math.exp(-Math.pow((x-248)/32,2)))*(1-smooth(498,riverBounds.maxX,x))}
+export function riverProfile(x,z){
+ const level=riverLevel(x),distance=riverDistance(x,z),width=riverWidth(x),source=1-smooth(498,riverBounds.maxX,x),active=x>=riverBounds.minX&&x<riverBounds.maxX;
+ const lateral=width>0?distance/width:Infinity;
+ // A broad shallow bed eases into a real shoreline, then a gently sloped bank.
+ // Bed detail vanishes at the waterline so noise cannot punch dry holes through it.
+ const inner=1-smooth(.45,1,lateral),bed=.36*source*inner;
+ const outside=Math.max(0,distance-width),bankRise=outside*.15;
+ const depth=active?bed-bankRise:-bankRise;
+ const influence=(1-smooth(width+8,width+28,distance))*(1-smooth(riverBounds.maxX,riverBounds.maxX+18,x))*smooth(riverBounds.minX-12,riverBounds.minX,x);
+ return {level,distance,width,depth,wet:active?smooth(0,.035,depth):0,bank:smooth(width-.8,width+1.6,distance)*(1-smooth(width+8,width+20,distance)),influence,ground:level-depth};
+}
+// Worn approaches follow the flagged trail, not the whole green riverbank.
+// Share this mask between surface materials, foliage, and physical stones.
+export function riverApproach(x,z,route=routeSample(x,z),profile=riverProfile(x,z)){
+ if(x<90||x>riverBounds.maxX||route.distance>=8)return 0;
+ const bankDistance=Math.max(0,profile.distance-profile.width);
+ return (1-smooth(4.5,8,route.distance))*(1-smooth(18,42,bankDistance));
+}
+export function riverMask(x,z){return riverProfile(x,z).wet}
+export function riverRippleScale(x,z){return smooth(0,.25,Math.max(0,riverProfile(x,z).depth))}
+export function riverHeight(x,z,time=0){return riverLevel(x)+(Math.sin(x*.9+z*1.8-time*2.2)*.012+Math.sin(x*2.3+time*3.1)*.006)*riverRippleScale(x,z)}
 export function biomeWeather(x,z){const b=routeSample(x,z),w=b.weights;
- return {mode:'expedition',live:false,label:BIOMES[b.biome].name,altitude:8+w.river*15+w.grass*17+w.snow*12+w.mud*8-w.volcanic*6,cloud:.20+w.river*.2+w.grass*.1+w.snow*.65+w.mud*.74+w.volcanic*.30,wind:10+w.snow*15+w.mud*10+w.volcanic*12,rain:w.mud*.85,snow:w.snow*.88,fog:false,storm:false};
+ return {mode:'expedition',live:false,label:BIOMES[b.biome].name,altitude:8-w.river*6-w.grass*4+w.snow*8+w.mud*3-w.volcanic*6,cloud:.20+w.river*.18-w.grass*.05+w.snow*.65+w.mud*.74+w.volcanic*.30,wind:10+w.snow*15+w.mud*10+w.volcanic*12,rain:w.mud*.85,snow:w.snow*.88,fog:false,storm:false};
 }
 
-export const waterExists=(x,z)=>x<(-36+8*Math.sin(z*.006)+3*Math.sin(z*.019))+10||riverMask(x,z)>.1;
+export const waterExists=(x,z)=>x<(-36+8*Math.sin(z*.006)+3*Math.sin(z*.019))+10||riverMask(x,z)>0;
 
-// Eruptive activity is kept inside the crater and on the untravelled outer flank.
+// Shared dimensions for the crater and outer-flank scenery; route-side hazards
+// and the basalt lava crossing have separate bounded pools.
 export const VOLCANO={x:640,z:-745,radius:235,craterRadius:27,lavaHeight:177};
 export function volcanoRelief(x,z){
  const dx=x-VOLCANO.x,dz=z-VOLCANO.z,r=Math.hypot(dx,dz),a=Math.atan2(dz,dx);

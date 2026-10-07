@@ -5,6 +5,7 @@ export function waypoint(index){const leg=index%WAYPOINT_COUNT+1,p=LANDMARKS[leg
 export class WaypointRoute{
  constructor(){this.next=0;this.previous=null;this.passed=0}
  resetTracking(position=null){this.previous=position?{...position}:null}
+ checkpoint(){return LANDMARKS[this.next%WAYPOINT_COUNT]}
  target(){return waypoint(this.next)}
  nearby(){return Array.from({length:this.next?4:3},(_,i)=>waypoint(Math.max(0,this.next-1)+i))}
  update(position,{grounded=true,groundHeight=0}={}){

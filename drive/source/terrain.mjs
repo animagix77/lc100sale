@@ -1,4 +1,5 @@
-import {routeSample,riverDistance,riverWidth,riverLevel,volcanoRelief,riverGreenery,VOLCANO} from './expedition.mjs';
+import {lavaCrossingProfile} from './lava-crossing.mjs';
+import {routeSample,riverDistance,riverWidth,riverProfile,riverApproach,volcanoRelief,riverGreenery,VOLCANO} from './expedition.mjs';
 // Deterministic infinite coastline. World coordinates remain stable as render tiles recycle.
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
@@ -18,7 +19,7 @@ export function coastalHeight(x,z){
  const hummocks=((noise(x*.36,z*.32)-.5)*.34+Math.sin(z*1.45+x*.72+noise(x*.1,z*.1)*2)*.085+Math.sin(z*.83-x*.61)*.13)*rough*patch;
  return hummocks+-.4+d*.020+bank*(amplitude*(.08+ridge*.92)+noise(x*.041,z*.041)*1.8)+swales+Math.sin(z*.21+x*.32)*.055*smooth(5,25,d);
 }
-export function baseHeight(x,z){
+function regionalHeight(x,z){
  const coast=coastalHeight(x,z),d=x-shore(z);
  const ascent=smooth(205,310,x)*(1-smooth(690,850,x))*smooth(370,590,-z)*(1-smooth(900,1050,-z));
  const ridges=58+noise(x*.010,z*.011)*52+Math.pow(.5+.5*Math.sin(x*.028+z*.018),2)*30;
@@ -34,18 +35,40 @@ export function baseHeight(x,z){
  // A narrow, readable trail. Snow remains deep away from the slightly compacted line.
  ground-=w.mud*.09*(1-smooth(.25,.6,Math.abs(r.distance-1.0)));
  ground+=w.snow*(.28+noise(x*.065,z*.055)*.65)*( .55+.45*off);
- const channel=riverDistance(x,z),bank=1-smooth(riverWidth(x)-1,riverWidth(x)+10,channel);
- if(x<515&&x>25)ground=ground*(1-bank)+(riverLevel(x)-.38+noise(x*.7,z*.7)*.12)*bank;
  // In the mountains cut a wide bench into continuous ridges, rather than
  // extending different switchback elevations into abrupt neighbouring plateaus.
  const trailBlend=regional*(1-ascent+ascent*(1-smooth(12,42,r.distance)));
  return original*(1-trailBlend)+ground*trailBlend;
 }
+// The liquid follows the underlying mountain grade, below the causeway surface.
+export function lavaSurfaceHeight(x,z){return regionalHeight(x,z)-.58}
+export function baseHeight(x,z){
+ let original=regionalHeight(x,z);
+ const lava=lavaCrossingProfile(x,z);
+ if(lava){
+  const edge=smooth(lava.width-.5,lava.width+3,Math.abs(lava.u));
+  // A recessed molten bed with a dry, continuous driving bench through it.
+  const bed=original-1.5+edge*1.85;
+  original+=(bed-original)*lava.influence*(1-lava.causeway);
+ }
+ // Apply after regional blending, including the coast and areas away from the
+ // route. Previously the rendered river crossed untouched hills at its mouth.
+ if(x< -72||x>538||Math.abs(z+340)>55)return original;
+ const profile=riverProfile(x,z);if(profile.influence<=0)return original;
+ const ripple=(noise(x*.7,z*.7)-.5)*.06*smooth(0,.20,Math.max(0,profile.depth));
+ const channel=profile.ground+ripple;
+ // Do not build a dam where the river opens into the sea. Landward of the
+ // mouth, both banks use the same elevation profile as the water surface.
+ const land=smooth(4,22,x-shore(z)),target=Math.min(original,channel)*(1-land)+channel*land;
+ return original+(target-original)*profile.influence;
+}
 export function surfaceAt(x,z){
  const d=x-shore(z),r=routeSample(x,z),inland=smooth(25,70,d)*(1-smooth(110,210,r.distance));
- const w=r.weights,snow=w.snow*inland,mud=w.mud*inland,grass=Math.max(w.grass*inland,riverGreenery(x,z)*.9)*(1-snow)*(1-w.volcanic),volcanic=w.volcanic*inland,river=(1-smooth(riverWidth(x),riverWidth(x)+3,riverDistance(x,z)))*inland;
+ const w=r.weights,profile=riverProfile(x,z),river=profile.wet,approach=riverApproach(x,z,r,profile);
+ const snow=w.snow*inland,mud=Math.max(w.mud*inland,approach*.72*(1-river));
+ const grass=Math.max(w.grass*inland,riverGreenery(x,z)*.9)*(1-snow)*(1-w.volcanic)*(1-river)*(1-approach),volcanic=w.volcanic*inland;
  const sand=smooth(14,65,d)*(.78+.22*noise(x*.026,z*.026));
- return {biome:inland>.5?r.biome:d>35?'dunes':'beach',snow,mud,grass,trail:1-smooth(4,10,r.distance),volcanic:Math.max(volcanic,smooth(235,165,Math.hypot(x-VOLCANO.x,z-VOLCANO.z))),river,puddle:mud*(1-smooth(2,5,r.distance))*smooth(.48,.75,noise(r.x*.13,r.z*.13)),soft:sand*(1-inland)+inland*(w.dunes*.8+w.beach*.2+grass*.15+snow*(.40+.27*smooth(3,10,r.distance))+mud*(.30+.38*smooth(3,10,r.distance))+river*.12),grip:1-snow*.07-mud*.31-river*.13};
+ return {riverApproach:approach,biome:inland>.5?r.biome:d>35?'dunes':'beach',snow,mud,grass,trail:1-smooth(4,10,r.distance),volcanic:Math.max(volcanic,smooth(235,165,Math.hypot(x-VOLCANO.x,z-VOLCANO.z))),river,puddle:mud*(1-smooth(2,5,r.distance))*smooth(.48,.75,noise(r.x*.13,r.z*.13)),soft:sand*(1-inland)+inland*(w.dunes*.8+w.beach*.2+grass*.15+snow*(.40+.27*smooth(3,10,r.distance))+mud*(.30+.38*smooth(3,10,r.distance))+river*.12),grip:1-snow*.07-mud*.31-river*.13};
 }
 export const softnessAt=(x,z)=>surfaceAt(x,z).soft;
 // Sparse half-metre deformation field, shared across tile edges and the physics collider.

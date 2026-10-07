@@ -387,3 +387,16 @@
 @media(max-width:700px){.editorial .drive-invite{grid-template-columns:1fr;gap:30px}.editorial .drive-invite-copy>p:not(.eyebrow){font-size:16px}.editorial .drive-invite-copy>.drive-hint{font-size:11px}.drive-dialog-bar{padding:0 6px;font-size:8px;letter-spacing:0}}
 
 .drive-preview-stage{position:relative;overflow:hidden;aspect-ratio:1.35;background:#ba8c7b;border:1px solid #a7c6bf55}.drive-preview-stage img{position:absolute;inset:0;height:100%;aspect-ratio:auto;border:0}.drive-preview-stage iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;pointer-events:none;opacity:0;transition:opacity .8s}.drive-preview-stage.is-live iframe{opacity:1}.drive-live-label{position:absolute;bottom:18px;left:18px;font:10px/1.4 monospace;letter-spacing:1.2px;background:#17292dbb;color:#fff5df;padding:9px 12px;opacity:0;transition:opacity .8s;pointer-events:none}.is-live .drive-live-label{opacity:1}.drive-live-label i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#f59a62;margin-right:7px}@media(max-width:700px){.drive-preview-stage{aspect-ratio:1.25}}@media(prefers-reduced-motion:reduce){.drive-preview-stage iframe,.drive-live-label{transition:none}}
+
+/* Latest EVAP repair plan replaces the retired mechanic-photo feature. */
+.editorial .evap-update{grid-template-columns:1.05fr .95fr;align-items:start;gap:6vw}
+.editorial .evap-update h3{font-size:clamp(34px,3.6vw,56px);line-height:1.04;letter-spacing:-.045em}
+.editorial .evap-plan{border-left:1px solid var(--editorial-rule);padding-left:4vw}
+.editorial .evap-plan .status{font:12px/1.5 monospace;letter-spacing:.08em;color:var(--accent);margin:0 0 18px}
+.editorial .evap-plan .evap-parts{font-size:clamp(28px,3vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1.12;margin:0 0 22px;color:var(--ink)}
+.editorial .evap-plan p{font-size:16px;line-height:1.65;color:#bdccca;max-width:43ch}
+.editorial .evap-plan .small-note{font-size:13px;color:var(--muted)}
+.editorial .service-pending{border-top:2px solid var(--accent)}
+.editorial .service-pending b{display:inline-block;font-size:10px;letter-spacing:.09em;border:1px solid var(--accent);padding:2px 6px;margin-top:6px}
+.editorial .service-pending strong{color:var(--ink)}
+@media(max-width:900px){.editorial .evap-update{grid-template-columns:1fr;gap:30px}.editorial .evap-plan{border-left:0;border-top:1px solid var(--editorial-rule);padding:26px 0 0}.editorial .evap-update .evidence-copy p{max-width:54ch}}

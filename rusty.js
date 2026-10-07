@@ -14,18 +14,18 @@
   const notes = [
     {
       question: 'Is she for sale? What’s the price?',
-      reply: '$TBD. The owner is considering a sale but hasn’t decided to let her go. He plans an EVAP smoke test and a body-shop estimate first; neither is complete yet. Built an entire website. Still emotionally attached. Classic.',
+      reply: '$TBD. The owner is considering a sale but hasn’t decided to let her go. The latest mechanic recommends EVAP replacement: solenoid, canister and gas cap. Work is pending. Built an entire website. Still emotionally attached. Classic.',
       link: 'See the sale status and comparables', href: '#price'
     },
     {
       question: 'How much work does it need?',
-      reply: 'The EVAP faults are unresolved, and the sunroof, driver’s seat heater and other items need attention. The owner reports no frame rust; corrosion is mainly on clamps and other hardware. Inspect underneath and review the mechanic’s photos. I have notes, not X-ray vision.',
+      reply: 'EVAP replacement is planned: solenoid, canister and gas cap, per the latest mechanic visit. The sunroof, driver’s seat heater and other listed items still need attention. The repair list has direction. The wallet has concerns.',
       link: 'Read the known issues', href: '#condition'
     },
     {
       question: 'What are the EVAP codes?',
-      reply: 'P2418, P0442 and P0446 remain unresolved. The owner’s mechanic suspects the photographed area and recommended a body shop/welder assessment. The owner plans an EVAP smoke test and a body-shop estimate; neither is complete yet. Cause, repair scope and cost are unconfirmed. My crystal ball is also out for repairs.',
-      link: 'See the mechanic’s notes and photos', href: '#mechanic-photos'
+      reply: 'P2418, P0442 and P0446 remain unresolved. Following the October 7 mechanic visit, EVAP replacement is planned: solenoid, canister and gas cap. Work is pending and emissions readiness is unconfirmed. EPA, contain your excitement. The owner is about to pay good money to contain the vapors.',
+      link: 'Read the latest EVAP update', href: '#evap-update'
     },
     {
       question: 'Where are the running boards?',

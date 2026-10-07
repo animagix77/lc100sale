@@ -1,16 +1,28 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {DrivePhysics,RAPIER} from './physics.mjs';
-import {SandField,clamp} from './terrain.mjs';
+import {SandField,clamp,baseHeight} from './terrain.mjs';
 import {TerrainView} from './terrain-view.mjs';
 import {BeachLife} from './beach-life.mjs';
 import {BeachObstacles} from './obstacles.mjs';
 import {riverRocksNear} from './river-rocks.mjs';
 import {Ocean} from './ocean.mjs';
 import {RiverView} from './river-view.mjs';
+import {riverBounds,riverZ,riverWidth,riverLevel} from './expedition.mjs';
 for(const mobile of [false,true]){
  const scene=new THREE.Scene(),ocean=new Ocean(scene,{mobile}),river=new RiverView(scene,ocean),life=new BeachLife(scene,{mobile});
  const geometry=river.mesh.geometry;assert(geometry.attributes.position.count<47000,'Bounded river geometry');assert(geometry.attributes.position.count>20000,'Tessellation resolves tyre wakes');
+ const vertices=geometry.attributes.position,nz=mobile?28:40;
+ let edges=0;
+ for(let i=0;i<vertices.count;i+=nz+1)for(const j of [i,i+nz]){
+  const x=vertices.getX(j),z=vertices.getZ(j),y=vertices.getY(j);
+  assert(Math.abs(Math.abs(z-riverZ(x))-riverWidth(x))<.0001,'Water mesh ends at the shared shoreline, without an overhanging skirt');
+  if(x>=0&&x<498){assert(Math.abs(y-baseHeight(x,z))<.0001,'Rendered banks meet the actual terrain');edges++;}
+  assert(Math.abs(y-riverLevel(x))<.00001,'Water elevation matches the gameplay sampler');
+ }
+ assert(edges>1000,'Check both banks across the inland reach');
+ assert.equal(vertices.getX(0),riverBounds.minX);assert.equal(vertices.getX(vertices.count-1),riverBounds.maxX);
+ assert.equal(river.mesh.material.side,THREE.FrontSide,'No visible underside that reads as a floating water slab');
  assert([...geometry.attributes.riverDepth.array].every(v=>Number.isFinite(v)&&v>=0));assert(geometry.attributes.riffle.array.some(v=>v>.3),'Exposed stones produce turbulent patches');
  life.refresh({x:248,z:-336},{x:0,z:0});assert(life.samples.filter(r=>r.river&&Math.hypot(r.x-248,r.z+336)<22).length>70,'Dense riverbed around the crossing');
  const rocks=riverRocksNear(248,-336,22);assert(rocks.some(r=>r.sy<.75)&&rocks.some(r=>r.sy>1.3),'Low crossing stones and taller bank obstacles');

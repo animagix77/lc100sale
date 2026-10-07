@@ -16,9 +16,13 @@ for(const range of ['HI','LO']){
 // A restrained chassis on a loaded ramp models a climb with no forward progress.
 // Wheel contact, driveline, physical wheel angle and sand marks still run normally.
 for(const range of ['HI','LO'])for(const locked of [false,true]){
- const p=await DrivePhysics.create(),a=.34;p.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(100,0,0).setRotation({x:Math.sin(a/2),y:0,z:0,w:Math.cos(a/2)}));p.reset(100,0,0);p.rb.setRotation({x:Math.sin(a/2),y:0,z:0,w:Math.cos(a/2)},true);
+ const p=await DrivePhysics.create(),a=.34;p.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(100,0,300).setRotation({x:Math.sin(a/2),y:0,z:0,w:Math.cos(a/2)}));p.reset(100,300,0);p.rb.setRotation({x:Math.sin(a/2),y:0,z:0,w:Math.cos(a/2)},true);
  assert(p.setRange(range));assert(p.setCenterLock(locked));for(let i=0;i<240;i++)p.step(dt,{brake:true});p.rb.setEnabledTranslations(false,false,false,true);p.rb.setEnabledRotations(false,false,false,true);
+ // Axis locks prevent force response but retain pre-existing velocity. Remove
+ // downhill motion too, or this fixture is still sliding rather than restrained.
+ p.rb.setLinvel({x:0,y:0,z:0},true);p.rb.setAngvel({x:0,y:0,z:0},true);const restrained=p.position();
  let min=Infinity;for(let i=0;i<720;i++){p.step(dt,{gas:true});if(i>240)min=Math.min(min,p.tyres.reduce((s,w)=>s+Math.abs(w.omega),0)/4);}
+ assert.deepEqual(p.position(),restrained,'Restrained chassis stays fixed through the uphill wheelspin test');assert.equal(p.speed,0,'Wheelspin is measured at zero chassis progress');
  console.log('Restrained uphill spin',{range,locked,rpm:min*60/(Math.PI*2),marks:p.marks.length});assert(min>2.5,'Holding gas sustains wheelspin at zero uphill progress');assert(p.marks.length>20,'Wheelspin continues generating surface-effect marks');
  for(let i=0;i<240;i++)p.step(dt,{brake:true});assert(p.tyres.every(w=>Math.abs(w.omega)<.1),'Brake stops wheel rotation');p.dispose();
 }

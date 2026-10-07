@@ -20,7 +20,7 @@ const at={x:blade.x+.4,z:blade.z};for(let i=1;i<=60;i++)meadow.update(at,i/60,{x
 assert(blade.by>.8&&Math.hypot(blade.bx,blade.bz)>.5,'Truck parts and flattens nearby grass');
 for(let i=61;i<=660;i++)meadow.update({x:at.x-12,z:at.z},i/60,{x:0,z:0},{wind:8},0);assert(blade.by>.75,'Crushed grass remains flat behind the vehicle');
 const tracked={x:blade.x,z:blade.z};meadow.update({x:400,z:-460},12,{x:0,z:0});meadow.update({x:at.x-12,z:at.z},13,{x:512,z:-512});const restored=meadow.grassData.find(g=>g.x===tracked.x&&g.z===tracked.z);assert(restored?.by>.75,'Flattened trail survives streaming and origin rebasing');
-for(let i=0;i<120;i++)meadow.update({x:at.x-12,z:at.z},250+i/60,{x:512,z:-512});assert(restored.by<.025,'Flattened grass gradually recovers after several minutes');meadow.dispose();
+for(let i=0;i<120;i++)meadow.update({x:at.x-12,z:at.z},360+i/60,{x:512,z:-512});assert(restored.by<.025,'Flattened grass gradually recovers after several minutes');meadow.dispose();
 console.log('Interactive meadow: physical footprint bends, parts, and regrows grass.');
 
 for(const mobile of [false,true]){
@@ -38,5 +38,18 @@ for(const mobile of [false,true]){
  const before=life.shrubs.instanceMatrix.array.slice();life.update(p,3,{x:0,z:0},{wind:16});assert.deepEqual(life.shrubs.instanceMatrix.array,before,'Wind animation does not reshuffle the riverbank');
  assert.equal(scene.children.length,12,'Detail adds no scene objects');life.dispose();assert.equal(scene.children.length,0);
 }
-const stillForest=new BeachLife(new THREE.Scene(),{reduced:true});stillForest.update({x:248,z:-336},20,{x:0,z:0},{wind:45});assert.equal(stillForest.windStrength.value,0,'Reduced motion disables canopy and fern sway');stillForest.dispose();
+const stillForest=new BeachLife(new THREE.Scene(),{reduced:true});stillForest.update({x:248,z:-336},20,{x:0,z:0},{wind:45});assert.equal(stillForest.windStrength.value,0,'Reduced motion disables fern sway');stillForest.dispose();
 console.log('Woodland detail: bounded canopy and fern geometry, stable placement, wind attributes, reduced motion and cleanup passed.');
+
+// Streaming preserves the old visible/collidable cell until the entire replacement
+// is ready; no partially rewritten world may be rendered between budget slices.
+const streamed=new BeachLife(new THREE.Scene(),{mobile:true}),reference=new BeachLife(new THREE.Scene(),{mobile:true}),zero={x:0,z:0};
+streamed.refresh({x:-14,z:0},zero);const startKey=streamed.key,startMatrices=streamed.grass.instanceMatrix.array.slice();
+const destination={x:248,z:-336};reference.refresh(destination,zero);let slices=0;
+while(streamed.key===startKey){const complete=streamed.stream(destination,zero,0);slices++;if(!complete)assert.deepEqual(streamed.grass.instanceMatrix.array,startMatrices,'Incomplete stream stays off the visible buffers');assert(slices<10000)}
+assert(slices>20,'Scenery generation yields between bounded batches');
+assert.deepEqual(streamed.stats,reference.stats);assert.deepEqual(streamed.grass.instanceMatrix.array,reference.grass.instanceMatrix.array,'Streaming retains all full-detail grass placement');assert.deepEqual(streamed.crowns.instanceMatrix.array,reference.crowns.instanceMatrix.array);
+const stable=streamed.key;streamed.stream({x:447,z:-658},zero,0);assert(streamed._pending);streamed.stream(destination,zero,0);assert.equal(streamed._pending,null,'Returning to current cell cancels obsolete work');assert.equal(streamed.key,stable);
+const worldMatrix=streamed.grass.instanceMatrix.array.slice();streamed.refresh(destination,{x:512,z:-512});for(let i=0;i<streamed.grass.count;i++){assert(Math.abs(streamed.grass.instanceMatrix.array[i*16+12]+512-worldMatrix[i*16+12])<.001);assert(Math.abs(streamed.grass.instanceMatrix.array[i*16+14]-512-worldMatrix[i*16+14])<.001)}
+assert.equal(streamed._pending,null,'Rebasing existing scenery does not rebuild its generation queue');streamed.dispose();reference.dispose();
+console.log('Budgeted scenery streaming: atomic visibility, unchanged placement, cancellation, and cheap origin shift passed.');

@@ -4,7 +4,7 @@ import {DrivePhysics,RAPIER} from './physics.mjs';
 import {BeachLife} from './beach-life.mjs';
 import {BeachObstacles} from './obstacles.mjs';
 import {shore} from './terrain.mjs';
-const p=await DrivePhysics.create(),scene=new THREE.Scene(),life=new BeachLife(scene),solid=new BeachObstacles(p);
+const p=await DrivePhysics.create(),scene=new THREE.Scene(),life=new BeachLife(scene),solid=new BeachObstacles(p,{radius:Infinity});
 p.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(0,-.1,0));
 life.logs.count=1;life.key='test';const m=new THREE.Matrix4().compose(new THREE.Vector3(0,0,-8),new THREE.Quaternion(),new THREE.Vector3(1.6,1.6,1.6));life.logs.setMatrixAt(0,m);solid.refresh(life);
 p.reset(0,0,0);for(let i=0;i<240;i++)p.step(1/120,{brake:true});const settled=p.position().y;let onLog=0,peak=settled,compression=1;

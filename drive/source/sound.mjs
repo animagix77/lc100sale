@@ -1,17 +1,23 @@
 import {impactBank} from './impact-audio.mjs';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Audio follows wheel rotation and load, including wheelspin at zero road speed.
-export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=30,waterContact}){
+export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=30,waterContact,waterDepth,rain=0}){
  const moving=Math.abs(speed),ground=tyres.filter(w=>w.contact),wheel=tyres.length?tyres.reduce((sum,w)=>sum+Math.abs(w.omega||0),0)/tyres.length:0;
  const slip=Math.max(0,...ground.map(w=>w.slip||0)),soft=ground.length?ground.reduce((s,w)=>s+(w.soft||0),0)/ground.length:0;
- const throttle=input.brake?0:input.gas||input.reverse?1:input.cruise?.38:0;
+ const throttle=input.brake||input.handbrake?0:clamp(Number(input.gas)||Number(input.reverse)|| (input.cruise?.38:0),0,1);
  // Continuous cruising curve avoids hunting at artificial speed-based gear boundaries.
  const rolling=range==='LO'?wheel*9.5493*22:moving*155;
  const wheelspin=Math.max(0,wheel*.45-moving);
  const rpm=clamp(720+rolling+Math.sqrt(wheelspin)*260+throttle*260,720,4200);
  const load=clamp(throttle*.72+slip*.06,0,1),wet=clamp(waterContact??(7-shoreDistance)/5,0,1);
  const work=ground.length?clamp(moving*.12+slip*.13,0,1):0;
- return {rpm,load,wet,sand:work*(1-wet)*(.055+soft*.055),splash:ground.length?wet*clamp(moving/11.2,0,1)**.7*.58:0,splashInterval:1.35-clamp(moving/11.2,0,1)*.87,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
+ // Fifty mph still moves more water than twenty-five. Depth controls body and
+ // volume; the narrow deadband keeps a parked truck from endlessly hissing.
+ const velocity=clamp((moving-.15)/22.2,0,1),depth=clamp(waterDepth??.18,0,.8),immersion=.55+.55*Math.sqrt(depth/.8);
+ const splash=ground.length?wet*velocity**.7*immersion:0,precipitation=clamp(Number(rain)||0,0,1);
+ return {rpm,load,wet,sand:work*(1-wet)*(.055+soft*.055),splash,splashRate:.85+velocity*.35,splashCutoff:750+velocity*3800,
+  splashEntry:(.22+velocity*.94)*Math.sqrt(wet)*immersion,splashDuration:.55+velocity*.65,
+  rain:precipitation**.7*.8,rainCutoff:2400+precipitation*4000,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
 }
 // Stylized muted petrol V8: four firing events per revolution, with a restrained
 // upper harmonic spectrum. All partials share an exact harmonic relationship.
@@ -19,9 +25,27 @@ export function engineVoice({rpm,load}){
  const rev=clamp((rpm-720)/3480,0,1),work=clamp(load,0,1);
  return {fundamental:clamp(rpm,720,4200)/15,cutoff:520+rev*500+work*180,gains:[.105+work*.045,.034+work*.023,.010+work*.010,.004+work*.005]};
 }
+// Bounded, repeatable stereo texture: rain has small irregular wet impacts;
+// spray has a softer turbulent body. Recorded waves supply the water wash.
+// No oscillating envelope or regularly spaced bursts that resemble an engine.
+export function wetPCM(kind,sampleRate=48000,seed=9271){
+ const data=new Float32Array(Math.ceil(sampleRate*6)),rain=kind==='rain';let low=0,mid=0,drop=0;
+ const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ const lowBlend=1-Math.exp(-2*Math.PI*180/sampleRate),midBlend=1-Math.exp(-2*Math.PI*1500/sampleRate),decay=Math.exp(-1/(sampleRate*.009));
+ for(let i=0;i<data.length;i++){
+  const noise=random()*2-1;low+=(noise-low)*lowBlend;mid+=(noise-mid)*midBlend;
+  drop*=decay;if(rain&&random()<95/sampleRate)drop=Math.min(1.8,drop+.35+random()*.7);
+  const value=rain?(noise-low)*.24+mid*.4+drop*((noise-mid)*.5+mid*.6):(noise-mid)*.15+mid*.85+low*.8;
+  const edge=Math.min(1,i/(sampleRate*.005),(data.length-1-i)/(sampleRate*.005));
+  data[i]=Math.tanh(value)*edge;
+ }return data;
+}
+function wetBank(ctx){
+ const bank={};for(const kind of ['rain','spray']){const buffer=ctx.createBuffer(2,Math.ceil(ctx.sampleRate*6),ctx.sampleRate);for(let channel=0;channel<2;channel++)buffer.getChannelData(channel).set(wetPCM(kind,ctx.sampleRate,9271+channel*731));bank[kind]=buffer}return bank;
+}
 export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocument){
- let ctx,master,compressor,buffers,loading,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash;
- let nextGull=0,nextSplash=0,nextImpact=0,impactVariant=0;const sources=new Set(),controller=new AbortController();
+ let ctx,master,compressor,buffers,loading,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash,waterWash,waterSpray,waterFilter,rainBed,rainFilter;
+ let nextGull=0,nextSplash=0,nextImpact=0,impactVariant=0,lastWet=0;const sources=new Set(),controller=new AbortController();
  const label=()=>{button.textContent=on?'Sound on':'Sound off';button.setAttribute('aria-pressed',String(on));};
  const smooth=(param,value,seconds=.12)=>param.setTargetAtTime(value,ctx.currentTime,seconds);
  function gain(value){const n=ctx.createGain();n.gain.value=value;return n;}
@@ -32,7 +56,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
   const names=['sand','coast','gull1','gull2','wave1','wave2'];
   buffers=Object.fromEntries(await Promise.all(names.map(async name=>{const response=await fetch(`audio/${name}.m4a?v=steady-2`,{signal:controller.signal});if(!response.ok)throw new Error(name);return [name,await ctx.decodeAudioData(await response.arrayBuffer())];})));
   if(disposed)return;
-  Object.assign(buffers,impactBank(ctx));
+  Object.assign(buffers,impactBank(ctx),wetBank(ctx));
   engineFilter=ctx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=1000;engineFilter.Q.value=.5;engineFilter.connect(master);
   // A phase-aligned harmonic drone replaces the pulsed exhaust recordings.
   // No random detuning, firing bursts or amplitude LFOs: throttle changes tone,
@@ -41,11 +65,17 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
   for(const order of [1,2,3,4]){const source=ctx.createOscillator(),g=gain(0);source.type='sine';source.frequency.value=48*order;source.connect(g);g.connect(engineFilter);source.start(start);sources.add(source);engine.push({source,g,order})}
   const sandFilter=ctx.createBiquadFilter();sandFilter.type='highpass';sandFilter.frequency.value=550;const gritLow=ctx.createBiquadFilter();gritLow.type='lowpass';gritLow.frequency.value=2200;sandFilter.connect(gritLow);gritLow.connect(master);sand=loop('sand',sandFilter);
   coast=loop('coast',master,.2);
+  const washFilter=ctx.createBiquadFilter();washFilter.type='lowpass';washFilter.frequency.value=1700;washFilter.Q.value=.4;washFilter.connect(master);waterWash=loop('wave2',washFilter);
+  waterFilter=ctx.createBiquadFilter();waterFilter.type='lowpass';waterFilter.frequency.value=750;waterFilter.Q.value=.4;waterFilter.connect(master);waterSpray=loop('spray',waterFilter);
+  rainFilter=ctx.createBiquadFilter();rainFilter.type='lowpass';rainFilter.frequency.value=4000;rainFilter.Q.value=.4;rainFilter.connect(master);rainBed=loop('rain',rainFilter);
   nextGull=ctx.currentTime+4;apply();
  }
- function apply(){if(master)smooth(master.gain,on&&!paused?.72:0,.14);if(!on||paused)onMix(false,0);}
- function shot(name,volume,pan=0,rate=1,duration=0){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner();s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();p.disconnect();};
+ function stopSplash(){if(!splash)return;smooth(splash.g.gain,0,.025);try{splash.source.stop(ctx.currentTime+.12)}catch{}splash=null;}
+ function quietWeather(){if(waterWash)smooth(waterWash.g.gain,0,.05);if(waterSpray)smooth(waterSpray.g.gain,0,.05);if(rainBed)smooth(rainBed.g.gain,0,.12);stopSplash();}
+ function apply(){if(master)smooth(master.gain,on&&!paused?.72:0,.14);if(!on||paused){quietWeather();onMix(false,0);}}
+ function shot(name,volume,pan=0,rate=1,duration=0){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner();s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();p.disconnect();if(splash?.source===s)splash=null;};
   if(duration){const now=ctx.currentTime;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.035);g.gain.setValueAtTime(volume,now+duration*.55);g.gain.linearRampToValueAtTime(0,now+duration);s.start(now,.25,duration*rate);s.stop(now+duration+.02);}else s.start();
+  return {source:s,g};
  }
  // Enabled by default; the first in-game gesture unlocks browser audio.
  // A deliberate mute is never undone by subsequent driving input.
@@ -80,7 +110,14 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    smooth(engineFilter.frequency,voice.cutoff,.4);
    smooth(sand.g.gain,m.sand);smooth(sand.source.playbackRate,.78+Math.min(Math.abs(state.speed)*.055,.5));smooth(coast.g.gain,m.surf,.7);
    if(state.shoreDistance<100&&now>nextGull){shot(Math.random()<.5?'gull1':'gull2',.14+Math.random()*.1,(Math.random()-.5)*1.6,.94+Math.random()*.12);nextGull=now+12+Math.random()*18;}
-   if(m.splash>.025&&now>nextSplash){shot(Math.random()<.5?'wave1':'wave2',m.splash, (Math.random()-.5)*.7,1.04+Math.min(Math.abs(state.speed)/11.2,1)*.22,.70);nextSplash=now+m.splashInterval+Math.random()*.12;}
+   // Both layers stay running at zero gain on land, so a long river crossing
+   // stays continuous and does not allocate a new voice every few frames.
+   smooth(waterWash.g.gain,m.splash*.72,m.splash? .16:.05);smooth(waterWash.source.playbackRate,m.splashRate,.3);
+   smooth(waterSpray.g.gain,m.splash*.7,m.splash? .13:.05);smooth(waterFilter.frequency,m.splashCutoff,.18);
+   smooth(rainBed.g.gain,m.rain,.65);smooth(rainFilter.frequency,m.rainCutoff,.65);
+   if(!m.splash)stopSplash();
+   else if(m.wet-lastWet>.18&&now>=nextSplash){stopSplash();splash=shot('wave1',m.splashEntry,(Math.random()-.5)*.45,m.splashRate,m.splashDuration);nextSplash=now+.65;}
+   lastWet=m.wet;
    if(state.impacts?.length&&now>=nextImpact){const hit=state.impacts.reduce((a,b)=>a.energy>b.energy?a:b);const kind=['wood','rock','suspension'].includes(hit.kind)?hit.kind:'suspension';shot(kind+(impactVariant++%3),.14+clamp(hit.energy,0,1)*.46,hit.pan||0,.94+Math.random()*.12);nextImpact=now+.07;}
    onMix(true,m.load);
   },

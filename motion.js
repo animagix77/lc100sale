@@ -7,7 +7,6 @@
   const animation=node.animate(keyframes,options);active.add(animation);
   animation.onfinish=animation.oncancel=()=>active.delete(animation);return animation;
  }
- let outgoing=null,outgoingBackdrop=null,frameAnimation=null;
  const textAnimations=new Set();
  function clearText(){for(const a of textAnimations){a.cancel();active.delete(a)}textAnimations.clear();}
  function reveal(node,delay=0,line=false){
@@ -35,7 +34,7 @@
   exiting=true;
   const root=launch.hidden?document.querySelector('.tour-copy'):launch;
   const ink=Array.from(root.querySelectorAll('.masked-ink'));
-  const other=Array.from(root.querySelectorAll('.button,#tour-evidence')).filter(node=>!node.hidden);
+  const other=Array.from(root.querySelectorAll('.button')).filter(node=>!node.hidden);
   const starts=[...ink,...other].map(node=>({node,transform:getComputedStyle(node).transform,opacity:getComputedStyle(node).opacity}));
   clearText();
   const animations=starts.map(({node,transform,opacity},i)=>{
@@ -66,20 +65,10 @@
    reveal(chapter);reveal(tag,50);
    title.querySelectorAll('.masked-ink').forEach((line,i)=>reveal(line,70+i*100,true));
    reveal(body,280);reveal(link,360);
-  },
-  frame(src){
-   const img=document.getElementById('tour-image');if(img.getAttribute('src')===src)return;
-   frameAnimation?.cancel();outgoing?.remove();outgoingBackdrop?.remove();outgoing=null;outgoingBackdrop=null;
-   if(!preference.matches&&img.complete&&img.naturalWidth){
-    const backdrop=document.querySelector('.orbit-backdrop');const oldBackdrop=backdrop.cloneNode(false);oldBackdrop.style.backgroundImage=getComputedStyle(backdrop).backgroundImage;backdrop.after(oldBackdrop);outgoingBackdrop=oldBackdrop;
-    const old=img.cloneNode(false);old.removeAttribute('id');old.removeAttribute('fetchpriority');old.className='orbit-outgoing';old.alt='';old.setAttribute('aria-hidden','true');img.after(old);outgoing=old;
-    frameAnimation=animate(old,[{opacity:1},{opacity:0}],{duration:140,easing:'ease-out'});animate(oldBackdrop,[{opacity:1},{opacity:0}],{duration:140,easing:'ease-out'});
-    if(frameAnimation){const thisAnimation=frameAnimation;thisAnimation.onfinish=thisAnimation.oncancel=()=>{active.delete(thisAnimation);old.remove();oldBackdrop.remove();if(outgoing===old)outgoing=null;if(outgoingBackdrop===oldBackdrop)outgoingBackdrop=null}}
-   }
-   img.src=src;
   }
+
  };
  // The scroll controller starts the intro reveal when that section is visible.
  const photo=document.getElementById('photo-large');photo?.addEventListener('load',()=>animate(photo,[{opacity:.3},{opacity:1}],{duration:180,easing:'ease-out'}));
- preference.addEventListener('change',()=>{if(preference.matches){if(exiting)finishExit();Array.from(active).forEach(a=>a.cancel());outgoing?.remove();outgoingBackdrop?.remove()}});
+ preference.addEventListener('change',()=>{if(preference.matches){if(exiting)finishExit();Array.from(active).forEach(a=>a.cancel())}});
 })();
