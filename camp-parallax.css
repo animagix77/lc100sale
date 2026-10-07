@@ -1,11 +1,11 @@
-/* Keep every depth plane on the same crop; overscan hides edges during pointer travel. */
+/* Registered crops and shared overscan keep all photographic layers aligned. */
 .editorial .story-panorama .camp-depth{
  position:absolute;inset:0;display:block;padding:0;margin:0;background:none;
  overflow:hidden;pointer-events:none;opacity:0;transition:opacity .55s ease;z-index:1;
 }
 .editorial .story-panorama .photo-open .camp-depth img{
  position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;
- object-fit:cover;object-position:50% 62%;transform:scale(1.065);
+ object-fit:cover;object-position:50% 62%;transform:scale(1.1);
  transition:none;will-change:transform;
 }
 .editorial .story-panorama .camp-depth .camp-foreground{
@@ -13,6 +13,27 @@
 }
 .editorial .story-panorama .camp-depth-ready>.camp-depth{opacity:1}
 .editorial .story-panorama .photo-open>span:not(.camp-depth){z-index:2}
-@media(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse),(max-width:700px){
+@media(max-width:700px){
+ .editorial .story-panorama .photo-open .camp-depth img{object-position:56% 60%}
+}
+@media(prefers-reduced-motion:reduce){
  .editorial .story-panorama .camp-depth{display:none}
+}
+.editorial .story-panorama{position:relative}
+.editorial .story-panorama .camp-tilt-control{
+ position:absolute;top:14px;right:14px;z-index:3;min-height:44px;
+ padding:10px 14px;border:1px solid #eef0e74d;border-radius:3px;
+ background:#102528e6;color:var(--ink,#eef0e7);font:600 12px/1.2 monospace;
+ letter-spacing:.05em;cursor:pointer;touch-action:manipulation;
+}
+.editorial .story-panorama .camp-tilt-control[aria-pressed="true"]{border-color:var(--accent,#f58d52)}
+.editorial .story-panorama .camp-tilt-control:focus-visible{outline:2px solid var(--accent,#f58d52);outline-offset:3px}
+.editorial .story-panorama .camp-tilt-control[hidden]{display:none}
+.editorial .story-panorama .camp-tilt-status{
+ position:absolute;top:66px;right:14px;left:14px;z-index:3;
+ color:#eef0e7;background:#102528ed;padding:10px 14px;font-size:13px;line-height:1.4;
+}
+.editorial .story-panorama .camp-tilt-status:empty{display:none}
+@media(prefers-reduced-motion:reduce){
+ .editorial .story-panorama .camp-tilt-control,.editorial .story-panorama .camp-tilt-status{display:none}
 }
