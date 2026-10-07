@@ -1,4 +1,5 @@
 import {routeSample,riverMask,riverZ} from './expedition.mjs';
+import {riverRocksNear} from './river-rocks.mjs';
 import {coastalWind} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
 import {positionLocal,attribute,uniform,sin,vec3} from 'three/tsl';
@@ -39,7 +40,7 @@ export class BeachLife{
   this.grass=make(geometry,grassMat,capacity);
   this.logs=make(logGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),180);
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),300);
-  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}),160);
+  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.72,flatShading:true}),480);
   this.boats=[];const bg=boatGeometry(),bm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7});this.geometries.push(bg);this.materials.push(bm);
   for(let i=0;i<5;i++){const mesh=new THREE.Mesh(bg,bm);scene.add(mesh);this.boats.push({mesh,id:0,x:0,z:0})}
  }
@@ -59,17 +60,15 @@ export class BeachLife{
     const x=tx*64+rand(seed,i+1300)*64,z=tz*64+rand(seed,i+1500)*64,coast=x-shore(z);
     const surface=surfaceAt(x,z),inland=surface.river>.2||surface.mud>.5;
     if(!inland&&(coast<9||coast>48||coast>16&&coast<29))continue;
-    const log=surface.river<.2&&i%3===0,rock=surface.river>.2||(!log&&i%4===0),mesh=log?this.logs:rock?this.rocks:this.wrack,index=log?li:rock?ri:wi;if(index>=mesh.instanceMatrix.count)continue;
-    const h=baseHeight(x,z),normal=new THREE.Vector3(-(baseHeight(x+.4,z)-baseHeight(x-.4,z))/.8,1,-(baseHeight(x,z+.4)-baseHeight(x,z-.4))/.8).normalize();d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);const onRoute=routeSample(x,z).distance<7,scale=surface.river>.2&&onRoute?.55+rand(seed,i+2100)*.5:log?.55+rand(seed,i+2000)*1.15:.7+rand(seed,i+2100)*1.7;d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':rock?'rock':'wrack',x,z});if(log)li++;else if(rock)ri++;else wi++;
+    const log=surface.river<.2&&i%3===0,rock=surface.river>.2||(!log&&i%4===0),mesh=log?this.logs:rock?this.rocks:this.wrack,index=log?li:rock?ri:wi;if(index>=mesh.instanceMatrix.count||(rock&&ri>=100))continue;
+    const h=baseHeight(x,z),normal=new THREE.Vector3(-(baseHeight(x+.4,z)-baseHeight(x-.4,z))/.8,1,-(baseHeight(x,z+.4)-baseHeight(x,z-.4))/.8).normalize();d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);const onRoute=routeSample(x,z).distance<7,scale=surface.river>.2&&onRoute?.55+rand(seed,i+2100)*.5:log?.55+rand(seed,i+2000)*1.15:.7+rand(seed,i+2100)*1.7;d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':rock?'rock':'wrack',x,z});if(log)li++;else if(rock){this.rocks.setColorAt(ri,new THREE.Color(1,1,1));ri++;}else wi++;
    }
   }
-  // Exposed and submerged stones define the ford. Small ones on the crossing,
-  // larger stones along the banks; rendered transforms also feed the colliders.
-  for(let ix=Math.floor((p.x-100)/4);ix<=Math.ceil((p.x+100)/4);ix++)for(let side=-2;side<=2;side++){
-   const x=ix*4+rand(ix,side)*2,z=riverZ(x)+side*2.2+rand(side,ix);
-   if(x<40||x>490||Math.hypot(x-p.x,z-p.z)>110||ri>=this.rocks.instanceMatrix.count||Math.hypot(x-248,z+336)<3.5)continue;
-   const onRoute=routeSample(x,z).distance<7,scale=onRoute?.75+rand(ix,side+7)*.35:1.0+rand(ix,side+7)*1.3;
-   d.position.set(x-origin.x,baseHeight(x,z)-.06,z-origin.z);d.rotation.set(0,rand(ix+1,side)*6.28,0);d.scale.setScalar(scale);d.updateMatrix();this.rocks.setMatrixAt(ri++,d.matrix);this.samples.push({kind:'rock',x,z});
+  // The same stable, world-space rock bed supplies rendering and rigid collision.
+  for(const rock of riverRocksNear(cx*64+32,cz*64+32,132)){
+   if(ri>=this.rocks.instanceMatrix.count)break;
+   d.position.set(rock.x-origin.x,rock.y,rock.z-origin.z);d.rotation.set(rock.rx,rock.yaw,rock.rz);d.scale.set(rock.sx,rock.sy,rock.sz);d.updateMatrix();this.rocks.setMatrixAt(ri,d.matrix);
+   c.set(rock.wet?'#777d73':'#a19785').multiplyScalar(.83+rock.tint*.26);this.rocks.setColorAt(ri++,c);this.samples.push({kind:'rock',x:rock.x,z:rock.z,river:true});
   }
   const spacing=this.mobile?2.0:1.5;
   for(let iz=Math.floor((cz*64-48)/spacing);iz<Math.ceil((cz*64+112)/spacing);iz++)for(let ix=Math.floor((cx*64-48)/spacing);ix<Math.ceil((cx*64+112)/spacing);ix++){
@@ -80,7 +79,7 @@ export class BeachLife{
    c.set('#71874b').lerp(new THREE.Color('#b2b570'),rand(ix,iz+4));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.055+z*.025);
    this.grassData.push({x,z,yaw:d.rotation.y,bx:0,by:0,bz:0});this.bendAttribute.setXYZ(gi,0,0,0);gi++;
   }
-  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;this.bendAttribute.needsUpdate=true;
+  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.rocks.instanceColor)this.rocks.instanceColor.needsUpdate=true;if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;this.bendAttribute.needsUpdate=true;
   Object.assign(this.stats,{grass:gi,logs:li,wrack:wi,rocks:ri});
  }
  update(p,time,origin,weather={wind:8},heading=0){

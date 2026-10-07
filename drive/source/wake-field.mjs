@@ -1,3 +1,4 @@
+import {riverMask} from './expedition.mjs';
 import {shore,clamp,smooth} from './terrain.mjs';
 // Bounded shallow-wave height field in absolute world coordinates. A moving window
 // keeps old ripples in place; floating-origin rebases never alter this field.
@@ -7,7 +8,7 @@ export class WakeField{
   const dx=Math.round((nx-this.x)/this.spacing),dz=Math.round((nz-this.z)/this.spacing),n=this.size,h=new Float32Array(this.count),v=new Float32Array(this.count);
   if(Number.isFinite(dx)&&Math.abs(dx)<n&&Math.abs(dz)<n)for(let j=0;j<n;j++)for(let i=0;i<n;i++){const a=i+dx,b=j+dz;if(a>=0&&a<n&&b>=0&&b<n){h[j*n+i]=this.height[b*n+a];v[j*n+i]=this.velocity[b*n+a]}}
   this.height=h;this.velocity=v;this.x=nx;this.z=nz;
-  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const edge=Math.min(i,j,n-1-i,n-1-j),d=nx+i*this.spacing-shore(nz+j*this.spacing);this.mask[j*n+i]=smooth(0,7,edge)*(1-smooth(5,10,d))}
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const edge=Math.min(i,j,n-1-i,n-1-j),d=nx+i*this.spacing-shore(nz+j*this.spacing);this.mask[j*n+i]=smooth(0,7,edge)*Math.max(1-smooth(5,10,d),riverMask(nx+i*this.spacing,nz+j*this.spacing))}
   this.dirty=true;return true;
  }
  stamp(x,z,speed,slip=0,heading=0){if(!Number.isFinite(this.x)||Math.abs(speed)+slip<.35)return;const n=this.size,s=this.spacing,gx=(x-this.x)/s,gz=(z-this.z)/s;if(gx<3||gz<3||gx>n-4||gz>n-4)return;const force=clamp(Math.abs(speed)*.23+slip*.045,.10,1.35),direction=Math.sign(speed)||1,fx=-Math.sin(heading)*direction,fz=-Math.cos(heading)*direction;
