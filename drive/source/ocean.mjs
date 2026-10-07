@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,mx_noise_float,texture} from 'three/tsl';
+import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,fract,mx_noise_float,texture} from 'three/tsl';
 import {shore} from './terrain.mjs';
 import {WakeField} from './wake-field.mjs';
 import {oceanHeight} from './ocean-height.mjs';
@@ -9,6 +9,7 @@ export class Ocean{
  constructor(scene,{mobile=false}={}){
   this.skyTop=uniform(new THREE.Color('#46576c'));this.skyHorizon=uniform(new THREE.Color('#b58073'));this.sunColor=uniform(new THREE.Color('#ffe2af'));this.sunDirection=uniform(new THREE.Vector3(-430,105,-650).normalize());this.brightness=uniform(1);this.waveScale=uniform(1);
   this.vehicleLights=Array.from({length:4},()=>({position:uniform(new THREE.Vector3()),direction:uniform(new THREE.Vector3(0,0,-1)),radiance:uniform(new THREE.Color(0,0,0)),cone:uniform(new THREE.Vector4(.9,.96,48,1.45))}));this.lightTarget=new THREE.Vector3();
+  this.wheelFoam=Array.from({length:4},()=>uniform(new THREE.Vector4()));
   this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;
   this.wake=new WakeField({size:mobile?97:129,spacing:mobile?2/3:.5});this.wakePixels=new Uint16Array(this.wake.count*4);this.wakeTexture=new THREE.DataTexture(this.wakePixels,this.wake.size,this.wake.size,THREE.RGBAFormat,THREE.HalfFloatType);this.wakeTexture.minFilter=this.wakeTexture.magFilter=THREE.LinearFilter;this.wakeTexture.generateMipmaps=false;this.wakeTexture.needsUpdate=true;
   this.wakeOrigin=uniform(new THREE.Vector2());this.wakeSpan=(this.wake.size-1)*this.wake.spacing;this.lastTime=0;
@@ -45,7 +46,19 @@ export class Ocean{
   const front=washPhase.mul(4.8).add(1.0).add(sin(z.mul(.46).add(t.mul(.35))).mul(.42));
   const wash=float(1).sub(smoothstep(.25,1.7,abs(d.sub(front)))).mul(smoothstep(.27,.62,foamNoise)).mul(.78);
   const lace=float(1).sub(smoothstep(.1,.65,abs(d.sub(front).add(2.2)))).mul(smoothstep(.55,.78,foamNoise)).mul(.3);
-  const foam=max(max(crestFoam, wash.add(lace)),wake.a.mul(smoothstep(.18,.60,foamNoise)));
+  // Tire-scale foam lives on the displaced water itself, so it cannot float above waves.
+  // Two broken expanding arcs per wheel stay small; the existing wake carries foam away.
+  let tireFoam=float(0);
+  for(const wheel of this.wheelFoam){
+   const offset=world.sub(wheel.xy),radius=length(offset),ragged=sin(offset.x.mul(19).add(offset.y.mul(13)).add(t.mul(2))).mul(.025);
+   for(let j=0;j<2;j++){
+    const phase=fract(wheel.w.add(j*.5)),ringRadius=phase.mul(1.05).add(.28);
+    const ring=float(1).sub(smoothstep(.025,.10,abs(radius.add(ragged).sub(ringRadius))));
+    const broken=smoothstep(.23,.52,foamNoise.add(sin(offset.x.mul(14).sub(offset.y.mul(17))).mul(.16)));
+    tireFoam=max(tireFoam,ring.mul(broken).mul(float(1).sub(phase)).mul(wheel.z));
+   }
+  }
+  const foam=max(max(max(crestFoam, wash.add(lace)),wake.a.mul(smoothstep(.18,.60,foamNoise))),tireFoam);
   // The custom water shader must explicitly receive the vehicle's local lights.
   // Wave/wake normals break the reflection into moving highlights (GGX specular).
   let vehicleSheen=vec3(0);
@@ -82,12 +95,25 @@ export class Ocean{
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();
   this.mesh.geometry.dispose();this.mesh.geometry=g;
  }
+ updateWheelFoam(dt,physics,time){
+  const k=1-Math.exp(-Math.min(dt,.1)*9),pace=Math.min(1,Math.abs(physics.speed)/8);
+  this.wheelFoam.forEach((slot,i)=>{
+   const v=slot.value,c=physics.vehicle.wheelContactPoint(i),contact=physics.vehicle.wheelIsInContact(i);
+   let wet=false;
+   if(contact&&c){const x=c.x+physics.origin.x,z=c.z+physics.origin.z;
+    wet=x-shore(z)<10&&this.height(x,z,time)>c.y+.025;
+    if(wet){v.x=x;v.y=z;}
+   }
+   v.z+=((wet?.60+pace*.35:0)-v.z)*k;
+   v.w=(v.w+Math.min(dt,.1)*(.42+pace*.55))%1;
+  });
+ }
  updateVehicleLights(rig){
   if(!rig)return;rig.truck.updateWorldMatrix(true,true);
   [ ...rig.beams,rig.rearGlow,rig.backup ].forEach((light,i)=>{const slot=this.vehicleLights[i];light.getWorldPosition(slot.position.value);light.target.getWorldPosition(this.lightTarget);slot.direction.value.copy(this.lightTarget).sub(slot.position.value).normalize();slot.radiance.value.copy(light.color).multiplyScalar(light.intensity);slot.cone.value.set(Math.cos(light.angle),Math.cos(light.angle*(1-light.penumbra)),light.distance,light.decay)});
  }
  height(x,z,time){return oceanHeight(x,z,time,this.waveScale.value)+this.wake.sample(x,z)}
  disturb(mark,speed,heading){this.wake.stamp(mark.x,mark.z,speed,mark.slip,heading)}
- clear(){this.wake.clear()}
+ clear(){this.wake.clear();this.wheelFoam.forEach((slot,i)=>slot.value.set(0,0,0,i*.21))}
  dispose(){this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose()}
 }
