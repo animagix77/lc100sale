@@ -13,6 +13,7 @@ for(const reduced of [false,true]){
  apply({altitude:20,cloud:1,rain:.8,wind:40});assert.equal(v.precip.visible,!reduced);assert(!sun.visible);assert(ocean.waveScale.value>1.2);
  assert([...v.positions].every(Number.isFinite));assert(v.precip.geometry.drawRange.count<=v.count*2||reduced);
  apply({altitude:20,snow:.7});assert.equal(v.snowflakes.visible,!reduced);assert(!v.precip.visible);assert(v.snowflakes.count<=v.count);
+ apply({altitude:20,rain:.6,snow:.25});assert.equal(v.precip.visible,!reduced);assert.equal(v.snowflakes.visible,!reduced);assert([...v.positions].every(Number.isFinite),'Mixed precipitation remains finite');
  apply({altitude:20,fog:true});assert(scene.fog.far<150);
  v.dispose();assert(!scene.children.includes(v.precip));ocean.dispose();clouds.dispose();
 }
