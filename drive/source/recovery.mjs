@@ -1,22 +1,29 @@
 import {Quaternion,Vector3,Matrix4} from 'three';
-import {RAPIER} from './physics.mjs';
+import {RAPIER,wheelLayout} from './physics.mjs';
 import {clamp} from './terrain.mjs';
 // Boards are local, finite support surfaces. No teleport or global traction multiplier.
 export class Recovery{
  constructor(physics){this.physics=physics;physics.recovery=this;this.boards=[];this.state='roof';this.age=0;this.recoveries=0;this.lastOrigin={...physics.origin}}
  deploy(){
   const p=this.physics,q=p.rb.rotation(),up=1-2*(q.x*q.x+q.z*q.z);
-  if(this.state!=='roof')return 'already';
-  if(Math.abs(p.speed)>.45||Math.hypot(p.rb.linvel().x,p.rb.linvel().z)>.6)return 'moving';
-  if(up<.65||![0,1,2,3].every(i=>p.vehicle.wheelIsInContact(i)))return 'tilted';
+  if(this.state!=='roof'&&this.state!=='ground')return 'already';
+  if(Math.hypot(p.rb.linvel().x,p.rb.linvel().z)>2)return 'moving';
+  if(up<.25)return 'tilted';
+  if(this.state==='ground')this.clear();
   const f=p.forward(),length=Math.hypot(f.x,f.z),forward=new Vector3(f.x/length,0,f.z/length),right=new Vector3(-forward.z,0,forward.x);
   this.start=p.position();this.age=0;this.state='deploying';
+  p.rb.setLinvel({x:0,y:0,z:0},true);p.rb.setAngvel({x:0,y:0,z:0},true);p.speed=0;
   for(let i=0;i<4;i++){
-   const c=p.vehicle.wheelContactPoint(i),x=c.x+p.origin.x,z=c.z+p.origin.z;
-   const h=(s)=>p.sand?.height(x+forward.x*s,z+forward.z*s)??c.y;
-   const slope=clamp((h(.8)-h(-.2)), -.45,.45),along=forward.clone().setY(slope).normalize(),normal=new Vector3().crossVectors(right,along).normalize();
+   const w=wheelLayout[i],hub=new Vector3(w.x,.06,w.z).applyQuaternion(q).add(p.rb.translation());
+   const contact=p.vehicle.wheelIsInContact(i)?p.vehicle.wheelContactPoint(i):null;
+   const x=(contact?.x??hub.x)+p.origin.x,z=(contact?.z??hub.z)+p.origin.z;
+   // Probe the physical terrain and obstacles even when suspension has lost contact.
+   // Never use the stale contact point of an unloaded wheel or hit our own chassis.
+   const h=s=>{const wx=x+forward.x*s,wz=z+forward.z*s,top=Math.max(hub.y+.9,(contact?.y??hub.y)+.9),hit=p.world.castRay(new RAPIER.Ray({x:wx-p.origin.x,y:top,z:wz-p.origin.z},{x:0,y:-1,z:0}),20,true,undefined,undefined,undefined,p.rb);return hit?top-hit.timeOfImpact:p.sand?.height(wx,wz)??hub.y-1;};
+   const rear=h(-.255),front=h(.895),slope=clamp((front-rear)/1.15,-1.2,1.2),along=forward.clone().setY(slope).normalize(),normal=new Vector3().crossVectors(right,along).normalize();
    const rotation=new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(right,normal,along.clone().negate()));
-   const position={x:x+forward.x*.32,y:c.y+.022+slope*.32,z:z+forward.z*.32};
+   const centerHeight=Math.max(rear+slope*.575,front-slope*.575,h(0)+slope*.32,h(.32));
+   const position={x:x+forward.x*.32,y:centerHeight+.022,z:z+forward.z*.32};
    this.boards.push({position,rotation,collider:null});
   }
   return 'ok';
@@ -25,6 +32,7 @@ export class Recovery{
  step(dt){
   if(this.state==='roof')return;
   this.age+=dt;const p=this.physics;
+  if(this.state==='deploying'){p.rb.setLinvel({x:0,y:0,z:0},true);p.rb.setAngvel({x:0,y:0,z:0},true);}
   // Keep static support colliders aligned when the endless world rebases.
   if(p.origin.x!==this.lastOrigin.x||p.origin.z!==this.lastOrigin.z){for(const b of this.boards)b.collider?.setTranslation({x:b.position.x-p.origin.x,y:b.position.y,z:b.position.z-p.origin.z});this.lastOrigin={...p.origin}}
   if(this.state==='deploying'&&this.age>=.85){
