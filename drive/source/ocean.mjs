@@ -96,7 +96,8 @@ export class Ocean{
   this.mesh.geometry.dispose();this.mesh.geometry=g;
  }
  updateWheelFoam(dt,physics,time){
-  const k=1-Math.exp(-Math.min(dt,.1)*9),pace=Math.min(1,Math.abs(physics.speed)/8);
+  const velocity=physics.rb?.linvel(),speed=velocity?Math.hypot(velocity.x,velocity.z):Math.abs(physics.speed);
+  const still=1-Math.min(1,Math.max(0,(speed-.06)/.14)),k=1-Math.exp(-Math.min(dt,.1)*(still<1?18:5));
   this.wheelFoam.forEach((slot,i)=>{
    const v=slot.value,c=physics.vehicle.wheelContactPoint(i),contact=physics.vehicle.wheelIsInContact(i);
    let wet=false;
@@ -104,8 +105,8 @@ export class Ocean{
     wet=x-shore(z)<10&&this.height(x,z,time)>c.y+.025;
     if(wet){v.x=x;v.y=z;}
    }
-   v.z+=((wet?.60+pace*.35:0)-v.z)*k;
-   v.w=(v.w+Math.min(dt,.1)*(.42+pace*.55))%1;
+   v.z+=((wet?.60*still:0)-v.z)*k;
+   v.w=(v.w+Math.min(dt,.1)*.42)%1;
   });
  }
  updateVehicleLights(rig){

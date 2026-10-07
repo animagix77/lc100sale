@@ -18,7 +18,14 @@ for(const mobile of [false,true]){
  for(let i=0;i<60;i++)ocean.updateWheelFoam(1/60,physics,1);
  assert(ocean.wheelFoam.every(slot=>slot.value.z>.59),'All four wet tires receive gentle foam even at rest');
  physics.speed=8;for(let i=0;i<60;i++)ocean.updateWheelFoam(1/60,physics,1);
- assert(ocean.wheelFoam.every(slot=>slot.value.z>.94),'Driving adds stronger tire foam');
+ assert(ocean.wheelFoam.every(slot=>slot.value.z<.001),'Moving forward removes tire rings');
+ physics.speed=-2;for(let i=0;i<30;i++)ocean.updateWheelFoam(1/60,physics,1);
+ assert(ocean.wheelFoam.every(slot=>slot.value.z<.001),'Reverse also keeps rings off');
+ physics.speed=0;for(let i=0;i<90;i++)ocean.updateWheelFoam(1/60,physics,1);
+ assert(ocean.wheelFoam.every(slot=>slot.value.z>.59),'Stopping restores gentle rings');
+ physics.rb={linvel:()=>({x:.5,y:0,z:0})};for(let i=0;i<45;i++)ocean.updateWheelFoam(1/60,physics,1);
+ assert(ocean.wheelFoam.every(slot=>slot.value.z<.001),'Sideways sliding removes rings too');
+ delete physics.rb;
  physics.origin={x:512,z:-512};contacts.forEach(c=>{c.x-=512;c.z+=512});ocean.updateWheelFoam(1/60,physics,1);
  assert.equal(ocean.wheelFoam[0].value.x,-36,'Foam remains at the world-space wheel after rebasing');
  contacts.forEach(c=>c.y=3);for(let i=0;i<90;i++)ocean.updateWheelFoam(1/60,physics,1);
