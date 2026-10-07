@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {Ocean} from './ocean.mjs';
 import {shore,baseHeight} from './terrain.mjs';
-import {oceanHeight} from './ocean-height.mjs';
+import {oceanHeight,coastalWakeOffset,COASTAL_WAKE_LIMITS} from './ocean-height.mjs';
 
 // Reproduce the lost offshore deformation: the old coastline-only dense band
 // left no vertices within three metres of a tyre at shore-40m. A 69cm wake
@@ -23,8 +23,10 @@ for(const mobile of [false,true]){
   }
   assert(near>=(mobile?48:90),'Every ocean driving position has tyre-scale surface vertices');
   assert(nearest<.55,'The detailed ocean patch follows the vehicle across shoreline and stream cells');
-  assert(visibleCrest>.18&&visibleCrest>ocean.wake.peak*.50,'Actual ocean vertices retain the raised bow rather than only a normal-map wake');
-  assert(visibleTrough<-.05,'Actual ocean vertices retain the depressed trailing trough');
+  assert(visibleCrest>(distance<=-8?.18:.015),'Actual ocean vertices retain a raised bow, with a smaller amplitude in shallow water');
+  assert(visibleCrest<=COASTAL_WAKE_LIMITS.crest+1e-6,'Visible ocean geometry uses the conservative coastal crest budget');
+  assert(visibleTrough<(distance<=-8?-.05:-.005),'Actual ocean vertices retain a trailing trough that tapers toward the shore');
+  assert(visibleTrough>=-COASTAL_WAKE_LIMITS.trough-1e-6,'A wake cannot dig an oversized trough into the coast');
   assert.equal(ocean.columnOffsets[0],12,'Moving the detailed patch does not open a hole beside the shoreline');
   assert(ocean.columnOffsets[ocean.nx]<=-1200,'The same ocean mesh still reaches the horizon');
   for(let i=1;i<ocean.columnOffsets.length;i++)assert(ocean.columnOffsets[i]<ocean.columnOffsets[i-1],'Adaptive columns never fold or collapse to zero width');
@@ -58,22 +60,55 @@ for(const mobile of [false,true]){
 }
 console.log('Ocean detail continuity: exact world-space local grid across offshore and alongshore window shifts passed');
 
-// Ordinary driving in shallow seawater still supplies and visibly renders
-// the wake. Classify each moving tyre against its actual coastal bed height.
-for(const mobile of [false,true]){
- const ocean=new Ocean(new THREE.Scene(),{mobile}),speed=8;let wetContacts=0,crest=0;
- ocean.update({x:shore(15.3)-3,z:15.3},0,{x:0,z:0});
- for(let frame=1;frame<=90;frame++){
-  const time=frame/60,z=15.3-speed*time,x=shore(z)-3;
+// Sample the actual mesh vertices and triangle centroids, including the wake
+// behind all four moving tyres. The previous regression used only shore-3m
+// at 8m/s and checked raw crest strength, missing holes on the wet foreshore.
+// Read the packed half-float texture that the vertex shader actually samples.
+function textureHeight(ocean,x,z){
+ const field=ocean.wake,n=field.size,a=(x-field.x)/field.spacing,b=(z-field.z)/field.spacing,i=Math.floor(a),j=Math.floor(b);
+ if(i<0||j<0||i>=n-1||j>=n-1)return 0;
+ const u=a-i,v=b-j,k=j*n+i,h=index=>THREE.DataUtils.fromHalfFloat(ocean.wakePixels[index*4]);
+ return (h(k)*(1-u)+h(k+1)*u)*(1-v)+(h(k+n)*(1-u)+h(k+n+1)*u)*v;
+}
+for(const mobile of [false,true])for(const distance of [4,2,0])for(const speed of [8,22.352,-8]){
+ const ocean=new Ocean(new THREE.Scene(),{mobile}),position=ocean.mesh.geometry.attributes.position,bedAttribute=ocean.mesh.geometry.attributes.oceanBed,indices=ocean.mesh.geometry.index.array;
+ const base=new Float64Array(position.count),displaced=new Float64Array(position.count),near=new Uint8Array(position.count),direction=Math.sign(speed);
+ let wetVertices=0,wetTriangles=0,trailingTriangles=0,rawBreakthroughs=0,crest=0,trough=0,contacts=0;
+ ocean.update({x:shore(15.3)+distance,z:15.3},0,{x:0,z:0});
+ for(let frame=1;frame<=180;frame++){
+  const time=frame/60,z=15.3-speed*time,x=shore(z)+distance;
   for(let wheel=0;wheel<4;wheel++){
    const wx=x+(wheel%2?.85:-.85),wz=z+(wheel<2?-1.3:1.3);
-   if(ocean.height(wx,wz,time)>baseHeight(wx,wz)+.025){wetContacts++;ocean.disturb({x:wx,z:wz,wheel,slip:0},speed,0,time)}
+   if(ocean.height(wx,wz,time)>baseHeight(wx,wz)+.025){contacts++;ocean.disturb({x:wx,z:wz,wheel,slip:0},speed,0,time)}
   }
   ocean.update({x,z},time,{x:0,z:0});
-  if(frame%10===0){const p=ocean.mesh.geometry.attributes.position;for(let i=0;i<p.count;i++)if(Math.abs(p.getX(i)-x)<4&&Math.abs(p.getZ(i)-z)<6)crest=Math.max(crest,ocean.wake.sample(p.getX(i),p.getZ(i)))}
+  if(frame<30||frame%12!==0)continue;
+  near.fill(0);
+  for(let i=0;i<position.count;i++){
+   const vx=position.getX(i),vz=position.getZ(i),behind=(vz-z)*direction;
+   if(Math.abs(vx-x)>4||behind< -4||behind>12)continue;
+   near[i]=1;
+   const bed=baseHeight(vx,vz),shaderBed=bedAttribute.getX(i),raw=textureHeight(ocean,vx,vz),natural=oceanHeight(vx,vz,time),offset=coastalWakeOffset(natural-shaderBed,raw),h=natural+offset;
+   assert(Math.abs(shaderBed-bed)<2e-6,'Uploaded ocean bed tracks the real coast at each displaced vertex');
+   assert(Math.abs(h-ocean.height(vx,vz,time))<.0001,'Rendered half-float wake and gameplay contact height stay in agreement');
+   base[i]=natural;displaced[i]=h;crest=Math.max(crest,offset);trough=Math.min(trough,offset);
+   if(natural>bed+.002){
+    wetVertices++;if(natural+raw<bed)rawBreakthroughs++;
+    assert(h>bed,'A previously wet mesh vertex cannot disappear below the beach');
+    assert(h-bed>=(natural-bed)*(1-COASTAL_WAKE_LIMITS.troughDepth)-2e-6,'Moving wakes retain the coastal depth budget');
+   }
+  }
+  for(let i=0;i<indices.length;i+=3){
+   const a=indices[i],b=indices[i+1],c=indices[i+2];if(!near[a]||!near[b]||!near[c])continue;
+   const cx=(position.getX(a)+position.getX(b)+position.getX(c))/3,cz=(position.getZ(a)+position.getZ(b)+position.getZ(c))/3,bed=baseHeight(cx,cz),natural=(base[a]+base[b]+base[c])/3,h=(displaced[a]+displaced[b]+displaced[c])/3;
+   if(natural>bed+.002){wetTriangles++;if((cz-z)*direction>2)trailingTriangles++;assert(h>bed,'The rendered triangles behind the truck stay above the seabed, not just their vertices')}
+  }
  }
- assert(wetContacts>200&&ocean.wake.impulses>80,'Normal coastal wading keeps supplying real tyre disturbances');
- assert(crest>.15,'The moving shallow-water bow is visible in actual ocean mesh vertices');
- console.log({mobile,coastalWetContacts:wetContacts,coastalCrest:crest});ocean.dispose();
+ assert(contacts>300&&ocean.wake.impulses>80,'Real wet tyre contacts feed the moving coastal wake');
+ assert(wetVertices>1000&&wetTriangles>1000&&trailingTriangles>500,'The regression covers a wide, already-wet swath behind the truck');
+ assert(rawBreakthroughs>0,'The sampled conditions reproduce the original raw-wake holes');
+ assert(crest>.015&&trough<-.005,'Repair retains restrained visible geometric wake in the shallows');
+ assert(crest<=COASTAL_WAKE_LIMITS.crest&&trough>=-COASTAL_WAKE_LIMITS.trough,'No rendered sample exceeds the conservative coast budget');
+ console.log({mobile,distance,speed,rawBreakthroughs,wetVertices,wetTriangles,trailingTriangles,crest,trough});ocean.dispose();
 }
-console.log('Coastal driving: shallow-water contact and visible moving geometric wake passed');
+console.log('Coastal driving: four moving tyres, reverse, 50mph, shallow vertices and trailing triangle waterline closure passed');

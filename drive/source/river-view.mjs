@@ -39,7 +39,7 @@ export class RiverView{
   const phase=positionGeometry.x.mul(.9).add(positionGeometry.z.mul(1.8)).sub(t.mul(2.2));
   const ripple=sin(phase).mul(.012).add(sin(positionGeometry.x.mul(2.3).add(t.mul(3.1))).mul(.006)).mul(energy);
   const wakeHeight=wakeVertex.r.max(depth.mul(-RIVER_WAKE_LIMITS.troughDepth)).min(depth.mul(RIVER_WAKE_LIMITS.crestDepth).min(RIVER_WAKE_LIMITS.crest)).mul(energy);
-  const inland=positionGeometry.y.add(ripple).add(wakeHeight),tidal=ocean.surfaceNode(positionGeometry.x,positionGeometry.z).add(wakeVertex.r);
+  const inland=positionGeometry.y.add(ripple).add(wakeHeight),tidalBase=ocean.surfaceNode(positionGeometry.x,positionGeometry.z),tidal=tidalBase.add(ocean.coastalWakeNode(tidalBase.sub(bed),wakeVertex.r));
   const mat=new THREE.MeshPhysicalNodeMaterial({metalness:0,ior:1.333,transparent:true,depthWrite:false,side:THREE.FrontSide});
   mat.positionNode=vec3(positionGeometry.x,mix(tidal,inland,mouth),positionGeometry.z);
   const flowNoise=mx_noise_float(vec3(world.x.add(t.mul(1.25)).mul(1.4),world.y.mul(3.2),float(4))).mul(.5).add(.5);
@@ -52,7 +52,8 @@ export class RiverView{
   const eye=normalize(cameraPosition.sub(positionWorld)),fresnel=pow(float(1).sub(max(dot(eye,normal),0)),5).mul(.72).add(.025),skyRay=reflect(eye.negate(),normal);
   const sky=mix(ocean.skyHorizon,ocean.skyTop,smoothstep(.025,.65,skyRay.y));
   const wetDepth=positionWorld.y.sub(bed).max(0),wetEdge=smoothstep(0,.045,wetDepth);
-  const broken=smoothstep(.50,.76,flowNoise),foam=riffle.mul(broken).mul(.34).add(wake.a.mul(smoothstep(.25,.65,flowNoise)).add(smoothstep(.18,.85,wake.r).mul(.24)).mul(energy)).max(ocean.tireFoamNode).min(.92).mul(wetEdge);
+  const coastalGain=ocean.coastalWakeGainNode(ocean.surfaceNode(world.x,world.y).sub(bed),wake.r),wakeGain=mix(coastalGain,float(1),smoothstep(-48,-28,world.x));
+  const broken=smoothstep(.50,.76,flowNoise),foam=riffle.mul(broken).mul(.34).add(wake.a.mul(smoothstep(.25,.65,flowNoise)).add(smoothstep(.18,.85,wake.r).mul(.24)).mul(energy).mul(wakeGain)).max(ocean.tireFoamNode).min(.92).mul(wetEdge);
   const water=mix(color('#70938a'),color('#225556'),smoothstep(.03,.48,wetDepth));
   mat.colorNode=mix(water,color('#e0ebe4'),foam);
   mat.emissiveNode=sky.mul(fresnel).mul(.55).mul(ocean.brightness).mul(float(1).sub(foam.mul(.65)));

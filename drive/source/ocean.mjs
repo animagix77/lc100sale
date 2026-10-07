@@ -1,9 +1,9 @@
 import {waterExists} from './expedition.mjs';
 import * as THREE from 'three/webgpu';
-import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,fract,mx_noise_float,texture} from 'three/tsl';
-import {shore} from './terrain.mjs';
+import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,fract,mx_noise_float,texture,attribute} from 'three/tsl';
+import {shore,baseHeight,coastalHeight} from './terrain.mjs';
 import {WakeField} from './wake-field.mjs';
-import {waterSurfaceHeight} from './ocean-height.mjs';
+import {waterSurfaceHeight,COASTAL_WAKE_LIMITS} from './ocean-height.mjs';
 // GPU swells, fine surface normals and view-dependent sunset reflection. World-space
 // phase stays continuous while the mesh streams along the infinite coastline.
 export class Ocean{
@@ -25,11 +25,23 @@ export class Ocean{
    return float(-.18).add(swell.add(cross).mul(offshore)).add(sin(t.mul(.8).sub(z.mul(.026))).mul(.075).mul(float(1).sub(offshore))).add(.18).mul(this.waveScale).sub(.18);
   });
   this.surfaceNode=height;
+  const limits=COASTAL_WAKE_LIMITS;
+  const coastalGain=Fn(([depth,raw])=>{
+   const d=max(depth,0),limit=raw.greaterThanEqual(0).select(d.mul(limits.crestDepth).min(limits.crest),d.mul(limits.troughDepth).min(limits.trough));
+   return limit.div(limit.add(abs(raw)).max(.000001)).mul(smoothstep(0,limits.edgeDepth,d));
+  });
+  const coastalWake=Fn(([depth,raw])=>raw.mul(coastalGain(depth,raw)));
+  this.coastalWakeNode=coastalWake;this.coastalWakeGainNode=coastalGain;
+  const bed=attribute('oceanBed','float');
   const material=new THREE.MeshBasicNodeMaterial({transparent:true,depthWrite:false,side:THREE.FrontSide});
-  material.positionNode=Fn(()=>{const world=positionGeometry.xz.add(origin);return vec3(positionGeometry.x,height(world.x,world.y).add(wakeAt(world.x,world.y).r),positionGeometry.z)})();
+  material.positionNode=Fn(()=>{const world=positionGeometry.xz.add(origin);return vec3(positionGeometry.x,height(world.x,world.y).add(coastalWake(height(world.x,world.y).sub(bed),wakeAt(world.x,world.y).r)),positionGeometry.z)})();
   const world=positionWorld.xz.add(origin),x=world.x,z=world.y,d=x.sub(coast(z));
-  const wake=wakeAt(x,z),h=height(x,z).add(wake.r),detail=float(1).sub(smoothstep(30,150,length(cameraPosition.sub(positionWorld)))),fineA=mx_noise_float(vec3(x.mul(.65).add(t.mul(.18)),z.mul(.65),t.mul(.12))).mul(detail),fineB=mx_noise_float(vec3(x.mul(.75),z.mul(.75).sub(t.mul(.2)),float(17))).mul(detail);
-  const n=normalize(vec3(height(x.sub(.14),z).sub(height(x.add(.14),z)).add(fineA.mul(.055)).sub(wake.g.mul(.28)),float(.28),height(x,z.sub(.14)).sub(height(x,z.add(.14))).add(fineB.mul(.055)).sub(wake.b.mul(.28))));
+  const wake=wakeAt(x,z),base=height(x,z),depth=max(base.sub(bed),0),offset=coastalWake(depth,wake.r),h=base.add(offset),detail=float(1).sub(smoothstep(30,150,length(cameraPosition.sub(positionWorld)))),fineA=mx_noise_float(vec3(x.mul(.65).add(t.mul(.18)),z.mul(.65),t.mul(.12))).mul(detail),fineB=mx_noise_float(vec3(x.mul(.75),z.mul(.75).sub(t.mul(.2)),float(17))).mul(detail);
+  // The derivative of the same soft saturation damps wake normals; the
+  // existing analytic swells keep the distant sea smooth at every mesh LOD.
+  const limit=wake.r.greaterThanEqual(0).select(depth.mul(limits.crestDepth).min(limits.crest),depth.mul(limits.troughDepth).min(limits.trough));
+  const wakeGain=coastalGain(depth,wake.r),slopeGain=wakeGain.mul(limit.div(limit.add(abs(wake.r)).max(.000001)));
+  const n=normalize(vec3(height(x.sub(.14),z).sub(height(x.add(.14),z)).add(fineA.mul(.055)).sub(wake.g.mul(slopeGain).mul(.28)),float(.28),height(x,z.sub(.14)).sub(height(x,z.add(.14))).add(fineB.mul(.055)).sub(wake.b.mul(slopeGain).mul(.28))));
   const eye=normalize(cameraPosition.sub(positionWorld)),fresnel=pow(float(1).sub(max(dot(eye,n),0)),4).mul(.60).add(.04);
   const skyRay=reflect(eye.negate(),n);
   const reflectedSky=mix(this.skyHorizon,this.skyTop,smoothstep(.025,.60,skyRay.y));
@@ -61,7 +73,7 @@ export class Ocean{
    }
   }
   this.tireFoamNode=tireFoam;
-  const foam=max(max(max(crestFoam, wash.add(lace)),wake.a.mul(smoothstep(.18,.60,foamNoise))),tireFoam);
+  const foam=max(max(max(crestFoam, wash.add(lace)),wake.a.mul(wakeGain).mul(smoothstep(.18,.60,foamNoise))),tireFoam);
   // The custom water shader must explicitly receive the vehicle's local lights.
   // Wave/wake normals break the reflection into moving highlights (GGX specular).
   let vehicleSheen=vec3(0);
@@ -81,13 +93,13 @@ export class Ocean{
   // One constant mesh covers the coast and horizon. Its dense patch follows
   // the truck offshore, so tyre wakes always reach actual surface vertices.
   // Reuse the buffers when the detail window moves; never add an overlay sheet.
-  const count=(this.nx+1)*(this.nz+1),positions=new Float32Array(count*3),normals=new Float32Array(count*3),indices=new Uint32Array(this.nx*this.nz*6);
+  const count=(this.nx+1)*(this.nz+1),positions=new Float32Array(count*3),normals=new Float32Array(count*3),beds=new Float32Array(count),indices=new Uint32Array(this.nx*this.nz*6);
   this.columnOffsets=new Float64Array(this.nx+1);this.rowOffsets=new Float64Array(this.nz+1);
   const nearZ=mobile?128:192,outerZ=(this.nz-nearZ)/2,nearX=this.nearX;
   for(let i=0;i<=this.nx;i++)this.columnOffsets[i]=i<=nearX?12-i*40/nearX:-28-1172*Math.pow((i-nearX)/(this.nx-nearX),1.55);
   for(let j=0;j<=this.nz;j++)this.rowOffsets[j]=j<outerZ?-640+j*(592/outerZ):j<=outerZ+nearZ?-48+(j-outerZ)*96/nearZ:48+(j-outerZ-nearZ)*592/outerZ;
   let k=0;for(let j=0;j<=this.nz;j++)for(let i=0;i<=this.nx;i++){const a=j*(this.nx+1)+i;normals[a*3+1]=1;if(i<this.nx&&j<this.nz){const b=a+1,c=a+this.nx+1;indices.set([a,b,c,b,c+1,c],k);k+=6}}
-  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));geometry.setIndex(new THREE.BufferAttribute(indices,1));
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));geometry.setAttribute('oceanBed',new THREE.BufferAttribute(beds,1).setUsage(THREE.DynamicDrawUsage));geometry.setIndex(new THREE.BufferAttribute(indices,1));
   this.material=material;this.mesh=new THREE.Mesh(geometry,material);this.mesh.renderOrder=1;this.mesh.frustumCulled=false;scene.add(this.mesh);
  }
  update(p,time,origin){
@@ -103,12 +115,14 @@ export class Ocean{
   // reserve a few columns back to shore and retain tyre-scale spacing locally.
   const shoreColumns=focus< -8?this.shoreColumns:0,nearX=this.nearX,right=focus+20,left=focus-20,far=Math.min(-1200,left-256);
   for(let i=0;i<=this.nx;i++)this.columnOffsets[i]=i<shoreColumns?12+(right-12)*i/shoreColumns:i<=shoreColumns+nearX?right-(i-shoreColumns)*40/nearX:left-(left-far)*Math.pow((i-shoreColumns-nearX)/(this.nx-shoreColumns-nearX),1.55);
-  const positions=this.mesh.geometry.attributes.position;
+  // Every column lies seaward of shore+12m: outside the estuary its bed
+  // is exactly coastalHeight, so streaming skips inland mountain calculations.
+  const positions=this.mesh.geometry.attributes.position,beds=this.mesh.geometry.attributes.oceanBed;
   for(let j=0;j<=this.nz;j++){
-   const z=center+this.rowOffsets[j],coast=shore(z)-origin.x;
-   for(let i=0;i<=this.nx;i++)positions.setXYZ(j*(this.nx+1)+i,coast+this.columnOffsets[i],-.18,z-origin.z);
+   const z=center+this.rowOffsets[j],coast=shore(z)-origin.x,estuary=Math.abs(z+340)<=55;
+   for(let i=0;i<=this.nx;i++){const index=j*(this.nx+1)+i,x=coast+this.columnOffsets[i];positions.setXYZ(index,x,-.18,z-origin.z);beds.setX(index,estuary&&x+origin.x>=-72?baseHeight(x+origin.x,z):this.columnOffsets[i]<0?-.4+this.columnOffsets[i]*.075:coastalHeight(x+origin.x,z));}
   }
-  positions.needsUpdate=true;
+  positions.needsUpdate=beds.needsUpdate=true;
  }
  updateWheelFoam(dt,physics,time){
   const velocity=physics.rb?.linvel(),speed=velocity?Math.hypot(velocity.x,velocity.z):Math.abs(physics.speed);

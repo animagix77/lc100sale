@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {DrivePhysics,RAPIER} from './physics.mjs';
-import {waterSurfaceHeight,riverWakeOffset,oceanHeight,RIVER_WAKE_LIMITS} from './ocean-height.mjs';
+import {waterSurfaceHeight,riverWakeOffset,coastalWaterHeight,coastalWakeOffset,oceanHeight,RIVER_WAKE_LIMITS,COASTAL_WAKE_LIMITS} from './ocean-height.mjs';
 import {riverZ,riverWidth,riverProfile,riverHeight,riverLevel,waterExists} from './expedition.mjs';
 import {baseHeight} from './terrain.mjs';
 const dt=1/120;
@@ -97,7 +97,7 @@ for(const x of [80,248,475]){
 // horizontal river sheet. Both ends of the blend have continuous heights.
 for(const time of [0,1.3,4,9])for(const wake of [-.25,0,.3]){
  const seaX=-48,seaZ=riverZ(seaX),landX=-28,landZ=riverZ(landX),landProfile=riverProfile(landX,landZ);
- assert(Math.abs(waterSurfaceHeight(seaX,seaZ,time,1,wake)-(oceanHeight(seaX,seaZ,time)+wake))<1e-12,'River mouth starts on the exact ocean surface');
+ assert(Math.abs(waterSurfaceHeight(seaX,seaZ,time,1,wake)-coastalWaterHeight(seaX,seaZ,time,1,wake))<1e-12,'River mouth starts on the exact ocean surface');
  assert(Math.abs(waterSurfaceHeight(landX,landZ,time,1,wake)-(riverHeight(landX,landZ,time)+riverWakeOffset(landProfile.depth,wake)))<1e-12,'Landward mouth resolves into the shallow river surface');
  for(const edge of [seaX,landX]){
   const a=edge-.001,b=edge+.001,ha=waterSurfaceHeight(a,riverZ(a),time,1,wake),hb=waterSurfaceHeight(b,riverZ(b),time,1,wake);
@@ -105,3 +105,19 @@ for(const time of [0,1.3,4,9])for(const wake of [-.25,0,.3]){
  }
 }
 console.log('River sampling: shared wet domain, dry spring, depth-limited wakes, shore closure and ocean-mouth continuity passed.');
+
+// The coast has much less depth than the ford. Saturation preserves a water
+// column even under extreme impulses, and an undisturbed sea stays identical.
+for(const depth of [0,.001,.004,.01,.03,.08,.15,.25,.36,.8,4]){
+ for(const raw of [-100,-1.1,-.45,-.01,0,.01,.45,1.1,100]){
+  const offset=coastalWakeOffset(depth,raw);
+  assert(offset>=-Math.min(COASTAL_WAKE_LIMITS.trough,depth*COASTAL_WAKE_LIMITS.troughDepth)-1e-12,'Coastal trough preserves at least 76% of the available water');
+  assert(offset<=Math.min(COASTAL_WAKE_LIMITS.crest,depth*COASTAL_WAKE_LIMITS.crestDepth)+1e-12,'Coastal crest stays proportional to available depth');
+  if(depth<.01)assert(Math.abs(offset)<.0001,'Coastal disturbance tapers away at the wet edge');
+ }
+ assert.equal(coastalWakeOffset(depth,0),0,'Zero wake introduces no water offset');
+}
+for(const x of [-72,-60,-48,-40])for(const z of [15.3,-50,riverZ(x)])for(const time of [0,1.3,4,9])for(const scale of [.3,1,1.8]){
+ assert.equal(coastalWaterHeight(x,z,time,scale,0),oceanHeight(x,z,time,scale),'The original natural sea is bit-for-bit unchanged without a wake');
+}
+console.log('Coastal sampling: depth-budgeted trough/crest, unchanged natural swells and shared estuary surface passed.');
