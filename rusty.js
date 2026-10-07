@@ -44,7 +44,7 @@
     },
     {
       question: 'Where is she? Can I see her?',
-      reply: 'Leonia, New Jersey. The owner is still deciding whether to sell. Call 917-981-5816 or email animagix@mac.com to express interest and discuss next steps. The truck has a location. The owner’s resolve is harder to pin down.',
+      reply: 'Leonia, New Jersey. The owner is still deciding whether to sell. Email animagix@mac.com to express interest and discuss next steps. The truck has a location. The owner’s resolve is harder to pin down.',
       link: 'Express interest', href: '#contact'
     },
     {
@@ -79,7 +79,7 @@
   other.textContent = 'My question isn’t here';
   other.addEventListener('click', () => showAnswer({
     question: 'Got another question?',
-    reply: 'That one needs the owner. I’ve got the published notes and a mouth, not a diagnostic scanner. Call or email for an answer.',
+    reply: 'That one needs the owner. I’ve got the published notes and a mouth, not a diagnostic scanner. Email the owner for an answer.',
     link: 'Contact the owner', href: '#contact'
   }, other));
   topics.append(other);
