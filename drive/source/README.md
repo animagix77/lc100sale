@@ -197,3 +197,12 @@ The ocean keeps its fixed vertex budget, but its detailed patch now follows the 
 
 ## Roadside stories
 Four original low-poly roadside vignettes accompany the ascent: a buried pickup, open-hood/open-door SUV with radiator steam and two posed passengers, a tipped short-wheelbase 4x4, and a snow-buried SUV. Vehicles and characters are modeled in `roadside-models.mjs`, with merged vertex-colored geometry (under 15,000 total triangles). The static poses, maximum 8/12 steam puffs, distance fading and preload compilation keep work bounded. Clearings exclude intersecting tall grass, trees and large stones. Props are decorative, outside the route corridor, and add no collision traps. World-space placement survives origin shifts; each scene has one proximity-triggered Rusty joke per session. Reduced motion freezes the steam.
+
+## Reliable ground, ocean recovery and wet weather
+Terrain streams the nearest tiles first with cached height samples, a bounded resident set, and matching temporary collision coverage when visual work falls behind. The coverage regression follows the full route at 50 mph / 20 FPS and exercises fully starved rendering in both grass corridors, rut updates and origin shifts.
+
+Sustained deep immersion offshore returns the truck to nearby dry beach, avoiding the river mouth and preserving waypoint progress. Surf, shallow crossings and jumps do not trigger recovery. Rusty rotates rescue lines and observes bumps, rain, getting stuck, changing scenery and leaving water with per-topic and global cooldowns.
+
+Crossings leave a localized wet coat below the windows; rain wets all bodywork. Wetness dries gradually and a capped droplet pool drains arches, rocker panels and gutters. Lamp emission, paint textures and snow accumulation remain intact.
+
+Eight shallow puddles occupy small depressions in muddy trail stretches. Their clipped water surfaces share the terrain's half-metre grid, reflect the sky and receive rain ripples. The same water heights drive tyre splash audio, particles and vehicle wetness.

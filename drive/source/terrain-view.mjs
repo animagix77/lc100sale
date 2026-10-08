@@ -10,7 +10,7 @@ const wet=new THREE.Color('#584c4b'),dry=new THREE.Color('#ce925c'),shadeColor=n
 // Rut walls catch the sunset; compressed troughs stay visibly darker than untouched sand.
 function rutShade(offset){return offset<0?1-Math.min(.44,-offset*.82):1+Math.min(.08,offset*.5)}
 export class TerrainView{
- constructor(scene,physics,field){this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;
+ constructor(scene,physics,field){this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;this.focus={x:0,z:0};this.safetyGround=null;
  const world=positionWorld.xz.add(this.origin),z=world.y;
  const coast=float(-36).add(sin(z.mul(.006)).mul(8)).add(sin(z.mul(.019)).mul(3)),d=world.x.sub(coast);
  // Same wash phase as the surf. Persistent damp sand remains after the water retreats.
@@ -34,12 +34,17 @@ export class TerrainView{
  // Only the initial load and explicit teleports drain these synchronously.
  *geometryRows(tx,tz,n=N,size=SIZE,far=false){
   const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=new Float32Array(count),baseColors=new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
+  // Near geometry used to evaluate the same procedural height five times per
+  // vertex for slope tinting. Cache the padded half-metre grid once, yielding
+  // each row, so collision-bearing tiles keep up with a 50-mph drive.
+  const stride=n+5,gridHeights=!far&&size/n===.5?new Float64Array(stride*stride):null;
+  if(gridHeights)for(let j=-2;j<=n+2;j++){for(let i=-2;i<=n+2;i++)gridHeights[(j+2)*stride+i+2]=baseHeight(tx+i*.5,tz+j*.5);yield;}
   for(let j=0;j<=n;j++){
    for(let i=0;i<=n;i++){
-    const k=j*(n+1)+i,k3=k*3,k4=k*4,x=tx+i*size/n,z=tz+j*size/n,base=baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
+    const k=j*(n+1)+i,k3=k*3,k4=k*4,x=tx+i*size/n,z=tz+j*size/n,base=gridHeights?gridHeights[(j+2)*stride+i+2]:baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
     ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;heights[k]=base;
     const d=x-shore(z);c.lerpColors(wet,dry,smooth(12,24,d));
-    const sx=(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
+    const sx=gridHeights?(gridHeights[(j+2)*stride+i+4]-gridHeights[(j+2)*stride+i])*.5:(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=gridHeights?(gridHeights[(j+4)*stride+i+2]-gridHeights[j*stride+i+2])*.5:(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
     c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
     c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6).lerp(basalt,surface.volcanic*.97).lerp(trailStone,surface.volcanic*surface.trail*.45);// Brown alluvial soil and exposed gravel continue up both banks; no green carpet in the ford.
     c.lerp(riverSoil,surface.riverApproach*(1-surface.river)*.88).lerp(riverGravel,surface.riverApproach*(.14+.22*noise(x*1.3,z*1.3)));
@@ -75,8 +80,27 @@ export class TerrainView{
   for(const [k,t] of this.cache)if(!retained.has(k)){t.mesh.geometry.dispose();this.cache.delete(k);}for(const [k,j] of this.pending)if(!retained.has(k)){j.rows?.return();this.pending.delete(k);}
  }
  settle(){
-  if([...this.needed].some(k=>!this.tiles.has(k)))return;
+  // Retire behind the truck independently: waiting for all 25 replacement tiles
+  // let a fast, low-FPS drive retain hundreds of obsolete collision meshes.
   for(const [k,t] of this.tiles)if(!this.needed.has(k)){this.scene.remove(t.mesh);this.p.world.removeCollider(t.collider,false);t.collider=null;this.tiles.delete(k);this.cache.set(k,t);}
+ }
+ // Rendering can be delayed by a slow frame, but the physical driving surface
+ // cannot. A small, matching half-metre patch covers ONLY missing terrain tiles
+ // under the chassis and its next physics steps, then disappears when streaming
+ // catches up. This has no visual/material work and never duplicates active ground.
+ ensureGround(x,z,force=false){
+  const missing=new Set();for(const dx of [-5,5])for(const dz of [-5,5]){const k=`${Math.floor((x+dx)/SIZE)},${Math.floor((z+dz)/SIZE)}`;if(!this.tiles.has(k))missing.add(k);}
+  if(!missing.size){if(this.safetyGround){this.p.world.removeCollider(this.safetyGround.collider,false);this.safetyGround=null;}return;}
+  const cx=Math.round(x/4)*4,cz=Math.round(z/4)*4,signature=`${cx},${cz}:${[...missing].sort().join(';')}`;
+  if(!force&&this.safetyGround?.signature===signature)return;
+  const n=32,ps=new Float32Array((n+1)**2*3),indices=[];
+  for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){
+   const wx=cx-8+i*.5,wz=cz-8+j*.5,k=j*(n+1)+i;ps[k*3]=wx-this.p.origin.x;ps[k*3+1]=this.field.atGrid(Math.round(wx*2),Math.round(wz*2));ps[k*3+2]=wz-this.p.origin.z;
+   if(i<n&&j<n&&missing.has(`${Math.floor((wx+.25)/SIZE)},${Math.floor((wz+.25)/SIZE)}`)){const b=k+1,c=k+n+1,e=c+1;indices.push(k,c,b,b,c,e);}
+  }
+  const collider=this.p.world.createCollider(RAPIER.ColliderDesc.trimesh(ps,new Uint32Array(indices)).setFriction(.9));
+  if(this.safetyGround)this.p.world.removeCollider(this.safetyGround.collider,false);
+  this.safetyGround={collider,signature};
  }
  // A nearby recovery can reuse resident ground. Only a missing wheel/body
  // footprint requires the synchronous teleport build before physics resumes.
@@ -86,25 +110,31 @@ export class TerrainView{
   this.update(x,z,!ready);
  }
  update(x,z,force=false){
+  this.focus={x,z};
   const cx=Math.floor(x/SIZE),cz=Math.floor(z/SIZE),key=`${cx},${cz}`,previous=this.center.split(',').map(Number),teleport=this.center&&(Math.abs(cx-previous[0])>2||Math.abs(cz-previous[1])>2);
   if(!this.center||force||teleport){
    this.clearTiles();this.center=key;for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++){const tx=cx+a,tz=cz+b,k=`${tx},${tz}`,t=this.tile(tx,tz,this.geometry(tx*SIZE,tz*SIZE));this.scene.add(t.mesh);this.tiles.set(k,t);this.collider(t);}
    this.replaceFar(this.geometry((cx-18)*SIZE,(cz-18)*SIZE,296,1184,true),cx,cz);this.schedule(cx,cz);return;
   }
   if(key!==this.center){this.center=key;this.schedule(cx,cz);}
+  const priority=(tx,tz)=>Math.hypot((tx+.5)*SIZE-x,(tz+.5)*SIZE-z);
   const stop=performance.now()+this.budget;let changed=false;
   // Promote one prebuilt tile at a time; even collider installation stays bounded.
-  for(const k of this.needed){const t=this.cache.get(k);if(t&&!this.tiles.has(k)){this.activate(k,t);changed=true;break;}}
+  let cached=null;for(const k of this.needed){const t=this.cache.get(k);if(t&&!this.tiles.has(k)&&(!cached||priority(t.tx,t.tz)<priority(cached[1].tx,cached[1].tz)))cached=[k,t];}if(cached){this.activate(...cached);changed=true;}
   if(this.far.geometry.userData.grid&&!this.farJob&&(Math.abs(cx-this.farCenter.x)>=4||Math.abs(cz-this.farCenter.z)>=4))this.farJob={cx,cz,rows:this.geometryRows((cx-18)*SIZE,(cz-18)*SIZE,296,1184,true)};
+  let farAdvanced=false;
   while(performance.now()<stop){
-   let selected=null;for(const [k,job] of this.pending){if(!selected||this.needed.has(k)&&!this.needed.has(selected[0]))selected=[k,job];}
-   if(selected){const [k,job]=selected;job.rows??=this.geometryRows(job.tx*SIZE,job.tz*SIZE);const result=job.rows.next();if(result.done){this.pending.delete(k);this.cache.set(k,this.tile(job.tx,job.tz,result.value));break;}}
-   else if(this.farJob){const result=this.farJob.rows.next();if(result.done){const {cx,cz}=this.farJob;this.replaceFar(result.value,cx,cz);this.farJob=null;break;}}
+   let selected=null;for(const [k,job] of this.pending){if(!selected||priority(job.tx,job.tz)<priority(selected[1].tx,selected[1].tz))selected=[k,job];}
+   // Once the driving neighbourhood is built, reserve one budgeted row for
+   // the horizon. Waiting for the entire prefetch ring starved far terrain on
+   // a continuous ascent, even though all nearby wheels already had ground.
+   if(this.farJob&&(!selected||!farAdvanced&&priority(selected[1].tx,selected[1].tz)>SIZE*1.5)){const result=this.farJob.rows.next();farAdvanced=true;if(result.done){const {cx,cz}=this.farJob;this.replaceFar(result.value,cx,cz);this.farJob=null;break;}}
+   else if(selected){const [k,job]=selected;job.rows??=this.geometryRows(job.tx*SIZE,job.tz*SIZE);const result=job.rows.next();if(result.done){this.pending.delete(k);this.cache.set(k,this.tile(job.tx,job.tz,result.value));break;}}
    else break;
   }
-  const size=this.tiles.size;this.settle();if(changed||size!==this.tiles.size)this.syncFarHole();
+  const size=this.tiles.size;this.settle();if(changed||size!==this.tiles.size)this.syncFarHole();this.ensureGround(x,z);
  }
- clearTiles(){for(const t of this.tiles.values()){this.scene.remove(t.mesh);t.mesh.geometry.dispose();this.p.world.removeCollider(t.collider,false);}for(const t of this.cache.values())t.mesh.geometry.dispose();this.tiles.clear();this.cache.clear();for(const j of this.pending.values())j.rows?.return();this.pending.clear();this.farJob?.rows.return();this.farJob=null;}
+ clearTiles(){if(this.safetyGround){this.p.world.removeCollider(this.safetyGround.collider,false);this.safetyGround=null;}for(const t of this.tiles.values()){this.scene.remove(t.mesh);t.mesh.geometry.dispose();this.p.world.removeCollider(t.collider,false);}for(const t of this.cache.values())t.mesh.geometry.dispose();this.tiles.clear();this.cache.clear();for(const j of this.pending.values())j.rows?.return();this.pending.clear();this.farJob?.rows.return();this.farJob=null;}
  animate(time){this.clock.value=time;this.origin.value.set(this.p.origin.x,this.p.origin.z);}
  applyRuts(t){
   const g=t.mesh.geometry,a=g.attributes.position,c=g.attributes.color,{baseHeights,baseColors}=g.userData;let changed=false;
@@ -114,11 +144,12 @@ export class TerrainView{
   }
   if(changed){a.needsUpdate=true;c.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}return changed;
  }
- refresh(){this.tick++;for(const key of this.field.dirty){const t=this.tiles.get(key);if(t&&this.applyRuts(t))this.collider(t);}this.field.dirty.clear();}
+ refresh(){this.tick++;if(this.safetyGround&&this.field.dirty.size)this.ensureGround(this.focus.x,this.focus.z,true);for(const key of this.field.dirty){const t=this.tiles.get(key);if(t&&this.applyRuts(t))this.collider(t);}this.field.dirty.clear();}
  dispose(){this.clearTiles();if(this.far){this.scene.remove(this.far);this.far.geometry.dispose();this.far=null;}this.material.dispose();this.farMaterial.dispose();this.farHidden.clear();this.needed.clear();}
  rebase(){
   const dx=this.renderOrigin.x-this.p.origin.x,dz=this.renderOrigin.z-this.p.origin.z;
   for(const t of this.tiles.values()){t.mesh.position.x+=dx;t.mesh.position.z+=dz;const p=t.collider.translation();t.collider.setTranslation({x:p.x+dx,y:p.y,z:p.z+dz});}
+  if(this.safetyGround){const p=this.safetyGround.collider.translation();this.safetyGround.collider.setTranslation({x:p.x+dx,y:p.y,z:p.z+dz});}
   if(this.far){this.far.position.x+=dx;this.far.position.z+=dz;}this.renderOrigin={...this.p.origin};
  }
 }
