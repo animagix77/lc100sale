@@ -1,3 +1,4 @@
+import {inRoadsideClearing} from './roadside-spots.mjs';
 import {uniform} from 'three/tsl';
 import {sceneryFade,stageSceneryArrival} from './scenery-fade.mjs';
 import * as THREE from 'three/webgpu';
@@ -60,7 +61,7 @@ export class MountainDetails{
    if((ix&7)===0)yield;
    const x=ix*12+rand(ix,iz)*9,z=iz*12+rand(iz,ix)*9,distance=Math.hypot(x-centerX,z-centerZ);
    if(distance>145)continue;
-   const place=remembered(this.placementCaches.rocks,`${ix},${iz}`,()=>{if(riverMask(x,z)>.05)return null;const h=baseHeight(x,z);if(h<30)return null;const route=routeSample(x,z);if(route.distance<10||route.distance>115)return null;const surface=surfaceAt(x,z);if(surface.grass>.4)return null;return {x,z,h,surface,ix,iz}});
+   const place=remembered(this.placementCaches.rocks,`${ix},${iz}`,()=>{if(inRoadsideClearing(x,z,3))return null;if(riverMask(x,z)>.05)return null;const h=baseHeight(x,z);if(h<30)return null;const route=routeSample(x,z);if(route.distance<10||route.distance>115)return null;const surface=surfaceAt(x,z);if(surface.grass>.4)return null;return {x,z,h,surface,ix,iz}});
    if(place)candidates.push({...place,distance});
 
   }

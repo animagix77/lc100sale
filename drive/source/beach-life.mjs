@@ -1,3 +1,4 @@
+import {inRoadsideClearing} from './roadside-spots.mjs';
 import {sceneryFade,stageSceneryArrival,syncSceneryFade,disposeSceneryFade} from './scenery-fade.mjs';
 import {GrassTracks} from './grass-tracks.mjs';
 import {routeSample,riverMask,riverZ,riverGreenery,riverApproach} from './expedition.mjs';
@@ -164,7 +165,7 @@ export class BeachLife{
     if(i%32===0)yield;
     const x=tx*64+rand(seed,i*3)*64,z=tz*64+rand(seed,i*3+1)*64,coast=x-shore(z),patch=noise(x*.085,z*.085);
     if(Math.hypot(x-centerX,z-centerZ)>76)continue;
-    const place=remembered(this.placementCaches.grass,`b${tx},${tz},${i}`,()=>{const surface=surfaceAt(x,z),meadow=surface.grass>.22;if(meadow||coast<29||surface.riverApproach>.18||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.95)return null;return {meadow,y:baseHeight(x,z)}},40000);
+    const place=remembered(this.placementCaches.grass,`b${tx},${tz},${i}`,()=>{if(inRoadsideClearing(x,z))return null;const surface=surfaceAt(x,z),meadow=surface.grass>.22;if(meadow||coast<29||surface.riverApproach>.18||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.95)return null;return {meadow,y:baseHeight(x,z)}},40000);
     if(!place||gi>=Math.floor(this.grass.instanceMatrix.count*.30))continue;const {meadow}=place;
     d.position.set(x-origin.x,place.y-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=meadow?1.05+rand(seed,i+700)*.65:.5+rand(seed,i+700)*.85;d.scale.set(meadow?1.5:scale,scale*(meadow?1.15:1),meadow?1.5:scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.set(meadow?'#718e4b':'#819366').lerp(new THREE.Color(meadow?'#b1b774':'#c4ba87'),rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
    }
@@ -172,7 +173,7 @@ export class BeachLife{
     if(i%8===0)yield;
     const x=tx*64+rand(seed,i+1300)*64,z=tz*64+rand(seed,i+1500)*64,coast=x-shore(z);
     const place=remembered(this.placementCaches.debris,`${tx},${tz},${i}`,()=>{
-     const surface=surfaceAt(x,z),inland=surface.river>.2||surface.mud>.5;
+     if(inRoadsideClearing(x,z,2))return null;const surface=surfaceAt(x,z),inland=surface.river>.2||surface.mud>.5;
      if(!inland&&(coast<9||coast>48||coast>16&&coast<29))return null;
      const routeDistance=routeSample(x,z).distance;if(surface.mud>.3&&routeDistance<5.5)return null;
      const log=surface.river<.2&&i%3===0,rock=surface.river>.2||(!log&&i%4===0),h=baseHeight(x,z);
@@ -190,7 +191,7 @@ export class BeachLife{
    if((ix&7)===0)yield;
    const x=ix*6+rand(ix,iz)*4,z=iz*6+rand(iz,ix)*4,distance=Math.hypot(x-centerX,z-centerZ);if(distance>132)continue;
    const place=remembered(this.placementCaches.woodland,`${ix},${iz}`,()=>{
-    const green=riverGreenery(x,z);if(green<.18||riverMask(x,z)>.04)return null;
+    if(inRoadsideClearing(x,z,3))return null;const green=riverGreenery(x,z);if(green<.18||riverMask(x,z)>.04)return null;
     const slope=Math.hypot(baseHeight(x+1,z)-baseHeight(x-1,z),baseHeight(x,z+1)-baseHeight(x,z-1));if(slope>1.8)return null;
     const fernX=x+1.9,fernZ=z-1.5,fern=routeSample(fernX,fernZ).distance>7&&riverApproach(fernX,fernZ)<.18&&riverMask(fernX,fernZ)<.04;
     return {ix,iz,x,z,green,y:baseHeight(x,z),routeDistance:routeSample(x,z).distance,fern,fernY:fern?baseHeight(fernX,fernZ):0};
@@ -223,7 +224,7 @@ export class BeachLife{
    if((ix&15)===0)yield;
    const x=(ix+rand(ix,iz)*.7)*spacing,z=(iz+rand(iz,ix)*.7)*spacing;
    if(Math.hypot(x-centerX,z-centerZ)>76||gi>=this.grass.instanceMatrix.count)continue;
-   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:routeSample(x,z).distance<4.5}},40000);if(!place)continue;
+   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{if(inRoadsideClearing(x,z))return null;const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:routeSample(x,z).distance<4.5}},40000);if(!place)continue;
    d.position.set(x-origin.x,place.y-.035,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);const {riparian,trail}=place;d.scale.set(1.7,riparian?(trail?.32:.72)+rand(ix,iz+2)*.3:1.45+rand(ix,iz+2)*.65,1.7);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);
    c.set(riparian?'#426c43':'#71874b').lerp(new THREE.Color(riparian?'#87a85e':'#b2b570'),rand(ix,iz+4));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);
    this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
