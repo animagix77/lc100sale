@@ -93,3 +93,10 @@
 @media(max-height:360px) and (orientation:landscape){#game{--map-height:62px}.map-heading{min-height:32px}.map-next{padding:6px 9px}}
 
 #map{cursor:zoom-in}
+
+/* Contextual recovery stays clear of the thumb controls; overlays remain above it. */
+.unstuck-help{position:absolute;z-index:3;left:50%;top:38%;transform:translateX(-50%);width:min(360px,calc(100% - 32px));padding:20px;border:1px solid #f59a6288;border-radius:14px;background:#132a2ef2;box-shadow:0 12px 42px #081a2466;animation:unstuck-in .24s ease-out;color:#fff2de}
+.unstuck-help[hidden]{display:none}.unstuck-help strong{font-size:22px;line-height:1.15}.unstuck-help p{margin:7px 0 0;font-size:15px;line-height:1.4}.unstuck-help .unstuck-note{font-size:12px;color:#d7ded5;margin-top:12px}.unstuck-actions{display:flex;gap:10px;margin-top:15px}.unstuck-actions button{min-height:46px;border:1px solid #fff2de55;border-radius:6px;background:transparent;padding:11px 12px;font:700 13px Arial;color:inherit;touch-action:manipulation}.unstuck-actions #unstuck-reset{background:#f59a62;border-color:#f59a62;color:#14282a;flex:1}.unstuck-actions button:focus-visible{outline:2px solid #fff2de;outline-offset:3px}
+@keyframes unstuck-in{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+@media(max-height:520px){.unstuck-help{top:70px;padding:14px;width:320px}.unstuck-help strong{font-size:19px}.unstuck-help p{font-size:12px}.unstuck-help .unstuck-note{margin-top:6px}.unstuck-actions{margin-top:10px}}
+@media(prefers-reduced-motion:reduce){.unstuck-help{animation:none}}

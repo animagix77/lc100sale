@@ -191,3 +191,6 @@ A body up-axis below 0.2 for 1.65 uninterrupted simulation seconds triggers an a
 ### Ocean wake continuity
 
 The ocean keeps its fixed vertex budget, but its detailed patch now follows the truck offshore. Integer fine-grid shifts preserve the local water triangles through streaming and origin rebases. This fixes the case where a simulated 69 cm crest moved the coarse visible offshore mesh by less than 1 mm. Raised bows and depressed trailing troughs now reach actual geometry near the tyres. Water contact also uses a current-pose geometric tyre intersection when suspension loses seabed contact, preserving wake/spray while bobbing through water; tyres above the surface remain dry, and grounded rock contact retains priority.
+
+## Contextual unstuck recovery
+`unstuck.mjs` offers a checkpoint reset after 4.5 seconds of attempted forward/reverse driving with under one metre of progress and low horizontal/vertical speed. It includes high-centred chassis contacts without requiring tyre contact. Parked trucks, braking, airborne motion, board placement and antenna cutaways do not accumulate stalled effort. The offer persists after releasing controls, hides on pause, clears after genuine escape, and can be snoozed for 12 seconds. Recovery reuses the rollover checkpoint reset, clearing held controls, momentum, boards and wakes while preserving waypoint progress.
