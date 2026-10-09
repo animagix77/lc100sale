@@ -76,7 +76,7 @@ sound.update({speed:0,impacts:[landing]});assert.equal(requests,0,'Volcanic even
 assert.equal(requests,0,'No audio download until an interaction');assert.equal(contexts,0,'Rain and water do not create an audio context before a user gesture');
 await gestures.emit('keydown',{ctrlKey:true});assert.equal(requests,0,'Browser shortcuts do not unlock audio');
 await Promise.all([gestures.emit('pointerdown'),gestures.emit('keydown')]);assert.equal(requests,6);assert.equal(button.textContent,'Sound on');assert(urls.every(url=>!url.includes('v8-')),'Puttering engine recordings are not loaded');
-const loops=context.nodes.filter(node=>node.loop),wash=loops.find(node=>node.buffer.name==='wave2'),spray=loops.find(node=>node.buffer.numberOfChannels===2&&node.connections[0].connections[0].frequency.value===750),rain=loops.find(node=>node.buffer.numberOfChannels===2&&node.connections[0].connections[0].frequency.value===4000);
+const loops=context.nodes.filter(node=>node.loop),wash=loops.find(node=>node.buffer.name==='wave2'),spray=loops.find(node=>node.buffer.numberOfChannels===2&&node.connections[0].connections[0].frequency.value===750),rain=loops.find(node=>node.buffer.numberOfChannels===2&&node.connections[0].connections[0].frequency.value===1800);
 assert(wash&&spray&&rain,'Water wash, stereo spray, and stereo rain have persistent voices');
 const washGain=wash.connections[0].gain,sprayGain=spray.connections[0].gain,rainGain=rain.connections[0].gain;
 assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);assert.equal(rainGain.value,0,'Weather is silent until actual game state arrives');

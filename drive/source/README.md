@@ -1,3 +1,7 @@
+## Softer rain audio — October 9, 2026
+
+Judge Dean LLC. Rain-bed gain is reduced from 0.8 to 0.24 at full rain (approximately 10.5 dB lower before filtering). The rain low-pass range is softened from 2.4–6.4 kHz to 1.4–3.2 kHz, with a 1.2-second volume transition and one-second tone transition. Other driving/audio layers retain their levels. Existing audio regression, build, bundle syntax and source whitespace checks passed. Local review rebuilt; no speaker-listening verification claimed.
+
 ## More time to read driving messages — October 9, 2026
 
 Judge Dean LLC. Ordinary driving messages now reserve 18–32 simulation seconds based on word count instead of nine. Checkpoint announcements defer behind the current reading window; only the latest pending checkpoint is retained. Direct control feedback and safety/rescue notices remain immediate, and resets discard stale pending text. Pause stops the simulation clock and reading timer together.

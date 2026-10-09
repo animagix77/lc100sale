@@ -19,7 +19,7 @@ export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=3
  const splash=ground.length?wet*velocity**.7*immersion:0,precipitation=clamp(Number(rain)||0,0,1);
  return {rpm,load,wet,grass:grass*clamp((moving-.1)/3,0,1)*.32,skid:wetRock*.22,skidRate:.85+clamp(slip/8,0,1)*.4,sand:work*(1-wet)*(.055+soft*.055),splash,splashRate:.85+velocity*.35,splashCutoff:750+velocity*3800,
   splashEntry:(.22+velocity*.94)*Math.sqrt(wet)*immersion,splashDuration:.55+velocity*.65,
-  rain:precipitation**.7*.8,rainCutoff:2400+precipitation*4000,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
+  rain:precipitation**.7*.24,rainCutoff:1400+precipitation*1800,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
 }
 // Hazard energy already includes distance falloff. Size gives larger landings
 // more weight; distant landings also lose the bright crumble above the thud.
@@ -93,7 +93,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
   coast=loop('coast',master,.2);
   const washFilter=ctx.createBiquadFilter();washFilter.type='lowpass';washFilter.frequency.value=1700;washFilter.Q.value=.4;washFilter.connect(master);waterWash=loop('wave2',washFilter);
   waterFilter=ctx.createBiquadFilter();waterFilter.type='lowpass';waterFilter.frequency.value=750;waterFilter.Q.value=.4;waterFilter.connect(master);waterSpray=loop('spray',waterFilter);
-  rainFilter=ctx.createBiquadFilter();rainFilter.type='lowpass';rainFilter.frequency.value=4000;rainFilter.Q.value=.4;rainFilter.connect(master);rainBed=loop('rain',rainFilter);
+  rainFilter=ctx.createBiquadFilter();rainFilter.type='lowpass';rainFilter.frequency.value=1800;rainFilter.Q.value=.4;rainFilter.connect(master);rainBed=loop('rain',rainFilter);
   nextGull=ctx.currentTime+4;apply();
  }
  function stopSplash(){if(!splash)return;smooth(splash.g.gain,0,.025);try{splash.source.stop(ctx.currentTime+.12)}catch{}splash=null;}
@@ -141,7 +141,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    // stays continuous and does not allocate a new voice every few frames.
    smooth(waterWash.g.gain,m.splash*.72,m.splash? .16:.05);smooth(waterWash.source.playbackRate,m.splashRate,.3);
    smooth(waterSpray.g.gain,m.splash*.7,m.splash? .13:.05);smooth(waterFilter.frequency,m.splashCutoff,.18);
-   smooth(rainBed.g.gain,m.rain,.65);smooth(rainFilter.frequency,m.rainCutoff,.65);
+   smooth(rainBed.g.gain,m.rain,1.2);smooth(rainFilter.frequency,m.rainCutoff,1);
    if(!m.splash)stopSplash();
    else if(m.wet-lastWet>.18&&now>=nextSplash){stopSplash();splash=shot('wave1',m.splashEntry,(Math.random()-.5)*.45,m.splashRate,m.splashDuration);nextSplash=now+.65;}
    lastWet=m.wet;
