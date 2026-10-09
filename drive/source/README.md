@@ -6,6 +6,12 @@ This is a cumulative development log. Later entries supersede earlier implementa
 
 The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. Rendering and physics dependencies are bundled locally. There is no saved-game persistence. Optional nearby weather sends rounded coordinates to Open-Meteo; the main website's poll uses a separate vote service.
 
+## Drag to look around — October 9, 2026
+
+Drag the scenery horizontally to orbit the truck and vertically to raise/lower the camera. A six-pixel threshold keeps taps from moving the view. Releasing a drag holds that angle for five seconds, then smoothly returns to the chase camera; dragging again restarts the delay. Holding the camera finger prevents automatic return. Keyboard arrows retain their existing persistent orbit and C recenters. The intro, touch reference and accessible driving instructions describe the gesture.
+
+`touch-camera.mjs` listens only on the driving canvas and captures one pointer, including a non-primary finger while the first is on the joystick. Driving, e-brake and HUD pointers remain independent. Pause, map opening, HUD menu opening, reset, blur, resizing and teardown release the gesture. Existing pitch limits and terrain clearance apply. The new gesture regression is registered in the suite; nine focused control/camera/intro/recovery checks pass. Vehicle assets and physics are unchanged.
+
 ## Volcanic embers and landing feedback — October 9, 2026
 
 The volcanic pass now carries 144 desktop / 88 mobile ember slots and 22 / 14 taller, fuller smoke plumes. Small bright ember cores remain visible against lava. Ambient smoke thins near the camera and trail center to preserve the driving line. Actual falling-rock ground contacts create expanding ash puffs in fixed pools of 30 desktop / 16 mobile billboards; they drift and expire after roughly three seconds. Rock spawn counts, trajectories and physical colliders are unchanged.
