@@ -39,7 +39,7 @@ export class VolcanoHazards{
   for(let i=0;i<this.rockCount;i++){
    const radius=.32+rand(i+19)*.34,vertices=new Float32Array(positions.array.length);for(let j=0;j<vertices.length;j++)vertices[j]=positions.array[j]*radius;
    const body=physics.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setEnabled(false).setCanSleep(true).setCcdEnabled(true).setLinearDamping(.12).setAngularDamping(.7));
-   const collider=physics.world.createCollider(RAPIER.ColliderDesc.convexHull(vertices).setMass(45+radius*105).setFriction(.85).setRestitution(.25),body);
+   const collider=physics.world.createCollider(RAPIER.ColliderDesc.convexHull(vertices).setMass(45+radius*105).setCollisionGroups(0x0001ffff).setFriction(.85).setRestitution(.25),body);
    this.pool.push({body,collider,radius,active:false,settled:false,age:0,hitAt:-100,lastVx:0,lastVy:0,lastVz:0,contacts:0});this.handles.add(collider.handle);
   }
   const makeBillboards=(count,hex,ember)=>{

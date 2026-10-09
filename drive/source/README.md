@@ -6,6 +6,13 @@ This is a cumulative development log. Later entries supersede earlier implementa
 
 The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. Rendering and physics dependencies are bundled locally. There is no saved-game persistence. Optional nearby weather sends rounded coordinates to Open-Meteo; the main website's poll uses a separate vote service.
 
+## Loose dirt and gravel — October 9, 2026
+`loose-pebbles.mjs` adds real Rapier convex rigid bodies with gravity, friction, angular motion, continuous collision detection and sleeping. Four kinematic rounded tire shapes follow the suspension, steering and wheel rotation; contact resolution pushes stones aside. The suspension continues to query terrain and larger obstacles, excluding these tire shapes and dynamic gravel so small stones do not destabilize the truck. The pool has 120 desktop / 72 mobile stones in three physical sizes, matching the rendered geometry. Spawning excludes the truck footprint, water, heavy mud, snow and volcanic surfaces. Terrain sampling is cached by cell and activations are bounded. Nearby stones retain their displaced positions; a bounded 1,024-entry world history preserves revisited stones until evicted. This is a local gravel simulation, not a particle simulation of every sand grain.
+
+Terrain shading adds world-anchored soil aggregates, fine grain, roughness variation and small normal relief, with distance fades. Existing sand/snow/mud deformation still changes terrain height and colliders; the new surface detail follows those ruts. Meadow trails receive a little exposed-earth tint. No vehicle GLB changes.
+
+`test-loose-pebbles.mjs` checks actual tire–stone contact manifolds, lateral displacement, rotation, settling, high-speed/reverse stability, self-collision exclusion, reset, origin shifts, retained displacement, allocation limits and disposal. The complete expedition test also runs with loose stones and tire contact shapes enabled.
+
 ## Dramatic atmosphere — October 9, 2026
 Distance fog now starts closer and reaches full coverage at roughly 160 m in dry dusk, 184 m in clear daylight, and 76 m in fog. Wet weather blends visibility continuously. Ground mist is taller, denser and feathered, with clear space around the truck. The two depth-occluded headlight volumes extend 26 m with stronger scattering; their fixed 8/12 sample budgets remain unchanged. Mist and emissive glows avoid a second layer of material fog.
 

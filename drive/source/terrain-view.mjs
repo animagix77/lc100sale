@@ -23,9 +23,16 @@ export class TerrainView{
  const grain=mx_noise_float(vec3(world.x.mul(2.8),positionWorld.y.mul(1.3),world.y.mul(2.8)));
  const layers=sin(positionWorld.y.mul(.85).add(broad.mul(8))).mul(.5).add(.5);
  const stratified=mix(float(1),layers.mul(.12).add(.88),detail.x);
- const textureShade=broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1));
- const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh)).mul(stratified).mul(textureShade);mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z);if(!flat){
-   const relief=grain.mul(.022).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z));
+ // Centimetre grains and irregular soil aggregates share world coordinates
+ // with the ruts. Distance fades suppress distant sparkle and aliasing.
+ const soil=float(1).sub(surface.y).mul(float(1).sub(detail.x)).mul(float(1).sub(surface.z));
+ const fineFade=float(1).sub(smoothstep(8,32,cameraPosition.distance(positionWorld)));
+ const grit=mx_noise_float(vec3(world.x.mul(32),float(2.3),world.y.mul(32)));
+ const clumps=mx_noise_float(vec3(world.x.mul(8),float(7.1),world.y.mul(8)));
+ const soilShade=clumps.mul(.18).add(grit.mul(.20).mul(fineFade)).mul(soil).mul(close).add(1);
+ const textureShade=soilShade.mul(broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1)));
+ const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh)).mul(stratified).mul(textureShade);mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z).mul(clumps.mul(.10).mul(soil).add(.95)).clamp(.06,1);if(!flat){
+   const relief=grain.mul(.022).add(clumps.mul(.012).add(grit.mul(.0025).mul(fineFade)).mul(soil)).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z));
    const dx=positionView.dFdx(),dy=positionView.dFdy(),r1=dy.cross(normalView),r2=normalView.cross(dx),det=dx.dot(r1);
    mat.normalNode=normalView.mul(det.abs()).sub(r1.mul(relief.dFdx()).add(r2.mul(relief.dFdy())).mul(det.sign())).normalize();
   }return mat};
@@ -47,6 +54,7 @@ export class TerrainView{
     const sx=gridHeights?(gridHeights[(j+2)*stride+i+4]-gridHeights[(j+2)*stride+i])*.5:(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=gridHeights?(gridHeights[(j+4)*stride+i+2]-gridHeights[j*stride+i+2])*.5:(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
     c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
     c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6).lerp(basalt,surface.volcanic*.97).lerp(trailStone,surface.volcanic*surface.trail*.45);// Brown alluvial soil and exposed gravel continue up both banks; no green carpet in the ford.
+    c.lerp(mudColor,surface.grass*surface.trail*.30);
     c.lerp(riverSoil,surface.riverApproach*(1-surface.river)*.88).lerp(riverGravel,surface.riverApproach*(.14+.22*noise(x*1.3,z*1.3)));
     c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
     surfaces[k3]=surface.mud;surfaces[k3+1]=surface.snow;surfaces[k3+2]=surface.puddle;details[k4]=surface.volcanic;details[k4+1]=surface.grass;details[k4+2]=surface.river;details[k4+3]=surface.trail;
