@@ -91,7 +91,7 @@ export class DrivePhysics{
   const point=this.vehicle.wheelContactPoint(i),length=this.vehicle.wheelSuspensionLength(i),compression=Math.max(0,.30-length);
   if(point&&compression>0){const support=Math.min(10000,compression*compression*280000);this.rb.addForceAtPoint({x:0,y:support,z:0},point,true);this.bumpSupport+=support;}
  }
- this.vehicle.updateVehicle(dt,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC,undefined,c=>!this.loosePebbles?.handles.has(c.handle));this.loosePebbles?.beforeStep();this.world.step();
+ this.vehicle.updateVehicle(dt,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC,undefined,c=>!this.loosePebbles?.handles.has(c.handle));this.loosePebbles?.beforeStep();this.world.step();this.loosePebbles?.afterStep(dt);
  const protectedMotion=this.roadsideSafety.constrain(p,this.position(),this.rb.linvel());
  if(protectedMotion){const a=protectedMotion.position;this.rb.setTranslation({x:a.x-this.origin.x,y:a.y,z:a.z-this.origin.z},true);this.rb.setLinvel(protectedMotion.velocity,true);this.lighting.braking=true;}
  const hits=[];this.world.contactPairsWith(this.chassis,other=>{if(!this.obstacles?.has(other))return;this.world.contactPair(this.chassis,other,m=>{let impulse=0;for(let i=0;i<m.numContacts();i++)impulse+=m.contactImpulse(i);const n=m.normal();hits.push({id:other.handle,kind:this.obstacles.kind?.(other)||'rock',impulse,closing:Math.abs(v.x*n.x+v.y*n.y+v.z*n.z),pan:n.x*right.x+n.z*right.z})})});

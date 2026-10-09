@@ -6,6 +6,12 @@ This is a cumulative development log. Later entries supersede earlier implementa
 
 The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. Rendering and physics dependencies are bundled locally. There is no saved-game persistence. Optional nearby weather sends rounded coordinates to Open-Meteo; the main website's poll uses a separate vote service.
 
+## Pebbles resting in sand — October 9, 2026
+
+Beach and dune pebbles begin embedded and asleep, including on slopes. Actual contact with a moving tire or chassis releases them into Rapier motion. Ground contact then absorbs rolling and spinning energy until they embed at their displaced pose. Airborne stones continue falling before settling. This is a bounded game approximation of sand resistance.
+
+Terrain collider replacement and floating-origin shifts cannot release an untouched stone. Embedded stones follow vertical changes in the sand beneath them without sliding downhill; streaming retains their displaced pose and whether they were still airborne. Other dirt surfaces retain the existing loose-gravel physics. `test-pebble-sand.mjs` covers inclined beach/dune rest, tire contact, ground changes, rebasing, revisits and airborne settling alongside the existing gravel checks.
+
 ## Pronounced sand ruts and removal of flying birds — October 9, 2026
 
 Coastal beach tire contacts within 35 m of the shoreline (`shoreDistance < 35`) now form stronger, direction-aligned grooves with raised shoulders of displaced sand. Inland dunes retain their existing digging behavior. The rendered terrain and collision surface share the same deformation, so tires encounter the altered ground on later passes. Ordinary tested beach passes produce roughly 13–15 cm grooves and 3–5 cm berms; sustained slip can still deepen them. Compressed grain shading is quieter inside the tracks, helping the troughs and displaced edges remain legible against the surrounding sand.
