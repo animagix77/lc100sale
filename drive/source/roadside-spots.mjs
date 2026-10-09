@@ -20,5 +20,12 @@ function locate(story){
  return Object.freeze({...story,...best});
 }
 export const ROADSIDE_SPOTS=Object.freeze(stories.map(locate));
+// Shared by rendering and proximity braking so the people remain protected.
+export function roadsideActors(spot){
+ const cs=Math.cos(spot.yaw),sn=Math.sin(spot.yaw);
+ const actors=[{localX:-2.8,localZ:-.5,angle:0,options:{pose:'seated',coat:spot.couple?'#587482':'#9b7855'}}];
+ if(spot.couple)actors.push({localX:-3.25,localZ:1.15,angle:-.35,options:{pose:'standing',woman:true,coat:'#c8774e'}});
+ return actors.map(a=>({...a,x:spot.x+a.localX*cs+a.localZ*sn,z:spot.z-a.localX*sn+a.localZ*cs}));
+}
 // Pull-offs stay free of intersecting trees, rocks and tall grass.
 export const inRoadsideClearing=(x,z,padding=0)=>ROADSIDE_SPOTS.some(p=>(p.x-x)**2+(p.z-z)**2<(6.5+padding)**2);

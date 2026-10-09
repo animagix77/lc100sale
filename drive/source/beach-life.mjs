@@ -3,7 +3,7 @@ import {sceneryFade,stageSceneryArrival,syncSceneryFade,disposeSceneryFade} from
 import {GrassTracks} from './grass-tracks.mjs';
 import {routeSample,riverMask,riverZ,riverGreenery,riverApproach} from './expedition.mjs';
 import {riverRocksNear} from './river-rocks.mjs';
-import {coastalWind} from './coastal-wind.mjs';
+import {grassWindStrength} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
 import {positionLocal,attribute,uniform,sin,cos,vec3,float} from 'three/tsl';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -233,7 +233,7 @@ export class BeachLife{
   this.grassData.length=gi;Object.assign(this.stats,{grass:gi,logs:li,wrack:wi,rocks:ri,trees:ti,shrubs:si});
  }
  update(p,time,origin,weather={wind:8},heading=0,refresh=true){
-  if(refresh)this.refresh(p,origin);this.fadeAnchor.value.set(p.x-origin.x,p.z-origin.z);this.time.value=this.reduced?0:time;this.windStrength.value=this.reduced?0:coastalWind(time,weather.wind)*2.2;
+  if(refresh)this.refresh(p,origin);this.fadeAnchor.value.set(p.x-origin.x,p.z-origin.z);this.time.value=this.reduced?0:time;this.windStrength.value=this.reduced?0:grassWindStrength(time,weather.wind);
   const dt=Math.min(.1,Math.max(0,time-(this.lastGrassTime??time)));this.lastGrassTime=time;
   this.tracks.update(p,time,heading);
   const k=1-Math.exp(-dt*28),indices=this._bendIndices??=new Set();indices.clear();

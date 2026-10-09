@@ -19,7 +19,11 @@ CC0: https://creativecommons.org/publicdomain/zero/1.0/
 
 
 ## LC FM station music
-Seven original synthesized instrumental arrangements created for this project: Glovebox After Hours (jazz), Curb Appeal (hip-hop), Low Range, High Spirits (EDM), Hairspray & Horsepower (80s rock), Smells Like Wet Floor Mats (90s rock), All Hat, All Terrain (country), Bias Wrecker (K-pop-inspired synth pop). No external samples or borrowed melodies. Composition source: `../source/compose-radio.py`; metadata: `../source/radio-tracks.json`. Original No Particular Hurry remains the default preset.
+The current jazz, hip-hop, EDM, ’80s rock, ’90s rock, country and K-pop stations use the seven four-minute MP3s supplied by the owner on October 8, 2026 in the project’s `audio` folder. They are copied unchanged to `radio/*.mp3`, including their embedded provenance metadata. `../source/radio-library.json` records the source filenames, checksums and measured levels. Station display names are LC FM preset names; the source files contain no song-title or artist tags.
+
+Playback applies a small per-station attenuation toward −13 LUFS without recompressing or limiting the recordings. Only the selected station loads after radio power-on. The original “No Particular Hurry” remains on Sunset.
+
+The earlier synthesized instrumental tracks are retained as `radio/*.m4a`, with their historical composition source in `../source/compose-radio.py` and metadata in `../source/radio-tracks.json`. Those seven older arrangements are no longer selected by the radio. Their original composition credits apply only to those retained files, not the replacement MP3s.
 
 ## Smooth engine drone
 The current engine sound is an original synthesized harmonic drone, replacing the recorded idle/load loops entirely to remove their puttering exhaust texture. Four phase-aligned sine partials follow RPM with smoothed frequency and gain, filtered for a muted petrol-V8 character. No random detuning or rhythmic amplitude modulation. This is a stylized game sound, not an authenticated Toyota recording. Ocean, sand, gulls and water accents remain from the credited recordings above.

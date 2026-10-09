@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import {uniform,attribute,positionWorld,float,smoothstep} from 'three/tsl';
-import {ROADSIDE_SPOTS} from './roadside-spots.mjs';
+import {ROADSIDE_SPOTS,roadsideActors} from './roadside-spots.mjs';
 import {vehicleGeometry,personGeometry,combine} from './roadside-models.mjs';
 import {baseHeight} from './terrain.mjs';
 import {sceneryFade} from './scenery-fade.mjs';
@@ -11,9 +11,7 @@ export class RoadsideStories{
    const parts=[],g=vehicleGeometry(spot),up=new THREE.Vector3(-spot.hx,1,-spot.hz).normalize();
    if(spot.tipped){g.rotateZ(Math.PI*.54);g.computeBoundingBox();g.translate(0,-g.boundingBox.min.y-.10,0)}else g.translate(0,-(spot.buried||0),0);
    const yaw=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),spot.yaw),slope=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),up);g.applyQuaternion(slope.multiply(yaw));g.translate(spot.x,spot.h,spot.z);parts.push(g);
-   const actor=(x,z,options,angle=0)=>{const cs=Math.cos(spot.yaw),sn=Math.sin(spot.yaw),wx=spot.x+x*cs+z*sn,wz=spot.z-x*sn+z*cs,person=personGeometry(options);person.rotateY(spot.yaw+angle);person.translate(wx,baseHeight(wx,wz),wz);parts.push(person)};
-   actor(-2.8,-.5,{pose:'seated',coat:spot.couple?'#587482':'#9b7855'});
-   if(spot.couple)actor(-3.25,1.15,{pose:'standing',woman:true,coat:'#c8774e'},-.35);
+   for(const actor of roadsideActors(spot)){const person=personGeometry(actor.options);person.rotateY(spot.yaw+actor.angle);person.translate(actor.x,baseHeight(actor.x,actor.z),actor.z);parts.push(person)}
    const mat=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.72,flatShading:true}),mesh=new THREE.Mesh(combine(parts),mat);mesh.name='roadside-'+spot.id;mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.story=spot;mesh.frustumCulled=true;sceneryFade(mesh,{anchor:this.anchor,clock:this.clock,near:80,far:130,arrival:false});scene.add(mesh);this.meshes.push(mesh);
    if(spot.steam){const v=new THREE.Vector3(0,1.25,-1.8).applyQuaternion(slope).add(new THREE.Vector3(spot.x,spot.h,spot.z));this.smokeSources.push(v)}
   }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {CoastalAtmosphere} from './coastal-atmosphere.mjs';
-import {coastalWind} from './coastal-wind.mjs';
+import {coastalWind,grassWindStrength} from './coastal-wind.mjs';
 import {SandField,shore} from './terrain.mjs';
 for(const mobile of [false,true]){
  const scene=new THREE.Scene(),field=new SandField(),camera=new THREE.PerspectiveCamera(),a=new CoastalAtmosphere(scene,field,{mobile}),p={x:shore(0)+35,z:0},origin={x:0,z:0},weather={altitude:8,wind:25};a.update(p,12,origin,camera,weather);
@@ -17,3 +17,9 @@ for(const mobile of [false,true]){
 }
 const scene=new THREE.Scene(),a=new CoastalAtmosphere(scene,new SandField(),{reduced:true});a.update({x:0,z:0},20,{x:0,z:0},new THREE.PerspectiveCamera(),{wind:60,altitude:8});assert(!a.gulls.visible);assert.equal(a.clock.value,0);a.dispose();assert(coastalWind(5,60)>coastalWind(5,5));
 console.log('Coastal atmosphere: quiet offshore birds, clear camera space, wet/night suppression, rebasing, reduced motion and disposal passed.');
+
+for(const speed of [0,8,25,60,80,400,NaN])for(let time=0;time<120;time+=.25){
+ const strength=grassWindStrength(time,speed);assert(Number.isFinite(strength)&&strength>=0&&strength<=.65,'Grass gusts remain bounded in extreme or invalid weather');
+}
+assert(grassWindStrength(5,60)>grassWindStrength(5,5),'Storms still visibly increase rooted foliage motion');
+console.log('Grass wind: restrained, weather-responsive tip motion with a storm limit passed.');

@@ -16,7 +16,7 @@ export function createMusic(button,focus,{onPower=()=>{}}={}){
   presetButtons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===selected)));panel.dataset.power=on?'on':'off';
  }
  const presetButtons=STATIONS.map((station,i)=>{const b=document.createElement('button');b.type='button';b.textContent=station.genre;b.title=station.title;b.setAttribute('aria-label',`${station.genre}: ${station.title}`);listen(b,'click',()=>tune(i));presets.append(b);return b});
- function targetGain(){return userVolume*(effectsOn?.51-engineLoad*.11:.74)}
+ function targetGain(){return userVolume*(effectsOn?.51-engineLoad*.11:.74)*(STATIONS[selected].gain??1)}
  function ramp(value,seconds=.12){if(!ctx)return;gain.gain.cancelScheduledValues(ctx.currentTime);gain.gain.setTargetAtTime(value,ctx.currentTime,seconds)}
  function stopMotor(){for(const node of motors){try{node.stop()}catch{}node.disconnect()}motors.clear()}
  function motor(){
@@ -35,7 +35,7 @@ export function createMusic(button,focus,{onPower=()=>{}}={}){
    status='TUNING…';render();loadTimer=setTimeout(()=>fail(request),15000);
    await Promise.all([ctx.resume(),media.play(),new Promise(resolve=>setTimeout(resolve,retune?Math.max(0,TUNING_MS-(performance.now()-began)):0))]);
    if(request!==version||!on||paused||disposed)return;
-   clearTimeout(loadTimer);tuning=false;status='STEREO · ORIGINAL INSTRUMENTAL';render();ramp(targetGain(),animate?.65:.22);
+   clearTimeout(loadTimer);tuning=false;status='STEREO · ON AIR';render();ramp(targetGain(),animate?.65:.22);
   }catch{fail(request)}
  }
  function turnPower(){if(disposed)return;on=!on;version++;sweep?.stop();tuning=false;clearTimeout(loadTimer);clearTimeout(timer);status=on?'TUNING…':'POWER OFF';onPower(on);render();if(on)open(false);

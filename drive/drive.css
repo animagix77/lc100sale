@@ -22,7 +22,7 @@
 
 @media(max-height:520px) and (orientation:landscape){.drive-range{top:auto;bottom:106px;left:18px;right:auto;width:320px;grid-template-columns:110px 116px 84px;gap:5px;align-items:stretch}.drive-range #range-note{display:none}.drive-range button,.drive-range #center-lock,.drive-range #recover{min-height:44px}.drive-range #recover{font-size:10px}}
 
-@media(max-height:520px){.desktop-help{display:none}#paused{padding:12px}#paused h2{font-size:26px;letter-spacing:-1px;margin:6px 0}#paused h2 br{display:none}#paused h2 em:before{content:" "}#paused p{max-width:72ch;line-height:1.35;margin:6px 0}#paused .primary{padding:9px 20px;margin:6px 0}}
+@media(max-height:520px){.desktop-help{display:none}}
 
 .weather-panel{position:absolute;z-index:3;top:82px;right:28px;width:350px;max-width:calc(100vw - 36px);max-height:calc(100dvh - 110px);overflow:auto;padding:18px;border:1px solid #fff5df55;border-radius:12px;background:#17292df5;box-shadow:0 12px 32px #0005}.weather-panel[hidden]{display:none}.weather-head{display:flex;align-items:center;gap:12px;font:11px/1.5 monospace;letter-spacing:1px}.weather-head button{margin-left:auto;background:none;border:0;font-size:24px;padding:6px}.weather-panel p{font-size:13px;line-height:1.5}.weather-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}.weather-options button{min-height:44px;border:1px solid #fff5df55;background:#24383d;font-size:12px}.weather-options #weather-local{grid-column:1/-1}.weather-options [aria-pressed=true]{background:#f59a62;color:#17292d}.weather-panel .weather-note{font-size:11px;color:#c5cdd0}.weather-note a{color:#ffd2a4}.preview-mode .weather-panel{display:none!important}@media(max-width:700px){.weather-panel{top:96px;right:18px}.tools #exit{grid-column:auto}}@media(max-height:520px){.weather-panel{top:62px;max-height:calc(100dvh - 76px)}}
 
@@ -100,3 +100,12 @@
 @keyframes unstuck-in{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
 @media(max-height:520px){.unstuck-help{top:70px;padding:14px;width:320px}.unstuck-help strong{font-size:19px}.unstuck-help p{font-size:12px}.unstuck-help .unstuck-note{margin-top:6px}.unstuck-actions{margin-top:10px}}
 @media(prefers-reduced-motion:reduce){.unstuck-help{animation:none}}
+
+/* Contextual advice uses the navigation column and points to existing controls. */
+.trail-tip{width:278px;max-width:100%;margin-top:14px;padding:10px 14px 14px;border:1px solid #f59a6288;border-left:3px solid #f59a62;border-radius:8px;background:#142a30f2;box-shadow:0 8px 24px #061a2633;text-shadow:none;animation:unstuck-in .24s ease-out}
+.trail-tip[hidden]{display:none}.trail-tip-head{display:flex;align-items:center;gap:8px;min-height:30px;margin-bottom:5px}.trail-tip-head>span{font:700 9px/1.3 monospace;letter-spacing:1.1px;color:#ffbd8c}.trail-tip-head button{pointer-events:auto;flex:0 0 44px;min-height:44px;margin:-7px -10px -7px auto;border:0;border-radius:6px;background:transparent;font:25px/1 Arial;color:#e9d7c1;touch-action:manipulation}.trail-tip-head button:hover{background:#ffffff12}
+.trail-tip strong{display:block;font-size:17px;line-height:1.18;letter-spacing:-.3px}.destination .trail-tip p{display:block;max-width:none;margin:8px 0 0;font-size:12px;line-height:1.5;color:#e2e4d6}
+.drive-range button.suggested-control{border-color:#ffd0a0;box-shadow:0 0 0 2px #f59a6255,inset 0 0 18px #f59a6222;color:#ffe0bb}
+@media(max-width:700px){.trail-tip{padding:8px 10px 11px;margin-top:11px}.trail-tip-head>span{font-size:8px;letter-spacing:.6px}.trail-tip strong{font-size:15px}.destination .trail-tip p{font-size:11px;line-height:1.4}.has-trail-tip .destination>h1,.has-trail-tip .destination>#mission{display:none}}
+@media(max-height:520px) and (orientation:landscape){.has-trail-tip .destination{max-width:300px}.has-trail-tip .destination .waypoint-guide{display:none}.trail-tip{width:300px;margin-top:0;padding:7px 12px 11px}.trail-tip strong{font-size:15px}.destination .trail-tip p{font-size:11px;line-height:1.4;margin-top:5px}}
+@media(prefers-reduced-motion:reduce){.trail-tip{animation:none}}

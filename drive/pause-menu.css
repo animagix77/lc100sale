@@ -1,0 +1,46 @@
+/* A pause menu is a quick reference, with actions always in reach. */
+.pause-menu{width:min(980px,calc(100vw - 40px));max-width:none;max-height:calc(100dvh - 40px);margin:auto;padding:0;overflow:hidden;border:1px solid #eac49a4d;border-radius:16px;background:#162d31;color:#fff3dd;box-shadow:0 24px 90px #06151bb3;text-align:left;color-scheme:dark}
+.pause-menu[open]{display:flex;flex-direction:column}.pause-menu:not([open]){display:none}.pause-menu::backdrop{background:#07171dbd;backdrop-filter:blur(8px)}
+.pause-menu .pause-header{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 26px 18px;border-bottom:1px solid #f5dec323}
+.pause-menu .eyebrow{font:700 10px/1.4 monospace;letter-spacing:1.7px;color:#f6b67f}
+.pause-menu h2{margin:9px 0 8px;font:700 clamp(28px,3.4vw,36px)/1.05 Arial,Helvetica,sans-serif;letter-spacing:-1.2px}
+.pause-menu #pause-lead{margin:0;max-width:none;font:14px/1.5 Arial,Helvetica,sans-serif;color:#c0cfcb}
+.pause-menu .pause-shortcut{display:flex;align-items:center;gap:7px;padding-top:3px;font:10px/1.4 monospace;letter-spacing:.5px;color:#aebfb9;white-space:nowrap}
+.pause-menu kbd{display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:4px 7px;border:1px solid #cfddcf40;border-bottom-width:2px;border-radius:5px;background:#ecf2de0b;box-shadow:0 1px 0 #07171d55;font:700 12px/1 monospace;color:#ffedd0;white-space:nowrap}
+.pause-menu .pause-content{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#688078 transparent;padding:18px 26px;display:grid;grid-template-columns:1fr 1fr;gap:18px;outline-offset:-4px}
+.pause-menu .pause-card{padding:20px;border:1px solid #dce5cc24;border-radius:10px;background:#20383b}
+.pause-menu .pause-card h3{margin:0 0 14px;font:700 18px/1.2 Arial,Helvetica,sans-serif;letter-spacing:-.3px;color:#fff3dd}
+.pause-menu .pause-stack{display:grid;gap:14px}.pause-menu .pause-stack .pause-card{padding:18px 20px}
+.pause-menu .control-modes{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:7px;background:#10272b;margin:0 0 18px}
+.pause-menu .control-modes button{min-height:40px;border:1px solid transparent;border-radius:5px;background:transparent;font:700 12px Arial;color:#becdc7;touch-action:manipulation}
+.pause-menu .control-modes button[aria-pressed=true]{background:#334d4d;border-color:#dce5cc38;color:#fff3dd}
+.pause-menu [data-controls-panel][hidden]{display:none}.pause-menu .pause-keys{margin:0;display:grid;gap:14px}
+.pause-menu .pause-keys>div{display:grid;grid-template-columns:144px 1fr;align-items:center;gap:10px}
+.pause-menu .pause-keys dt{display:flex;align-items:center;gap:5px}.pause-menu .pause-keys dt>span{font:11px monospace;color:#95aca4}
+.pause-menu .pause-keys dd{margin:0;font:14px/1.35 Arial;color:#e0e6da}
+.pause-menu p{margin:10px 0 0;font:13px/1.5 Arial,Helvetica,sans-serif;color:#c6d4ce;max-width:none}
+.pause-menu .pause-aside{padding-top:15px;margin-top:17px;border-top:1px solid #e6ead219;color:#a9c0b8;font-size:12px}
+.pause-menu .trail-control{display:grid;grid-template-columns:28px 1fr;align-items:start;gap:12px;margin-top:12px}
+.pause-menu .trail-control p{margin:0}.pause-menu .trail-control strong{display:block;margin:1px 0 3px;font-size:14px;color:#fff0d4}
+.pause-menu .pause-note{margin-top:15px;padding:11px 12px;border-left:2px solid #efa66e;background:#efa66e0b;font-size:12px;line-height:1.5;color:#e8d7bd}
+.pause-menu .touch-reference{display:grid;grid-template-columns:76px 1fr;gap:15px;align-items:center;margin:3px 0 20px}
+.pause-menu .stick-diagram{width:76px;height:76px;position:relative;border:1px solid #d9dabe66;border-radius:50%;background:radial-gradient(circle,#284544,#193238);display:grid;place-items:center}
+.pause-menu .stick-diagram:before,.pause-menu .stick-diagram:after{content:'';position:absolute;background:#d9dabe22}.pause-menu .stick-diagram:before{height:52px;width:1px}.pause-menu .stick-diagram:after{width:52px;height:1px}
+.pause-menu .stick-diagram i{width:30px;height:30px;z-index:1;border-radius:50%;border:1px solid #ffd8a8;background:linear-gradient(145deg,#ffd4a2,#f39b64);box-shadow:0 3px 8px #07171d66}
+.pause-menu .touch-reference strong{font-size:15px}.pause-menu .touch-reference p{margin:4px 0 0;font-size:12px}
+.pause-menu .touch-steps{margin:0;padding:0;list-style:none;display:grid;gap:12px}.pause-menu .touch-steps li{display:grid;grid-template-columns:72px 1fr;gap:10px;font:13px/1.4 Arial;color:#d1ddd5}.pause-menu .touch-steps strong{color:#fff0d4;font-size:13px}
+.pause-menu .pause-footer{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:14px 26px;border-top:1px solid #f5dec323;background:#10262b}
+.pause-menu #resume,.pause-menu #reset{min-height:48px;margin:0;padding:13px 21px;border-radius:6px;font:700 14px/1.3 Arial,Helvetica,sans-serif;touch-action:manipulation;backdrop-filter:none}
+.pause-menu #resume{order:0;border:1px solid #f59a62;background:#f59a62;color:#11272c}.pause-menu #resume:hover{background:#ffb37c;border-color:#ffb37c}
+.pause-menu #reset{order:1;border:1px solid #c4d6cf55;background:transparent;color:#dae4d7}.pause-menu #reset:hover{background:#ffffff0b}
+.pause-menu button:focus-visible{outline:2px solid #ffcf9b;outline-offset:3px}
+@media(max-width:650px){
+ .pause-menu{width:calc(100vw - 24px);max-height:calc(100dvh - max(24px,env(safe-area-inset-top)) - env(safe-area-inset-bottom));border-radius:12px}
+ .pause-menu .pause-header{padding:20px}.pause-menu h2{font-size:30px;letter-spacing:-.8px}.pause-menu #pause-lead{font-size:13px}.pause-menu .pause-shortcut{display:none}
+ .pause-menu .pause-content{grid-template-columns:1fr;gap:14px;padding:16px 20px}.pause-menu .pause-card,.pause-menu .pause-stack .pause-card{padding:17px}.pause-menu .pause-keys>div{grid-template-columns:144px 1fr}
+ .pause-menu .pause-footer{padding:14px 20px;gap:9px;flex-direction:column}.pause-menu #resume{order:0;width:100%}.pause-menu #reset{order:1;width:100%;min-height:40px;padding:9px 12px;font-size:12px}
+}
+@media(max-height:520px) and (min-width:651px){
+ .pause-menu{width:min(900px,calc(100vw - 28px));max-height:calc(100dvh - 24px);border-radius:10px}.pause-menu .pause-header{padding:14px 22px 12px;align-items:center}.pause-menu h2{font-size:28px;margin:5px 0 0}.pause-menu #pause-lead{display:none}.pause-menu .pause-header .eyebrow{font-size:9px}
+ .pause-menu .pause-content{padding:14px 22px;gap:14px}.pause-menu .pause-card,.pause-menu .pause-stack .pause-card{padding:16px}.pause-menu .pause-keys>div{grid-template-columns:130px 1fr}.pause-menu .pause-footer{padding:12px 22px}.pause-menu #resume,.pause-menu #reset{min-height:44px;padding:10px 18px}
+}
