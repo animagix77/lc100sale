@@ -13,7 +13,7 @@ const grassy=s=>s.grass>=.30&&s.riverApproach<=.18&&s.river<=.05&&s.snow<.15&&s.
 export class MeadowWildlife{
  constructor(scene,field,{mobile=false,reduced=false}={}){
   Object.assign(this,{scene,field,mobile,reduced});this.dummy=new THREE.Object3D();this.clock=uniform(0);this.stats={birds:0,fireflies:0};
-  this.birdCapacity=mobile?2:4;this.fireflyCapacity=mobile?32:64;this.radius=mobile?34:46;
+  this.birdCapacity=1;this.fireflyCapacity=mobile?32:64;this.radius=mobile?34:46;
   this.birdData=Array.from({length:this.birdCapacity},()=>({active:false}));
   this.fireflyData=Array.from({length:this.fireflyCapacity},()=>({x:0,y:0,z:0,phase:0,pace:0,size:0}));
   this.cooldowns=new Map();this.fireflyKey='';this.fireflyCount=0;this.travel=0;this.lastFlush=-Infinity;this.lastPosition=null;this.lastTime=null;this.disposed=false;
@@ -24,7 +24,7 @@ export class MeadowWildlife{
   const wings=new THREE.BufferGeometry();wings.setAttribute('position',new THREE.Float32BufferAttribute([
    -.025,.018,-.10,-.18,.055,-.05,-.33,.008,.105, -.025,.018,-.10,-.33,.008,.105,-.06,.010,.075,
    .025,.018,-.10,.33,.008,.105,.18,.055,-.05, .025,.018,-.10,.06,.010,.075,.33,.008,.105,
-   0,0,.055,-.065,0,.20,.065,0,.20
+   0,0,.055,-.075,0,.30,.075,0,.30
   ],3));wings.computeVertexNormals();
   const body=new THREE.IcosahedronGeometry(1,1).scale(.045,.055,.15);
   const head=new THREE.IcosahedronGeometry(.048,1).translate(0,.043,-.105);
@@ -33,16 +33,16 @@ export class MeadowWildlife{
   const geometry=mergeGeometries(clean);for(const g of new Set([...parts,...clean]))g.dispose();
   const phases=new Float32Array(this.birdCapacity);for(let i=0;i<phases.length;i++)phases[i]=i*2.399;
   geometry.setAttribute('birdPhase',new THREE.InstancedBufferAttribute(phases,1));
-  const birdMat=new THREE.MeshStandardNodeMaterial({color:'#463b2d',roughness:1,side:THREE.DoubleSide});
-  birdMat.positionNode=positionLocal.add(vec3(0,positionLocal.x.abs().mul(sin(this.clock.mul(23).add(attribute('birdPhase','float')))).mul(.78),0));
+  const birdMat=new THREE.MeshStandardNodeMaterial({color:'#64513a',roughness:1,side:THREE.DoubleSide});
+  birdMat.positionNode=positionLocal.add(vec3(0,positionLocal.x.abs().mul(smoothstep(.035,.18,positionLocal.x.abs())).mul(sin(this.clock.mul(19).add(attribute('birdPhase','float')))).mul(1.25),0));
   this.birds=new THREE.InstancedMesh(geometry,birdMat,this.birdCapacity);this.birds.count=this.birdCapacity;this.birds.frustumCulled=false;this.birds.visible=false;scene.add(this.birds);
   this.dummy.scale.setScalar(0);this.dummy.updateMatrix();for(let i=0;i<this.birdCapacity;i++)this.birds.setMatrixAt(i,this.dummy.matrix);
 
   const glowGeometry=new THREE.PlaneGeometry(1,1);this.fireflyAlpha=new THREE.InstancedBufferAttribute(new Float32Array(this.fireflyCapacity),1);glowGeometry.setAttribute('fireflyAlpha',this.fireflyAlpha);
-  const glowMat=new THREE.MeshBasicNodeMaterial({color:'#ffdb79',transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false});
-  const radius=uv().sub(.5).length().mul(2),halo=float(1).sub(smoothstep(0,1,radius)).pow(3),core=float(1).sub(smoothstep(0,.30,radius));
-  glowMat.color.multiplyScalar(2.2);
-  glowMat.opacityNode=halo.mul(.42).add(core.mul(.80)).mul(attribute('fireflyAlpha','float'));
+  const glowMat=new THREE.MeshBasicNodeMaterial({color:'#ffdb79',transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false,fog:false});
+  const radius=uv().sub(.5).length().mul(2),halo=float(1).sub(smoothstep(0,1,radius)).pow(2),core=float(1).sub(smoothstep(0,.18,radius));
+  glowMat.color.multiplyScalar(3.4);
+  glowMat.opacityNode=halo.mul(.45).add(core.mul(.95)).mul(attribute('fireflyAlpha','float'));
   this.fireflies=new THREE.InstancedMesh(glowGeometry,glowMat,this.fireflyCapacity);this.fireflies.count=0;this.fireflies.frustumCulled=false;this.fireflies.visible=false;this.fireflies.renderOrder=3;scene.add(this.fireflies);
  }
  _height(x,z){const height=this.field?.height(x,z);return Number.isFinite(height)?height:baseHeight(x,z)}
@@ -60,7 +60,7 @@ export class MeadowWildlife{
     const x=anchorX+(j?1.1+rand(ix+61,iz)*1.8:0),z=anchorZ+(j?rand(ix+67,iz)*3-1.5:0),surface=surfaceAt(x,z);
     if(!grassy(surface))continue;
     const riparian=riverGreenery(x,z),hover=riparian>.3?1.38+rand(ix+13+j,iz)*.44:2.32+rand(ix+13+j,iz)*.48;
-    const f=this.fireflyData[count++];f.x=x;f.z=z;f.y=this._height(x,z)+hover;f.phase=rand(ix+23+j*11,iz)*TAU;f.pace=.78+rand(ix+29+j,iz)*.48;f.size=.56+rand(ix+31+j,iz)*.15;
+    const f=this.fireflyData[count++];f.x=x;f.z=z;f.y=this._height(x,z)+hover;f.phase=rand(ix+23+j*11,iz)*TAU;f.pace=.78+rand(ix+29+j,iz)*.48;f.size=.80+rand(ix+31+j,iz)*.22;
    }
   }
   this.fireflyCount=count;this.fireflies.count=count;this.fireflyKey=key;
@@ -68,16 +68,16 @@ export class MeadowWildlife{
  _flush(p,time,fx,fz,pace){
   const ix=Math.floor(p.x/PATCH),iz=Math.floor(p.z/PATCH),key=`${ix},${iz}`;
   if(time-(this.cooldowns.get(key)??-Infinity)<COOLDOWN)return;
-  const desired=1+Math.floor(rand(ix+17,iz)*2),side=rand(ix,iz+19)>.5?1:-1;let spawned=0,slot=0;
+  const desired=1,side=rand(ix,iz+19)>.5?1:-1;let spawned=0,slot=0;
   for(let attempt=0;attempt<12&&spawned<desired;attempt++){
    while(slot<this.birdCapacity&&this.birdData[slot].active)slot++;
    if(slot>=this.birdCapacity)break;
-   const n=attempt,spread=side*(.85+rand(ix+n,iz+31)*1.45),ahead=3.6+rand(ix+n,iz+37)*2.2;
+   const n=attempt,spread=side*(.85+rand(ix+n,iz+31)*1.45),ahead=5.5+rand(ix+n,iz+37)*2.2;
    const x=p.x+fx*ahead-fz*spread,z=p.z+fz*ahead+fx*spread;
    if(!grassy(surfaceAt(x,z)))continue;
    const lateral=side*(.50+rand(ix+n+41,iz)*.35),forward=.9+rand(ix+n+47,iz)*.35,length=Math.hypot(lateral,forward),speed=7+Math.min(14,pace)*.5+rand(ix+n+53,iz)*1.5;
    const b=this.birdData[slot++],canopy=riverGreenery(x,z)>.3?1.45:2.5;
-   Object.assign(b,{active:true,x,z,clearance:canopy,y:this._height(x,z)+canopy+rand(ix+n+59,iz)*.25,vx:(fx*forward-fz*lateral)/length*speed,vz:(fz*forward+fx*lateral)/length*speed,start:time,ttl:3.0+rand(ix+n+61,iz)*.6,lift:1.65+rand(ix+n+67,iz)*.8,size:.78+rand(ix+n+71,iz)*.18,bank:side*.12});spawned++;
+   Object.assign(b,{active:true,x,z,clearance:canopy,y:this._height(x,z)+canopy+rand(ix+n+59,iz)*.25,vx:(fx*forward-fz*lateral)/length*speed,vz:(fz*forward+fx*lateral)/length*speed,start:time,ttl:4.3+rand(ix+n+61,iz)*.7,lift:1.65+rand(ix+n+67,iz)*.8,size:1.35+rand(ix+n+71,iz)*.20,bank:side*.12});spawned++;
   }
   if(spawned){this.cooldowns.delete(key);this.cooldowns.set(key,time);if(this.cooldowns.size>COOLDOWN_LIMIT)this.cooldowns.delete(this.cooldowns.keys().next().value);this.lastFlush=time;this.travel=0}
  }
@@ -99,7 +99,7 @@ export class MeadowWildlife{
    const b=this.birdData[i],age=time-b.start;if(b.active&&(this.reduced||!settledWeather||age<0||age>b.ttl))b.active=false;
    if(b.active){
     const x=b.x+b.vx*age,z=b.z+b.vz*age,y=Math.max(this._height(x,z)+b.clearance,b.y+b.lift*age+1.1*(1-Math.exp(-age*2)));
-    d.position.set(x-ox,y,z-oz);d.rotation.set(-.10,Math.atan2(-b.vx,-b.vz),b.bank);const clearance=camera?.position?smooth(2.5,5,d.position.distanceTo(camera.position)):1;
+    d.position.set(x-ox,y,z-oz);d.rotation.set(.20*(1-smooth(.2,1.8,age)),Math.atan2(-b.vx,-b.vz),b.bank*(1+Math.sin(age*1.8)*.6));const clearance=camera?.position?smooth(2.5,5,d.position.distanceTo(camera.position)):1;
     d.scale.setScalar(b.size*clearance*(1-smooth(b.ttl-.8,b.ttl,age)));active++;
    }else{d.position.set(0,0,0);d.rotation.set(0,0,0);d.scale.setScalar(0)}
    d.updateMatrix();this.birds.setMatrixAt(i,d.matrix);
@@ -114,8 +114,9 @@ export class MeadowWildlife{
    const f=this.fireflyData[i],x=f.x+(this.reduced?0:Math.sin(t*.42+f.phase)*.16),z=f.z+(this.reduced?0:Math.cos(t*.36+f.phase)*.16),y=f.y+(this.reduced?0:Math.sin(t*.70+f.phase)*.075);
    d.position.set(x-ox,y,z-oz);if(camera?.quaternion)d.quaternion.copy(camera.quaternion);else d.rotation.set(0,0,0);
    const cameraDistance=camera?.position?d.position.distanceTo(camera.position):Math.hypot(x-p.x,z-p.z),near=smooth(3,7,cameraDistance),far=1-smooth(this.radius-12,this.radius+1,Math.hypot(x-p.x,z-p.z));
-   const blink=this.reduced?.32:.07+.93*Math.pow(Math.max(0,Math.sin(t*f.pace+f.phase)),2.4),alpha=1.28*strength*blink*near*far;
-   this.fireflyAlpha.setX(i,alpha);if(alpha>.035)lit++;d.scale.set(f.size,f.size,1);d.updateMatrix();this.fireflies.setMatrixAt(i,d.matrix);
+   const blink=this.reduced?.48:.18+.82*Math.pow(Math.max(0,Math.sin(t*f.pace+f.phase)),1.6),alpha=Math.min(1,1.65*strength*blink*near*far);
+   this.fireflyAlpha.setX(i,alpha);if(alpha>.035)lit++;// Cap the nearby halo's apparent size so bright insects never become large orbs.
+   const glowSize=Math.min(f.size,cameraDistance*.035);d.scale.set(glowSize,glowSize,1);d.updateMatrix();this.fireflies.setMatrixAt(i,d.matrix);
   }
   this.fireflyAlpha.needsUpdate=true;this.fireflies.instanceMatrix.needsUpdate=true;this.stats.fireflies=this.fireflies.visible?lit:0;
  }

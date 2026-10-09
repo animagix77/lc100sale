@@ -28,8 +28,10 @@ export class WeatherView{
   this.day=.12*night+(1-night)*clamp((a+6)/25,.3,1);this.brightness=1-night*.50;
   // Visibility closes continuously as precipitation builds, never on its first drop.
   const weatherVeil=1-Math.pow(1-wet,1.35),fog=state.fog===true?1:clamp(Number(state.fog)||0,0,1);
-  this.fogFar=(245-c*25-weatherVeil*102)*(1-fog)+105*fog;
-  this.fogNear=(42-c*10-weatherVeil*13)*(1-fog)+18*fog;
+  // Low sun catches a deeper veil; nearby ground stays clear for steering.
+  const dusk=1-smooth(8,28,a);
+  this.fogFar=(188-dusk*24-c*22-weatherVeil*65)*(1-fog)+76*fog;
+  this.fogNear=(25-dusk*7-c*5-weatherVeil*6)*(1-fog)+9*fog;
   this.lightTarget=(3.15-c*1.8-weatherVeil*.20)*(1-night)+.68*night;
   this.hemiTarget=(1.18+c*.24)*(1-night)+1.13*night;
   this.environmentTarget=(.43-c*.08)*(1-night)+.26*night;
