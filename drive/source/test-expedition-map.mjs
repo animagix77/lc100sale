@@ -89,3 +89,21 @@ try{
  if(previousDpr)Object.defineProperty(globalThis,'devicePixelRatio',previousDpr);else delete globalThis.devicePixelRatio;
 }
 console.log('Expedition map: local and overview coordinates, actual heading, edge bearings, floating origin, repeating laps, DPR resize and retained 12 Hz rendering passed.');
+
+// Portrait's global route must fit the circle, including corners that a square
+// overview would clip. Off-route markers stay on its rim with the right bearing.
+for(const size of [96,108,120]){
+ const globe=createMapViewport(position,target,size,size,{compact:true});
+ for(const point of LANDMARKS){const p=projectMapPoint(point,globe);assert(Math.hypot(p.x-size/2,p.y-size/2)<=size/2-15,'Entire route fits inside round portrait map')}
+ const off=clampMapMarker({x:900,y:-800},globe,10);
+ close(Math.hypot(off.x-size/2,off.y-size/2),size/2-10);
+ close((off.x-size/2)/(off.y-size/2),(900-size/2)/(-800-size/2));
+ assert.deepEqual(createMapViewport(remote,position,size,size,{compact:true}),globe);
+}
+const roundCanvas=fakeCanvas(108,108),fullCanvas=fakeCanvas(350,642);
+const roundMap=new ExpeditionMap(roundCanvas,{overviewCanvas:fullCanvas,compact:()=>true});
+assert(roundMap.draw(position,0,new WaypointRoute(),{overview:true,force:true}));
+assert(roundCanvas.calls.some(([name])=>name==='clip'),'Round overview clips scenery to its circle');
+assert.equal(roundCanvas.calls.filter(([name])=>name==='fillText').length,1,'Tiny map avoids cluttered gate and region labels');
+assert(fullCanvas.calls.filter(([name,text])=>name==='fillText'&&/^\d+$/.test(text)).length===24,'Expanded map retains all numbered gates');
+console.log('Portrait map: full-route circular fit, off-route bearing, restrained labels and detailed expanded map passed.');

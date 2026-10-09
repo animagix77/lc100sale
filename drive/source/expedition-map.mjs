@@ -13,8 +13,15 @@ const REGIONS=[
 ];
 
 // Coordinates stay in world space, including after the physics origin rebases.
-export function createMapViewport(position,target,width,height,{overview=false}={}){
+export function createMapViewport(position,target,width,height,{overview=false,compact=false}={}){
  width=Math.max(1,width);height=Math.max(1,height);
+ if(compact){
+  // Fit the entire expedition inside the circular map, not its square bounds.
+  // A stable world overview does not jump around when the truck leaves the trail.
+  const points=[...LANDMARKS,VOLCANO],centerX=311,centerZ=-340;
+  const radius=Math.max(...points.map(p=>Math.hypot(p.x-centerX,p.z-centerZ)));
+  return {width,height,centerX,centerZ,round:true,scale:Math.max(1,Math.min(width,height)/2-16)/radius};
+ }
  if(overview){
   const padding=Math.min(27,Math.max(18,width*.055),Math.max(18,height*.055)),minX=-41,maxX=663,minZ=-785,maxZ=104,rotation=width/height>2.1?Math.PI/4:0;
   if(rotation){
@@ -41,7 +48,7 @@ export function projectMapPoint(point,viewport){
 export function clampMapMarker(point,viewport,padding=22){
  const cx=viewport.width/2,cy=viewport.height/2,dx=point.x-cx,dy=point.y-cy;
  const rx=Math.max(1,cx-padding),ry=Math.max(1,cy-padding);
- const fraction=Math.min(1,dx?rx/Math.abs(dx):Infinity,dy?ry/Math.abs(dy):Infinity);
+ const fraction=viewport.round?Math.min(1,Math.min(rx,ry)/(Math.hypot(dx,dy)||1)):Math.min(1,dx?rx/Math.abs(dx):Infinity,dy?ry/Math.abs(dy):Infinity);
  return {x:cx+dx*fraction,y:cy+dy*fraction,clipped:fraction<1,angle:Math.atan2(dy,dx)};
 }
 
@@ -92,9 +99,9 @@ function decorations(ctx,viewport,overview){
  ctx.restore();
 }
 
-function landscape(ctx,viewport,overview){
+function landscape(ctx,viewport,overview,compact=false){
  const {width,height,scale,centerX,centerZ}=viewport;
- ctx.fillStyle='#213c32';ctx.fillRect(0,0,width,height);
+ ctx.fillStyle=compact?'#213c3266':'#213c32';ctx.fillRect(0,0,width,height);
  ctx.lineCap='round';ctx.lineJoin='round';
  // Broad region tints give context without sampling the terrain each frame.
  const colors={beach:'#766044',dunes:'#92794c',grass:'#466047',river:'#41695d',snow:'#899591',mud:'#665343',volcanic:'#6c5550'};
@@ -106,7 +113,7 @@ function landscape(ctx,viewport,overview){
  const cos=Math.abs(Math.cos(viewport.rotation||0)),sin=Math.abs(Math.sin(viewport.rotation||0)),halfX=(width*cos+height*sin)/(2*scale),halfZ=(width*sin+height*cos)/(2*scale);
  const topZ=centerZ-halfZ,bottomZ=centerZ+halfZ,coast=[];
  for(let i=0;i<=40;i++){const z=topZ+(bottomZ-topZ)*i/40;coast.push({x:shore(z),z})}
- path(ctx,[{x:centerX-halfX,z:topZ},...coast,{x:centerX-halfX,z:bottomZ}],viewport);ctx.closePath();ctx.fillStyle='#1b4654';ctx.fill();
+ path(ctx,[{x:centerX-halfX,z:topZ},...coast,{x:centerX-halfX,z:bottomZ}],viewport);ctx.closePath();ctx.fillStyle=compact?'#1b465466':'#1b4654';ctx.fill();
  path(ctx,coast,viewport);ctx.strokeStyle='#a89365';ctx.lineWidth=Math.max(2,Math.min(8,scale*11));ctx.stroke();
  const river=[];for(let x=-60;x<=520;x+=8)river.push({x,z:riverZ(x)});
  path(ctx,river,viewport);ctx.strokeStyle='#192f2c';ctx.lineWidth=Math.max(5,scale*16);ctx.stroke();ctx.strokeStyle='#77aeb9';ctx.lineWidth=Math.max(2.5,scale*9);ctx.stroke();
@@ -166,7 +173,8 @@ function overviewGates(ctx,viewport,progress,target,regions,player){
 }
 
 export class ExpeditionMap{
- constructor(canvas,{overviewCanvas=null}={}){
+ constructor(canvas,{overviewCanvas=null,compact=()=>globalThis.matchMedia?.('(max-width:700px) and (orientation:portrait)').matches??false}={}){
+  this.compact=compact;
   this.canvas=canvas;this.overviewCanvas=overviewCanvas;this.surfaces=new Map();this.lastDraw=-Infinity;this.overviewVisible=false;
  }
  prepare(canvas){
@@ -189,8 +197,21 @@ export class ExpeditionMap{
   const progress=getMapProgress(route);let rendered=false;
   for(const [canvas,full] of [[this.canvas,false],...(overview?[[this.overviewCanvas,true]]:[])]){
    const surface=this.prepare(canvas);if(!surface)continue;
-   const {ctx,width,height}=surface,viewport=createMapViewport(position,target,width,height,{overview:full});
-   ctx.save();ctx.clearRect(0,0,width,height);landscape(ctx,viewport,full);routeLine(ctx,viewport,progress);
+   const compact=!full&&this.compact();
+   const {ctx,width,height}=surface,viewport=createMapViewport(position,target,width,height,{overview:full,compact});
+   ctx.save();ctx.clearRect(0,0,width,height);
+   if(compact){ctx.beginPath();ctx.arc(width/2,height/2,Math.min(width,height)/2,0,TAU);ctx.clip()}
+   landscape(ctx,viewport,full,compact);
+   if(compact){
+    path(ctx,LANDMARKS,viewport);ctx.lineWidth=2;ctx.strokeStyle='#e6d2a8';ctx.stroke();
+    if(progress.completed){path(ctx,LANDMARKS.slice(0,progress.completed+1),viewport);ctx.strokeStyle='#85ddb1';ctx.stroke()}
+    const goal=clampMapMarker(projectMapPoint(target,viewport),viewport,12),player=clampMapMarker(projectMapPoint(position,viewport),viewport,10);
+    ctx.lineWidth=1.5;circle(ctx,goal.x,goal.y,4,'#ffbe7e','#15372c');
+    circle(ctx,player.x,player.y,7,'#10292199');arrow(ctx,player.x,player.y,Number.isFinite(heading)?heading:0,5.5,viewport);
+    ctx.font='700 9px system-ui,sans-serif';ctx.fillStyle='#fff1d2';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N',width/2,9);
+    ctx.restore();rendered=true;continue;
+   }
+   routeLine(ctx,viewport,progress);
    const goal=clampMapMarker(projectMapPoint(target,viewport),viewport,24),player=clampMapMarker(projectMapPoint(position,viewport),viewport,17);
    if(full){const regions=regionLabels(ctx,viewport);overviewGates(ctx,viewport,progress,goal,regions,player)}
    else{

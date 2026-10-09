@@ -6,6 +6,9 @@ This is a cumulative development log. Later entries supersede earlier implementa
 
 The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. Rendering and physics dependencies are bundled locally. There is no saved-game persistence. Optional nearby weather sends rounded coordinates to Open-Meteo; the main website's poll uses a separate vote service.
 
+## Portrait HUD
+On phones in portrait, `portrait-hud.css` replaces the large navigation card with a 108px translucent circular overview of the entire expedition. The route fits inside the circular boundary, and off-route player markers keep their bearing at the rim. Tap it for the existing detailed numbered map. A single destination/distance display replaces the repeated route card; secondary toolbar actions live under Menu. Range, center lock and boards share one row above the 136px joystick and 88px e-brake. Desktop and landscape keep the local map. `hud-menu.mjs` closes on selection, outside tap, Escape, pause and orientation change; opening it releases held inputs and cruise. The HUD preview in the sibling model-review folder is a local layout fixture, not a game build or model revision.
+
 ## Vehicle
 `lc100.blend` is the editable adapted Meshy LC100, exported as `../lc100.glb`. The owner-supplied Coastal Cruiser body is reduced to 60,000 triangles, with its baked-in wheels and running boards removed. Independent wide mud-terrain wheels share geometry and retain Body, Susp_*, Steer_* and Roll_* pivots. The 2.85 m wheelbase matches the physics rig; wheels retain 32 mm extra spacer offset per side. The full truck has 93,700 triangles and a 4.73 MB GLB. The original asset is untouched.
 
