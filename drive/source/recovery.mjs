@@ -1,7 +1,7 @@
 import {Quaternion,Vector3,Matrix4} from 'three';
 import {RAPIER,wheelLayout} from './physics.mjs';
 import {clamp} from './terrain.mjs';
-// Boards are local, finite support surfaces. No teleport or global traction multiplier.
+// Judge Dean LLC — boards are local, finite support surfaces. No teleport or global traction multiplier.
 export class Recovery{
  constructor(physics){this.physics=physics;physics.recovery=this;this.boards=[];this.state='roof';this.age=0;this.recoveries=0;this.lastOrigin={...physics.origin}}
  deploy(){
@@ -18,8 +18,9 @@ export class Recovery{
    const contact=p.vehicle.wheelIsInContact(i)?p.vehicle.wheelContactPoint(i):null;
    const x=(contact?.x??hub.x)+p.origin.x,z=(contact?.z??hub.z)+p.origin.z;
    // Probe the physical terrain and obstacles even when suspension has lost contact.
-   // Never use the stale contact point of an unloaded wheel or hit our own chassis.
-   const h=s=>{const wx=x+forward.x*s,wz=z+forward.z*s,top=Math.max(hub.y+.9,(contact?.y??hub.y)+.9),hit=p.world.castRay(new RAPIER.Ray({x:wx-p.origin.x,y:top,z:wz-p.origin.z},{x:0,y:-1,z:0}),20,true,undefined,undefined,undefined,p.rb);return hit?top-hit.timeOfImpact:p.sand?.height(wx,wz)??hub.y-1;};
+   // Ignore the chassis, gravel-pushing tire shapes, loose debris and sensors.
+   // Those are not stable ground; sampling a tire would suspend boards above it.
+   const h=s=>{const wx=x+forward.x*s,wz=z+forward.z*s,top=Math.max(hub.y+.9,(contact?.y??hub.y)+.9),hit=p.world.castRay(new RAPIER.Ray({x:wx-p.origin.x,y:top,z:wz-p.origin.z},{x:0,y:-1,z:0}),20,true,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,p.rb,c=>!p.loosePebbles?.handles.has(c.handle));return hit?top-hit.timeOfImpact:p.sand?.height(wx,wz)??hub.y-1;};
    const rear=h(-.255),front=h(.895),slope=clamp((front-rear)/1.15,-1.2,1.2),along=forward.clone().setY(slope).normalize(),normal=new Vector3().crossVectors(right,along).normalize();
    const rotation=new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(right,normal,along.clone().negate()));
    const centerHeight=Math.max(rear+slope*.575,front-slope*.575,h(0)+slope*.32,h(.32));

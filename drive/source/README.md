@@ -6,6 +6,12 @@ This is a cumulative development log. Later entries supersede earlier implementa
 
 The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. Rendering and physics dependencies are bundled locally. There is no saved-game persistence. Optional nearby weather sends rounded coordinates to Open-Meteo; the main website's poll uses a separate vote service.
 
+## Recovery board placement with gravel enabled — October 9, 2026
+
+Recovery placement now ignores the gravel system's kinematic tire push shapes, dynamic debris and sensors while retaining terrain and fixed-rock support. Previously, the downward placement rays could hit the truck's own tire shapes, positioning boards roughly 77 cm above flat ground. The truck's suspension already excluded those shapes; recovery placement now follows the same exclusion.
+
+`test-recovery-gravel.mjs` runs recovery with the actual `LoosePebbles` system enabled in desktop and mobile configurations. It verifies ground height, all four tire supports, no chassis jump, repeated deployment, driving clear/automatic packing, loose-debris/sensor rejection, fixed-rock support and world-origin shifts. The regression failed before the fix and passes afterward; seven related recovery, gravel and camera checks also pass. Vehicle assets are unchanged.
+
 ## Drag to look around — October 9, 2026
 
 Drag the scenery horizontally to orbit the truck and vertically to raise/lower the camera. A six-pixel threshold keeps taps from moving the view. Releasing a drag holds that angle for five seconds, then smoothly returns to the chase camera; dragging again restarts the delay. Holding the camera finger prevents automatic return. Keyboard arrows retain their existing persistent orbit and C recenters. The intro, touch reference and accessible driving instructions describe the gesture.
