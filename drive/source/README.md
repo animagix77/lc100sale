@@ -6,6 +6,14 @@ This is a cumulative development log. Later entries supersede earlier implementa
 
 The main site starts a silent autonomous preview when its beach section enters view. It pauses offscreen, unloads after leaving the surrounding area, and respects reduced motion. Taking the wheel unloads the preview and opens `../index.html` with full controls. Closing the dialog unloads the game and restores the inline preview when visible. Rendering and physics dependencies are bundled locally. There is no saved-game persistence. Optional nearby weather sends rounded coordinates to Open-Meteo; the main website's poll uses a separate vote service.
 
+## Volcanic embers and landing feedback — October 9, 2026
+
+The volcanic pass now carries 144 desktop / 88 mobile ember slots and 22 / 14 taller, fuller smoke plumes. Small bright ember cores remain visible against lava. Ambient smoke thins near the camera and trail center to preserve the driving line. Actual falling-rock ground contacts create expanding ash puffs in fixed pools of 30 desktop / 16 mobile billboards; they drift and expire after roughly three seconds. Rock spawn counts, trajectories and physical colliders are unchanged.
+
+Ground-impact events carry radius, velocity and distance. A separate generated bass-thud voice adds a gritty tail, with larger stones sounding heavier and distance darkening the sound. It respects Sound, pause and audio teardown. Large nearby landings also add a short, size- and distance-scaled camera jolt that fades without altering steering, physics or field of view. The camera's base pose is restored before following the truck or shifting the world origin. Pause/reset clear shake; reduced motion disables shake and falling rocks while retaining a smaller ambient effect budget.
+
+The 69-entry regression suite passed, including the full 24-gate expedition. Hazard checks cover physical landings, ash expiry, bounded pools, world-origin shifts and disposal. Sound checks cover the new waveforms, routing and lifecycle; camera checks cover filtering, bounded displacement, decay, frame-rate independence and restoring the base pose. A local WebGPU review confirmed natural landings driving both ash and shake; a portrait viewport check is not a physical mobile-device performance test. Vehicle assets remain unchanged.
+
 ## Pebbles resting in sand — October 9, 2026
 
 Beach and dune pebbles begin embedded and asleep, including on slopes. Actual contact with a moving tire or chassis releases them into Rapier motion. Ground contact then absorbs rolling and spinning energy until they embed at their displaced pose. Airborne stones continue falling before settling. This is a bounded game approximation of sand resistance.

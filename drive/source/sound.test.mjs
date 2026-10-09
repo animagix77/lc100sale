@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {drivingMix,createSound,engineVoice,wetPCM} from './sound.mjs';
+import {drivingMix,createSound,engineVoice,wetPCM,volcanicImpactMix} from './sound.mjs';
+import {volcanicThudPCM} from './impact-audio.mjs';
 const tyre={contact:true,omega:6,slip:0,soft:.7};
 const dry=drivingMix({speed:3,tyres:[tyre],input:{gas:true},shoreDistance:35});
 assert(dry.sand<.05,'Rolling sand remains quiet under the engine');
@@ -27,6 +28,26 @@ for(const kind of ['rain','spray']){
  assert(Math.sqrt(power/pcm.length)>.08,'The sound texture contains audible energy');
  assert(Math.abs(correlation/Math.sqrt(power*otherPower))<.1,'Independent stereo rain and spray channels avoid a centered mono hiss');
 }
+// A landing is a short bass-heavy impact, with a quiet finite tail and no
+// clipping or sample-rate-dependent pitch. It is not another bright stone click.
+for(const sampleRate of [24000,48000])for(let variant=0;variant<3;variant++){
+ const pcm=volcanicThudPCM(sampleRate,variant),blend=1-Math.exp(-2*Math.PI*180/sampleRate);let low=0,lowPower=0,highPower=0,early=0,late=0;
+ assert.equal(pcm.length,Math.ceil(sampleRate*.62));assert.equal(Math.abs(pcm[0]),0);assert.equal(Math.abs(pcm.at(-1)),0);
+ for(let i=0;i<pcm.length;i++){
+  const x=pcm[i],t=i/sampleRate;assert(Number.isFinite(x)&&Math.abs(x)<.9,'Landing PCM stays finite without clipping');
+  low+=(x-low)*blend;lowPower+=low*low;highPower+=(x-low)**2;if(t>=.015&&t<.095)early+=x*x;if(t>=.45&&t<.60)late+=x*x;
+ }
+ assert(lowPower>highPower*7,'The thud carries much more low-frequency weight than gritty hiss');
+ assert(Math.sqrt(early/(sampleRate*.08))>.24,'The initial hit has audible body');
+ assert(late/(sampleRate*.15)<early/(sampleRate*.08)*.005,'The crumble fades promptly instead of forming a continuous rumble');
+}
+const landing={kind:'rock',source:'volcano',ground:true,energy:.7,radius:.66,distance:7,velocity:19,pan:-.5};
+const landingMix=volcanicImpactMix(landing),smallLandingMix=volcanicImpactMix({...landing,radius:.32}),distantLandingMix=volcanicImpactMix({...landing,energy:.12,distance:32});
+assert(landingMix.volume>smallLandingMix.volume*1.8&&landingMix.rate<smallLandingMix.rate,'Large rocks sound heavier and deeper than small ones');
+assert(distantLandingMix.volume<landingMix.volume*.4&&distantLandingMix.cutoff<landingMix.cutoff,'Distance-attenuated events become quieter and less sharp');
+assert(volcanicImpactMix({...landing,velocity:1.4}).volume<landingMix.volume*.25,'Tiny settling contacts stay quiet');
+assert.equal(volcanicImpactMix({...landing,ground:false}),null,'A falling rock hitting the chassis keeps ordinary rock-contact foley');
+assert.equal(volcanicImpactMix({kind:'suspension',energy:1}),null,'Suspension hits never route into volcanic bass');
 assert.equal(drivingMix({speed:10,tyres:[tyre],shoreDistance:0,waterContact:0}).splash,0,'No water contact means no splash, even near shore');
 assert.equal(drivingMix({speed:0,tyres:[tyre],waterContact:1}).splash,0,'Parked wheels make no splash');
 assert(dry.sand>0&&dry.splash===0);assert(wet.sand===0&&wet.splash>0&&wet.surf>dry.surf);
@@ -51,6 +72,7 @@ function controls(){const gestures=new Events(),button=Object.assign(new Events(
 const {button,gestures}=controls();
 let mix;const sound=createSound(button,()=>{},(...v)=>mix=v);
 assert.equal(button.textContent,'Sound on');assert.equal(button.attrs['aria-pressed'],'true');
+sound.update({speed:0,impacts:[landing]});assert.equal(requests,0,'Volcanic events do not unlock or download audio');
 assert.equal(requests,0,'No audio download until an interaction');assert.equal(contexts,0,'Rain and water do not create an audio context before a user gesture');
 await gestures.emit('keydown',{ctrlKey:true});assert.equal(requests,0,'Browser shortcuts do not unlock audio');
 await Promise.all([gestures.emit('pointerdown'),gestures.emit('keydown')]);assert.equal(requests,6);assert.equal(button.textContent,'Sound on');assert(urls.every(url=>!url.includes('v8-')),'Puttering engine recordings are not loaded');
@@ -78,15 +100,29 @@ assert(rainGain.automation.at(-1).seconds>=.5,'Rain fades smoothly when precipit
 assert(washGain.automation.at(-1).seconds<=.1,'Water clears promptly after driving onto land');
 context.currentTime+=1;sound.update({...river,speed:22.35,rain:1});
 entry=context.nodes.filter(node=>node.started&&!node.loop&&node.buffer?.name==='wave1').at(-1);
+const volcanicShots=()=>context.nodes.filter(node=>node.started&&!node.loop&&node.buffer?.duration===.62);
+const ordinaryShots=()=>context.nodes.filter(node=>node.started&&!node.loop&&Math.abs((node.buffer?.duration??0)-.34)<.0001);
+const ordinaryBefore=ordinaryShots().length;
+sound.update({speed:3,tyres:[tyre],impacts:[{...landing,radius:.32,energy:.2},landing,{kind:'rock',energy:.6,pan:.5}]});
+assert.equal(volcanicShots().length,1,'A burst of falling rocks selects a single strongest landing');
+assert.equal(ordinaryShots().length,ordinaryBefore+1,'A simultaneous truck collision is heard independently of the ground thud');
+const firstThud=volcanicShots()[0],thudGain=firstThud.connections[0],thudFilter=thudGain.connections[0],thudPan=thudFilter.connections[0];
+assert.equal(thudGain.gain.value,landingMix.volume);assert.equal(thudFilter.type,'lowpass');assert.equal(thudFilter.frequency.value,landingMix.cutoff);assert.equal(thudPan.pan.value,-.5);assert.equal(thudPan.connections[0],context.nodes[0],'Volcanic shots use the normal master mute and compressor path');
+for(let frame=0;frame<12;frame++){context.currentTime+=1/60;sound.update({speed:0,impacts:[landing]});}
+assert.equal(volcanicShots().length,1,'Repeated contacts cannot allocate a thud every frame');
+context.currentTime+=.08;sound.update({speed:0,impacts:[{...landing,energy:.12,distance:32}]});
+assert.equal(volcanicShots().length,2,'A later landing can be heard after the bounded cooldown');
+assert(volcanicShots()[1].connections[0].gain.value<thudGain.gain.value*.4);
+firstThud.onended();assert(firstThud.disconnected&&thudGain.disconnected&&thudFilter.disconnected&&thudPan.disconnected,'Completed landing voices release every transient node');
 const beforeImpact=context.nodes.length;sound.update({speed:3,tyres:[tyre],impacts:[{kind:'wood',energy:.8,pan:-.6}]});assert(context.nodes.length>beforeImpact,'Obstacle contact plays its own one-shot');sound.pause(true);assert.equal(context.nodes[0].gain.value,0);assert.deepEqual(mix,[false,0]);
 assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);assert.equal(rainGain.value,0,'Pause also clears weather gains');
-const voicesBeforePause=context.nodes.length;sound.update({...river,rain:1});assert.equal(context.nodes.length,voicesBeforePause,'Paused updates do not play entry splashes');assert.equal(rainGain.value,0);
+const voicesBeforePause=context.nodes.length;sound.update({...river,rain:1,impacts:[landing]});assert.equal(context.nodes.length,voicesBeforePause,'Paused updates do not play water or volcanic impacts');assert.equal(rainGain.value,0);
 sound.pause(false);assert.equal(context.nodes[0].gain.value,.72);assert.equal(rainGain.value,0,'Resume waits for current weather instead of replaying stale rain');
 context.currentTime=10;sound.update({speed:3,tyres:[tyre],shoreDistance:2,input:{gas:true},rain:1});
 assert(context.nodes.filter(n=>n.started).length>=7,'Gull and splash one-shots play');
-await button.click();assert.equal(context.nodes[0].gain.value,0);assert.equal(button.attrs['aria-pressed'],'false');assert.equal(rainGain.value,0);assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);sound.update({...river,rain:1});assert.equal(rainGain.value,0,'Live rain never overrides mute');
+await button.click();assert.equal(context.nodes[0].gain.value,0);assert.equal(button.attrs['aria-pressed'],'false');assert.equal(rainGain.value,0);assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);const mutedVoices=context.nodes.length;sound.update({...river,rain:1,impacts:[landing]});assert.equal(context.nodes.length,mutedVoices,'Muted rockfalls allocate no voices');assert.equal(rainGain.value,0,'Live rain never overrides mute');
 await gestures.emit('keydown');assert.equal(context.nodes[0].gain.value,0,'Driving never overrides mute');
-await button.click();assert.equal(requests,6,'Re-enable reuses decoded audio');sound.dispose();assert.equal(gestures.handlers.size,0);assert.equal(button.handlers.size,0);assert(context.closed);assert(context.nodes.filter(n=>n.started).every(n=>n.stopped));
+await button.click();assert.equal(requests,6,'Re-enable reuses decoded audio');sound.dispose();assert.equal(gestures.handlers.size,0);assert.equal(button.handlers.size,0);assert(context.closed);assert(context.nodes.filter(n=>n.started).every(n=>n.stopped||n.disconnected));
 // Muting before the first drive gesture must neither fetch nor create a context.
 const early=controls(),earlySound=createSound(early.button,()=>{});const before=requests;
 await early.gestures.emit('pointerdown',{target:early.button});await early.button.click();
@@ -106,4 +142,4 @@ const retry=controls(),retrySound=createSound(retry.button,()=>{});await retry.g
 assert.equal(retry.button.textContent,'Retry sound');globalThis.fetch=realFetch;
 await retry.gestures.emit('keydown');assert.equal(retry.button.textContent,'Retry sound');
 await retry.button.click();assert.equal(retry.button.textContent,'Sound on');retrySound.dispose();
-console.log('Audio tests passed: default-on gesture unlock, concurrent activation, early/pending mute, pause, retry, cleanup, unchanged engine, continuous speed/depth water, entry splashes, and live stereo rain.');
+console.log('Audio tests passed: default-on gesture unlock, concurrent activation, early/pending mute, pause, retry, cleanup, unchanged engine, continuous speed/depth water, entry splashes, live stereo rain, and bounded size/distance-aware volcanic landing thuds.');

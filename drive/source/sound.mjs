@@ -19,6 +19,16 @@ export function drivingMix({speed=0,tyres=[],range='HI',input={},shoreDistance=3
   splashEntry:(.22+velocity*.94)*Math.sqrt(wet)*immersion,splashDuration:.55+velocity*.65,
   rain:precipitation**.7*.8,rainCutoff:2400+precipitation*4000,surf:.12+.24*Math.exp(-Math.max(0,shoreDistance)/35)};
 }
+// Hazard energy already includes distance falloff. Size gives larger landings
+// more weight; distant landings also lose the bright crumble above the thud.
+export function volcanicImpactMix(hit){
+ if(hit.source!=='volcano'||hit.ground!==true)return null;
+ const energy=clamp(Number(hit.energy)||0,0,1),size=clamp(((Number(hit.radius)||.32)-.30)/.38,0,1);
+ const distance=clamp(Number(hit.distance)||0,0,60),velocity=Number.isFinite(hit.velocity)?hit.velocity:energy*24;
+ const force=clamp((velocity-1.3)/8,0,1);
+ return {volume:(.10+energy*.54)*(.48+size*.52)*(.2+force*.8),pan:clamp(Number(hit.pan)||0,-1,1),
+  rate:1.12-size*.27,cutoff:clamp(1450-distance*23-size*300,400,1450)};
+}
 // Stylized muted petrol V8: four firing events per revolution, with a restrained
 // upper harmonic spectrum. All partials share an exact harmonic relationship.
 export function engineVoice({rpm,load}){
@@ -45,7 +55,7 @@ function wetBank(ctx){
 }
 export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocument){
  let ctx,master,compressor,buffers,loading,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash,waterWash,waterSpray,waterFilter,rainBed,rainFilter;
- let nextGull=0,nextSplash=0,nextImpact=0,impactVariant=0,lastWet=0;const sources=new Set(),controller=new AbortController();
+ let nextGull=0,nextSplash=0,nextImpact=0,nextVolcanoImpact=0,impactVariant=0,lastWet=0;const sources=new Set(),controller=new AbortController();
  const label=()=>{button.textContent=on?'Sound on':'Sound off';button.setAttribute('aria-pressed',String(on));};
  const smooth=(param,value,seconds=.12)=>param.setTargetAtTime(value,ctx.currentTime,seconds);
  function gain(value){const n=ctx.createGain();n.gain.value=value;return n;}
@@ -73,7 +83,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
  function stopSplash(){if(!splash)return;smooth(splash.g.gain,0,.025);try{splash.source.stop(ctx.currentTime+.12)}catch{}splash=null;}
  function quietWeather(){if(waterWash)smooth(waterWash.g.gain,0,.05);if(waterSpray)smooth(waterSpray.g.gain,0,.05);if(rainBed)smooth(rainBed.g.gain,0,.12);stopSplash();}
  function apply(){if(master)smooth(master.gain,on&&!paused?.72:0,.14);if(!on||paused){quietWeather();onMix(false,0);}}
- function shot(name,volume,pan=0,rate=1,duration=0){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner();s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();p.disconnect();if(splash?.source===s)splash=null;};
+ function shot(name,volume,pan=0,rate=1,duration=0,cutoff=0){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner(),filter=cutoff?ctx.createBiquadFilter():null;s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);if(filter){filter.type='lowpass';filter.frequency.value=cutoff;filter.Q.value=.45;g.connect(filter);filter.connect(p)}else g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();filter?.disconnect();p.disconnect();if(splash?.source===s)splash=null;};
   if(duration){const now=ctx.currentTime;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.035);g.gain.setValueAtTime(volume,now+duration*.55);g.gain.linearRampToValueAtTime(0,now+duration);s.start(now,.25,duration*rate);s.stop(now+duration+.02);}else s.start();
   return {source:s,g};
  }
@@ -118,7 +128,16 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    if(!m.splash)stopSplash();
    else if(m.wet-lastWet>.18&&now>=nextSplash){stopSplash();splash=shot('wave1',m.splashEntry,(Math.random()-.5)*.45,m.splashRate,m.splashDuration);nextSplash=now+.65;}
    lastWet=m.wet;
-   if(state.impacts?.length&&now>=nextImpact){const hit=state.impacts.reduce((a,b)=>a.energy>b.energy?a:b);const kind=['wood','rock','suspension'].includes(hit.kind)?hit.kind:'suspension';shot(kind+(impactVariant++%3),.14+clamp(hit.energy,0,1)*.46,hit.pan||0,.94+Math.random()*.12);nextImpact=now+.07;}
+   if(state.impacts?.length){
+    const contacts=state.impacts.filter(hit=>hit.source!=='volcano'||hit.ground!==true);
+    if(contacts.length&&now>=nextImpact){const hit=contacts.reduce((a,b)=>a.energy>b.energy?a:b);const kind=['wood','rock','suspension'].includes(hit.kind)?hit.kind:'suspension';shot(kind+(impactVariant++%3),.14+clamp(hit.energy,0,1)*.46,hit.pan||0,.94+Math.random()*.12);nextImpact=now+.07;}
+    // Landings have their own short throttle, so a rockfall cannot suppress the
+    // truck's contact sounds or pile up a new bass voice on every contact frame.
+    if(now>=nextVolcanoImpact){
+     let landing;for(const hit of state.impacts){const voice=volcanicImpactMix(hit);if(voice&&voice.volume>(landing?.volume??.025))landing=voice;}
+     if(landing){shot('volcano'+(impactVariant++%3),landing.volume,landing.pan,landing.rate*(.97+Math.random()*.06),0,landing.cutoff);nextVolcanoImpact=now+.26;}
+    }
+   }
    onMix(true,m.load);
   },
   dispose(){button.removeEventListener('click',toggle);for(const type of ['pointerdown','click','keydown'])gestures.removeEventListener(type,activate);disposed=true;on=false;controller.abort();for(const source of sources){try{source.stop();source.disconnect();}catch{}}sources.clear();ctx?.close().catch(()=>{});onMix(false,0);}
