@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {DrivingMessages,readingSeconds} from './driving-messages.mjs';
+const messages=new DrivingMessages(),long='Give yourself time to read this while keeping an eye on the trail. '.repeat(3);
+assert.equal(readingSeconds('Range changed.'),18);
+assert(readingSeconds(long)>28&&readingSeconds(long)<=32);
+messages.say('Ease off the throttle before shifting.',0);
+assert.equal(messages.say('Flag 02 reached.',2,{defer:true}),false);
+assert.equal(messages.text,'Ease off the throttle before shifting.');
+assert.equal(messages.update(17.9),false);
+assert.equal(messages.update(18),true);assert.equal(messages.text,'Flag 02 reached.');
+messages.say('Flag 03 reached.',20,{defer:true});messages.say('Flag 04 reached.',21,{defer:true});
+messages.update(36);assert.equal(messages.text,'Flag 04 reached.','A burst of checkpoints does not build a stale message backlog');
+messages.say('Flag 05 reached.',37,{defer:true});messages.say('Auto brake. Reverse or steer around.',38);
+assert.equal(messages.pending,null,'Safety and direct-control feedback immediately replace the old context');
+assert.equal(messages.update(80),false);
+messages.say('Flag 06 reached.',81,{defer:true});messages.clear();assert.equal(messages.pending,null,'Reset discards stale announcements');
+console.log('Driving messages: 18–32 second reading time, deferred checkpoints, bounded pending text, immediate control/safety feedback and reset passed');

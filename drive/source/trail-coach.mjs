@@ -1,3 +1,4 @@
+import {readingSeconds} from './driving-messages.mjs';
 /**
  * Contextual, advisory-only trail assistance. No physics or browser dependencies.
  *
@@ -13,7 +14,7 @@
  */
 const clamp=(x,min,max)=>Math.min(max,Math.max(min,x));
 const number=x=>Number.isFinite(x)?x:0;
-const COOLDOWN=65,DISPLAY_SECONDS=13;
+const COOLDOWN=65;
 export class TrailCoach{
  constructor(){this.clock=0;this.cooldowns=new Map();this.exposure=new Map();this.resetContext()}
  resetContext(){this.exposure.clear();this.suppress()}
@@ -43,7 +44,7 @@ export class TrailCoach{
   const crawling=Number(state.rocky)>.45&&absSpeed<4.6;
   const hardSignal=absSpeed<7.5&&(speed>.3||effort||this.hardActive)&&(climbing||crawling);
   if(hardSignal){this.hardFor+=dt;this.hardClearFor=0;if(this.hardFor>=1.1)this.hardActive=true}
-  else{this.hardFor=0;this.hardClearFor+=dt;if(this.hardClearFor>.7)this.hardActive=false}
+  else{this.hardFor=0;this.hardClearFor+=dt;if(this.hardClearFor>4)this.hardActive=false}
   // Wheelspin on a fast pass and a parked truck are not a bog. The latch keeps
   // useful advice visible when the driver lifts off to operate the controls.
   const bogSignal=absSpeed<.7&&effort&&(Boolean(state.stuck)||number(state.slip)>1.6);
@@ -75,7 +76,7 @@ export class TrailCoach{
   // airborne wheel, or overlay temporarily clears its approach evidence.
   // Otherwise feathering reverse can restart the card forever.
   const exposure=(this.exposure.get(hint.id)||0)+dt;
-  if(exposure>=DISPLAY_SECONDS){
+  if(exposure>=readingSeconds(hint.title+' '+hint.body,{minimum:28,maximum:42})){
    this.cooldowns.set(hint.id,this.clock+COOLDOWN);this.exposure.delete(hint.id);
    this.active=null;return null;
   }

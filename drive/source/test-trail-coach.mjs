@@ -19,7 +19,7 @@ const hill=state({gradeAhead:.22});
  }
  assert.equal(step(coach,1.2,hill)?.id,'low-range','A sustained approach anticipates a climb');
  assert.equal(step(coach,.3,{...hill,gradeAhead:.10})?.id,'low-range','Hysteresis tolerates a small dip in sampled grade');
- assert.equal(step(coach,.8,state({speed:2})),null,'Advice clears after leaving the obstacle');
+ assert.equal(step(coach,4.1,state({speed:2})),null,'Advice clears after leaving the obstacle');
 }
 {
  const coach=new TrailCoach();let hint=step(coach,1.2,hill);
@@ -62,7 +62,7 @@ const hill=state({gradeAhead:.22});
  assert.equal(step(coach,30,hill),null,'Dismissed hint stays dismissed during cooldown');
  assert.equal(step(coach,34,hill),null);
  assert.equal(step(coach,1.1,hill)?.id,'low-range');
- assert.equal(step(coach,13.1,hill),null,'A card cannot occupy the screen forever');
+ assert.equal(step(coach,42.1,hill),null,'A card cannot occupy the screen forever');
  assert.equal(step(coach,20,hill),null,'Automatic expiry also receives a cooldown');
 }
 {
@@ -91,15 +91,15 @@ const hill=state({gradeAhead:.22});
  assert.equal(step(coach,2,{...rollback,gas:0}),null,'Unpowered backward coasting is not an attempted climb');
 }
 {
- const coach=new TrailCoach();step(coach,12,hill);
- const before=coach.exposure.get('low-range');assert(before>10&&before<12);
+ const coach=new TrailCoach();step(coach,30,hill);
+ const before=coach.exposure.get('low-range');assert(before>28&&before<30);
  for(const interruption of [{reverse:1},{grounded:false},{blocked:true},{paused:true}]){
   assert.equal(coach.update(1/60,{...hill,...interruption}),null);
   assert.equal(coach.exposure.get('low-range'),before,'Transient suppression preserves accumulated visible exposure');
  }
  assert.equal(step(coach,.5,hill),null,'Transient suppression clears approach evidence');
  assert.equal(step(coach,.8,hill)?.id,'low-range');
- assert.equal(step(coach,2.2,hill),null,'Reverse/airborne/overlay interruptions cannot restart the thirteen-second display budget');
+ assert.equal(step(coach,14,hill),null,'Reverse/airborne/overlay interruptions cannot restart the extended display budget');
  assert.equal(step(coach,20,hill),null,'The exhausted hint receives its normal cooldown');
 }
 {
@@ -110,4 +110,6 @@ const hill=state({gradeAhead:.22});
 }
 console.log('Trail coach: anticipatory hills/crawls, debounce, hysteresis, recovery priority, solved controls, input release, reversing, dismissal, reset and pause passed.');
 
-{const coach=new TrailCoach();const hard={...hill,gradeAhead:.34,range:'LO',centerLocked:true};assert.equal(step(coach,1.2,hard)?.id,'difficult-ground');assert.match(coach.active.body,/TRACTION BOARDS/);assert.equal(step(coach,1,{...hard,gradeAhead:0}),null)}
+{const coach=new TrailCoach();const hard={...hill,gradeAhead:.34,range:'LO',centerLocked:true};assert.equal(step(coach,1.2,hard)?.id,'difficult-ground');assert.match(coach.active.body,/TRACTION BOARDS/);assert.equal(step(coach,4.1,{...hard,gradeAhead:0}),null)}
+
+{const coach=new TrailCoach();step(coach,1.2,hill);assert.equal(step(coach,2,{...hill,gradeAhead:0})?.id,'low-range','A short level patch does not flash the advice away');assert.equal(step(coach,14,hill)?.id,'low-range','Long driving instructions remain visible beyond the previous thirteen-second cap')}

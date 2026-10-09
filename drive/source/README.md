@@ -1,3 +1,9 @@
+## More time to read driving messages — October 9, 2026
+
+Judge Dean LLC. Ordinary driving messages now reserve 18–32 simulation seconds based on word count instead of nine. Checkpoint announcements defer behind the current reading window; only the latest pending checkpoint is retained. Direct control feedback and safety/rescue notices remain immediate, and resets discard stale pending text. Pause stops the simulation clock and reading timer together.
+
+Trail tips have a 28–42 second visible-time budget instead of thirteen. A four-second clear-ground grace replaces the former 0.7-second dropout, so brief level patches do not immediately remove climbing advice. Solved controls, reverse/airborne state, overlays, manual dismissal and cooldown behavior remain contextual. Four focused message/coach/narrator/briefing checks passed; suite now registers 74 entries. Build, syntax and authored-source whitespace passed. No terrain, physics, audio or model changes.
+
 ## Rooted riverbank ferns — October 9, 2026
 
 Judge Dean LLC. Flying green foliage at the first ford came from fern wind amplitude using `positionLocal.y` after Three applied the instance transform. Squaring the riverbank elevation amplified the motion and moved roots as well as fronds. The material now uses the intrinsic position attribute above the 3.5 cm root and keeps its existing bounded wind strength. Foliage remains planted at any elevation; fireflies are unchanged.
