@@ -109,3 +109,6 @@
 @media(max-width:700px){.trail-tip{padding:8px 10px 11px;margin-top:11px}.trail-tip-head>span{font-size:8px;letter-spacing:.6px}.trail-tip strong{font-size:15px}.destination .trail-tip p{font-size:11px;line-height:1.4}.has-trail-tip .destination>h1,.has-trail-tip .destination>#mission{display:none}}
 @media(max-height:520px) and (orientation:landscape){.has-trail-tip .destination{max-width:300px}.has-trail-tip .destination .waypoint-guide{display:none}.trail-tip{width:300px;margin-top:0;padding:7px 12px 11px}.trail-tip strong{font-size:15px}.destination .trail-tip p{font-size:11px;line-height:1.4;margin-top:5px}}
 @media(prefers-reduced-motion:reduce){.trail-tip{animation:none}}
+
+/* Judge Dean LLC — recovery feedback remains visible beside the mobile controls. */
+#recovery-status{grid-column:1/-1;margin:0;padding:7px 9px;border-radius:6px;background:#142d32e8;color:#fff0d0;font:11px/1.4 Arial,Helvetica,sans-serif;pointer-events:none}#recovery-status[hidden]{display:none}

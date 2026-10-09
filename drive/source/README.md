@@ -1,3 +1,9 @@
+## One-tap recovery deployment — October 9, 2026
+
+Judge Dean LLC. A moving board request now applies the service brake and retries automatically for up to eight simulation seconds instead of silently rejecting the tap. Gas, reverse and cruise cannot override braking/placement; the initiating UI action clears held controls. Existing crawl/rocking acceptance, physical ground probes, rollover protection, four supports and automatic packing remain. Reset cancels a pending request. A visible status beside the mobile Boards button reports braking, placement, readiness or why placement could not finish, with an 18-second reading window.
+
+Nine focused recovery, gravel, rendering, keyboard, touch, unstuck and briefing checks passed. The new real-Rapier request regression covers held pedals/cruise, moving and rocking requests, repeated taps, reset, timeout and rollover. Suite now registers 75 entries; full route suite was not rerun. Phone-width browser review showed Braking followed by deployed boards and visible status; no physical-device claim. Build, syntax, source whitespace and original vehicle-model checksum passed.
+
 ## Softer rain audio — October 9, 2026
 
 Judge Dean LLC. Rain-bed gain is reduced from 0.8 to 0.24 at full rain (approximately 10.5 dB lower before filtering). The rain low-pass range is softened from 2.4–6.4 kHz to 1.4–3.2 kHz, with a 1.2-second volume transition and one-second tone transition. Other driving/audio layers retain their levels. Existing audio regression, build, bundle syntax and source whitespace checks passed. Local review rebuilt; no speaker-listening verification claimed.

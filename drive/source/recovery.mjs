@@ -3,7 +3,13 @@ import {RAPIER,wheelLayout} from './physics.mjs';
 import {clamp} from './terrain.mjs';
 // Judge Dean LLC — boards are local, finite support surfaces. No teleport or global traction multiplier.
 export class Recovery{
- constructor(physics){this.physics=physics;physics.recovery=this;this.boards=[];this.state='roof';this.age=0;this.recoveries=0;this.lastOrigin={...physics.origin};this.motion=[];this.motionTime=0}
+ constructor(physics){this.physics=physics;physics.recovery=this;this.boards=[];this.state='roof';this.age=0;this.recoveries=0;this.lastOrigin={...physics.origin};this.motion=[];this.motionTime=0;this.pending=false;this.pendingAge=0;this.result=''}
+ request(){
+  if(this.pending)return 'braking';
+  const result=this.deploy();
+  if(result==='moving'){this.pending=true;this.pendingAge=0;this.result='braking';return 'braking'}
+  this.result=result;return result;
+ }
  deploy(){
   const p=this.physics,q=p.rb.rotation(),up=1-2*(q.x*q.x+q.z*q.z);
   if(this.state!=='roof'&&this.state!=='ground')return 'already';
@@ -13,7 +19,7 @@ export class Recovery{
   if(up<.25)return 'tilted';
   if(this.state==='ground')this.clear();
   const f=p.forward(),length=Math.hypot(f.x,f.z),forward=new Vector3(f.x/length,0,f.z/length),right=new Vector3(-forward.z,0,forward.x);
-  this.start=p.position();this.age=0;this.state='deploying';
+  this.start=p.position();this.age=0;this.state='deploying';this.pending=false;this.result='placing';
   p.rb.setLinvel({x:0,y:0,z:0},true);p.rb.setAngvel({x:0,y:0,z:0},true);p.speed=0;
   for(let i=0;i<4;i++){
    const w=wheelLayout[i],hub=new Vector3(w.x,.06,w.z).applyQuaternion(q).add(p.rb.translation());
@@ -36,6 +42,11 @@ export class Recovery{
   this.motionTime+=dt;const position=this.physics.position();
   this.motion.push({x:position.x,z:position.z,time:this.motionTime});
   while(this.motion.length>1&&this.motion[1].time<this.motionTime-.75)this.motion.shift();
+  if(this.pending){
+   this.pendingAge+=dt;const result=this.deploy();
+   if(result==='ok')this.pending=false;
+   else if(result!=='moving'||this.pendingAge>=8){this.pending=false;this.result=result==='moving'?'unsettled':result;}
+  }
   if(this.state==='roof')return;
   this.age+=dt;const p=this.physics;
   if(this.state==='deploying'){p.rb.setLinvel({x:0,y:0,z:0},true);p.rb.setAngvel({x:0,y:0,z:0},true);}
@@ -43,11 +54,11 @@ export class Recovery{
   if(p.origin.x!==this.lastOrigin.x||p.origin.z!==this.lastOrigin.z){for(const b of this.boards)b.collider?.setTranslation({x:b.position.x-p.origin.x,y:b.position.y,z:b.position.z-p.origin.z});this.lastOrigin={...p.origin}}
   if(this.state==='deploying'&&this.age>=.85){
    for(const b of this.boards)b.collider=p.world.createCollider(RAPIER.ColliderDesc.cuboid(.165,.015,.575).setTranslation(b.position.x-p.origin.x,b.position.y,b.position.z-p.origin.z).setRotation(b.rotation).setFriction(1.4));
-   this.state='ground';this.age=0;
+   this.state='ground';this.age=0;this.result='ready';
   }
   if(this.state==='ground'){const pos=p.position();if(Math.hypot(pos.x-this.start.x,pos.z-this.start.z)>5){this.recoveries++;this.stow()}}
-  if(this.state==='stowing'&&this.age>.75){this.state='roof';this.boards=[];this.age=0}
+  if(this.state==='stowing'&&this.age>.75){this.state='roof';this.boards=[];this.age=0;this.result='packed'}
  }
- stow(){for(const b of this.boards){if(b.collider)this.physics.world.removeCollider(b.collider,true);b.collider=null}this.state='stowing';this.age=0}
- clear(){for(const b of this.boards)if(b.collider)this.physics.world.removeCollider(b.collider,true);this.boards=[];this.state='roof';this.age=0;this.motion=[]}
+ stow(){for(const b of this.boards){if(b.collider)this.physics.world.removeCollider(b.collider,true);b.collider=null}this.state='stowing';this.age=0;this.result='packing'}
+ clear(){for(const b of this.boards)if(b.collider)this.physics.world.removeCollider(b.collider,true);this.boards=[];this.state='roof';this.age=0;this.motion=[];this.pending=false;this.pendingAge=0;this.result=''}
 }

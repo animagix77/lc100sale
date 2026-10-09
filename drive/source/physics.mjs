@@ -20,7 +20,7 @@ export class DrivePhysics{
  forward(){const q=this.rb.rotation();return {x:-2*(q.x*q.z+q.w*q.y),y:-2*(q.y*q.z-q.w*q.x),z:-(1-2*(q.x*q.x+q.y*q.y))}}
  step(dt,input){
  input=this.roadsideSafety.filter(input,this.position(),this.rb.linvel(),this.forward());
- this.controls={gas:pedalAmount(input.gas),reverse:pedalAmount(input.reverse),cruise:!!input.cruise,handbrake:!!input.handbrake};this.recovery?.step(dt);if(this.recovery?.state==='deploying')input={brake:true,turn:0};this.world.timestep=dt;this.time+=dt;const p=this.position(),v=this.rb.linvel(),f=this.forward(),gear=RANGES[this.range];this.speed=v.x*f.x+v.y*f.y+v.z*f.z;this.travel+=Math.hypot(v.x,v.z)*dt;
+ this.controls={gas:pedalAmount(input.gas),reverse:pedalAmount(input.reverse),cruise:!!input.cruise,handbrake:!!input.handbrake};const recoveryHolding=this.recovery?.pending||this.recovery?.state==='deploying';this.recovery?.step(dt);if(recoveryHolding||this.recovery?.pending||this.recovery?.state==='deploying')input={brake:true,turn:0};this.world.timestep=dt;this.time+=dt;const p=this.position(),v=this.rb.linvel(),f=this.forward(),gear=RANGES[this.range];this.speed=v.x*f.x+v.y*f.y+v.z*f.z;this.travel+=Math.hypot(v.x,v.z)*dt;
  const soft=softnessAt(p.x,p.z),targetSteer=(input.turn||0)*.48/(1+Math.abs(this.speed)*.045);this.steer+=(targetSteer-this.steer)*(1-Math.exp(-3.8*dt));
  const gas=pedalAmount(input.gas),reverse=pedalAmount(input.reverse),handbrake=!!input.handbrake;
  // Locked rear tyres give up lateral grip while the fronts still steer. Ramp
