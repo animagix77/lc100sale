@@ -1,3 +1,15 @@
+## Gentler entry and contact feedback — October 9, 2026
+
+Judge Dean LLC. The marked corridor from flags 01 to 02 now rises smoothly from 0.61 m to 5.04 m instead of cresting near 8 m and dropping back into the saddle. Its 12 m core feathers into the surrounding dunes, with moderately compacted sand; physical ruts and off-route softness remain. `test-entry-drive` drives from base camp to flag 02 in default unlocked 4HI with real terrain, obstacles, deformation and loose pebbles, without boards or resets (32.1 simulated seconds).
+
+Trail advice explains 4LO, CENTER LOCK and boards on difficult ground, including a reminder for severe sections after gearing is already selected. Board deployment accepts brief horizontal rocking below 3.5 m/s when the preceding 0.75 s shows less than 0.65 m net movement; the ordinary crawl limit and high-speed/rollover guards remain. Deployment holds the truck during placement. Tests distinguish oscillation from sustained travel and retain the earlier gravel-filter regression.
+
+Coastal wake foam now responds to turbulence separately from the shallow-water geometric saturation that previously suppressed its visibility. Existing depth-limited crest/trough displacement remains. Grass rustle and wet-rock rubber squeak/scrub are synthesized bounded loops driven by grounded wheel material, immersion/rain, wheelspin and steering-corrected lateral slip. They are silent when the qualifying contact or motion ends and share the existing mute/pause/disposal controls; no new audio downloads.
+
+Validation: the full 72-entry suite passed, including all 24 expedition gates (774.8 simulated seconds). Four focused water-contact, impact, sound and briefing checks passed after the final audio-contact refinement. Build, bundle syntax, authored-source whitespace and production GLB checksum passed.
+
+Local `.review-dirt/` includes opening dune, ocean, grass and ford location controls, excluded from deployment. Browser WebGPU checks show a visible tire wake and the gentler approach in unlocked 4HI. Screenshots and test logs are archived outside the repository in `3d/lc100-cleanup/review/dirt/`. The original production vehicle model is unchanged. This is not a physical phone/Safari performance or speaker-listening verification.
+
 # LC100 / Endless sunset drive
 
 Developer: Judge Dean LLC.

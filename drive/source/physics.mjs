@@ -52,6 +52,10 @@ export class DrivePhysics{
   const roadSpeed=(v.x+omega.y*dz-omega.z*dy)*direction.x+(v.y+omega.z*dx-omega.x*dz)*direction.y+(v.z+omega.x*dy-omega.y*dx)*direction.z;
   const waterSurface=this.waterHeight(x,z,this.time);
   const wet=contact&&!!c&&Number.isFinite(waterSurface)&&waterSurface>c.y+.025;
+  const groundKind=this.obstacles?.kind?.(this.vehicle.wheelGroundObject(i));
+  w.grass=contact&&!onBoard&&!onSolid?contactSurface.grass*(1-contactSurface.trail*.85):0;
+  w.rock=contact&&!onBoard&&(groundKind==='rock'||(!onSolid&&contactSurface.river>.3))?1:0;
+  w.wet=wet;w.sideSlip=contact?Math.abs((v.x+omega.y*dz-omega.z*dy)*(right.x*cs+f.x*sn)+(v.y+omega.z*dx-omega.x*dz)*(right.y*cs+f.y*sn)+(v.z+omega.x*dy-omega.y*dx)*(right.z*cs+f.z*sn)):0;
   const grip=onBoard?1:onSolid?(wet?.82:1):contactSurface.grip*(wet?.88:1);
   return {heading:Math.atan2(-direction.x,-direction.z),roadSpeed,load,soft:soil,depth:Math.max(0,depth-contactSurface.snow*.34),contact,tractionControl:true,grip,throttle:soilThrottle};
  });

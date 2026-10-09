@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {drivingMix,createSound,engineVoice,wetPCM,volcanicImpactMix} from './sound.mjs';
+import {drivingMix,createSound,engineVoice,wetPCM,volcanicImpactMix,contactPCM} from './sound.mjs';
 import {volcanicThudPCM} from './impact-audio.mjs';
 const tyre={contact:true,omega:6,slip:0,soft:.7};
 const dry=drivingMix({speed:3,tyres:[tyre],input:{gas:true},shoreDistance:35});
@@ -143,3 +143,15 @@ assert.equal(retry.button.textContent,'Retry sound');globalThis.fetch=realFetch;
 await retry.gestures.emit('keydown');assert.equal(retry.button.textContent,'Retry sound');
 await retry.button.click();assert.equal(retry.button.textContent,'Sound on');retrySound.dispose();
 console.log('Audio tests passed: default-on gesture unlock, concurrent activation, early/pending mute, pause, retry, cleanup, unchanged engine, continuous speed/depth water, entry splashes, live stereo rain, and bounded size/distance-aware volcanic landing thuds.');
+
+const grassy=Array.from({length:4},()=>({...tyre,grass:1}));
+assert(drivingMix({speed:3,tyres:grassy}).grass>.2);
+assert.equal(drivingMix({speed:0,tyres:grassy}).grass,0);
+const rocky=grassy.map(w=>({...w,grass:0,rock:1,wet:true,slip:3}));
+assert(drivingMix({speed:0,tyres:rocky}).skid>.1,'Spinning wet rock sounds while stationary');
+assert.equal(drivingMix({tyres:rocky.map(w=>({...w,wet:false}))}).skid,0);
+assert.equal(drivingMix({tyres:rocky.map(w=>({...w,rock:0}))}).skid,0);
+assert.equal(drivingMix({tyres:rocky.map(w=>({...w,contact:false}))}).skid,0);
+assert.equal(drivingMix({tyres:rocky.map(w=>({...w,slip:0}))}).skid,0);
+assert(drivingMix({tyres:rocky.map(w=>({...w,slip:0,sideSlip:2}))}).skid>0,'Sideways skidding produces rubber scrub');
+for(const kind of ['grass','skid']){const data=contactPCM(kind,24000);assert.equal(data.length,144000);assert.equal(data[0],0);assert.equal(Math.abs(data.at(-1)),0);assert(data.every(x=>Number.isFinite(x)&&Math.abs(x)<1));assert(data.some(x=>Math.abs(x)>.2));}

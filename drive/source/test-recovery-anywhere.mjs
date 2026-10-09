@@ -16,3 +16,14 @@ const contacts=[0,1,2,3].filter(i=>p.vehicle.wheelIsInContact(i)).length;assert(
 p.world.createCollider(RAPIER.ColliderDesc.cuboid(.35,.2,.8).setTranslation(-.962,.2,-1.74));p.world.step();assert.equal(r.deploy(),'ok');assert(r.boards[0].position.y>.40,'Boards sit on rocks instead of being buried below them');assert(r.boards[1].position.y<.05);r.clear();
 p.rb.setLinvel({x:3,y:0,z:0},true);assert.equal(r.deploy(),'moving','High-speed deployment is still rejected');p.rb.setLinvel({x:0,y:0,z:0},true);p.rb.setRotation({x:0,y:0,z:1,w:0},true);assert.equal(r.deploy(),'tilted','Rollover still requires reset');p.dispose();
 console.log('Recovery anywhere: all six regions, slow drift, four physical boards, unloaded tyres, rock support and rollover guard passed.');
+
+// Oscillation can have a high instantaneous speed without travelling away.
+for(const rocking of [true,false]){
+ const p=await DrivePhysics.create(),r=new Recovery(p);p.reset(0,0,0);
+ p.world.createCollider(RAPIER.ColliderDesc.cuboid(15,.2,15).setTranslation(0,-.2,0));
+ for(let i=0;i<100;i++){p.rb.setTranslation({x:rocking?.13*Math.sin(i*.2):i*3/120,y:1.04,z:0},true);r.step(1/120)}
+ p.rb.setLinvel({x:2.8,y:1.2,z:0},true);p.rb.setAngvel({x:.8,y:0,z:.6},true);
+ assert.equal(r.deploy(),rocking?'ok':'moving','Net travel distinguishes rocking from driving');
+ if(rocking){assert.equal(p.rb.linvel().x,0);assert.equal(p.rb.angvel().z,0);r.clear()}
+ p.dispose();
+}

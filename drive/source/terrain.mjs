@@ -20,6 +20,14 @@ export function coastalHeight(x,z){
  const hummocks=((noise(x*.36,z*.32)-.5)*.34+Math.sin(z*1.45+x*.72+noise(x*.1,z*.1)*2)*.085+Math.sin(z*.83-x*.61)*.13)*rough*patch;
  return hummocks+-.4+d*.020+bank*(amplitude*(.08+ridge*.92)+noise(x*.041,z*.041)*1.8)+swales+Math.sin(z*.21+x*.32)*.055*smooth(5,25,d);
 }
+// Judge Dean LLC — a gently graded entry between flags 01 and 02.
+// Feather into the untouched dunes outside the 12 m driving corridor.
+export function entryTrail(x,z){
+ const t=((x+18)*36-(z+60)*50)/3796;
+ const distance=Math.abs((x+18)*50+(z+60)*36)/Math.sqrt(3796);
+ const blend=smooth(12,22,x-shore(z))*(1-smooth(6,18,distance))*smooth(-.16,0,t)*(1-smooth(1,1.26,t));
+ return {blend,height:.61+4.43*smooth(0,1,t)};
+}
 function regionalHeight(x,z){
  const coast=coastalHeight(x,z),d=x-shore(z);
  const ascent=smooth(205,310,x)*(1-smooth(690,850,x))*smooth(370,590,-z)*(1-smooth(900,1050,-z));
@@ -45,6 +53,7 @@ function regionalHeight(x,z){
 export function lavaSurfaceHeight(x,z){return regionalHeight(x,z)-.58}
 function undisturbedHeight(x,z){
  let original=regionalHeight(x,z);
+ const entry=entryTrail(x,z);original+=(entry.height-original)*entry.blend;
  const lava=lavaCrossingProfile(x,z);
  if(lava){
   const edge=smooth(lava.width-.5,lava.width+3,Math.abs(lava.u));
@@ -71,7 +80,7 @@ export function surfaceAt(x,z){
  const snow=w.snow*inland,mud=Math.max(w.mud*inland,approach*.72*(1-river));
  const grass=Math.max(w.grass*inland,riverGreenery(x,z)*.9)*(1-snow)*(1-w.volcanic)*(1-river)*(1-approach),volcanic=w.volcanic*inland;
  const sand=smooth(14,65,d)*(.78+.22*noise(x*.026,z*.026));
- return {riverApproach:approach,biome:inland>.5?r.biome:d>35?'dunes':'beach',snow,mud,grass,trail:1-smooth(4,10,r.distance),volcanic:Math.max(volcanic,smooth(235,165,Math.hypot(x-VOLCANO.x,z-VOLCANO.z))),river,puddle:Math.max(puddleDampness(x,z),mud*(1-smooth(2,5,r.distance))*smooth(.48,.75,noise(r.x*.13,r.z*.13))),soft:sand*(1-inland)+inland*(w.dunes*.8+w.beach*.2+grass*.15+snow*(.40+.27*smooth(3,10,r.distance))+mud*(.30+.38*smooth(3,10,r.distance))+river*.12),grip:1-snow*.07-mud*.31-river*.13};
+ return {riverApproach:approach,biome:inland>.5?r.biome:d>35?'dunes':'beach',snow,mud,grass,trail:1-smooth(4,10,r.distance),volcanic:Math.max(volcanic,smooth(235,165,Math.hypot(x-VOLCANO.x,z-VOLCANO.z))),river,puddle:Math.max(puddleDampness(x,z),mud*(1-smooth(2,5,r.distance))*smooth(.48,.75,noise(r.x*.13,r.z*.13))),soft:(1-entryTrail(x,z).blend*.45)*(sand*(1-inland)+inland*(w.dunes*.8+w.beach*.2+grass*.15+snow*(.40+.27*smooth(3,10,r.distance))+mud*(.30+.38*smooth(3,10,r.distance))+river*.12)),grip:1-snow*.07-mud*.31-river*.13};
 }
 export const softnessAt=(x,z)=>surfaceAt(x,z).soft;
 // Sparse half-metre deformation field, shared across tile edges and the physics collider.

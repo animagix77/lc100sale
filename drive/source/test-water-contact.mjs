@@ -26,10 +26,12 @@ p.rb.setEnabledTranslations(false,false,false,true);p.rb.setEnabledRotations(fal
 p.obstacles={has:()=>true,kind:()=> 'rock'};
 const contactYs=Array.from({length:4},(_,i)=>p.vehicle.wheelContactPoint(i).y),rockTop=Math.max(...contactYs);
 p.waterHeight=()=>rockTop+.015;p.step(dt,{brake:true});
+assert(p.tyres.every(w=>w.rock===1&&!w.wet),'Exposed rock audio receives dry contact');
 const dryFriction=Array.from({length:4},(_,i)=>p.vehicle.wheelFrictionSlip(i));
 assert(dryFriction.every(v=>Math.abs(v-1.9)<1e-5),'Film shallower than 2.5 cm does not create phantom wet rock traction');
 p.waterHeight=()=>rockTop+.065;p.step(dt,{brake:true});
 for(let i=0;i<4;i++)assert(Math.abs(p.vehicle.wheelFrictionSlip(i)/dryFriction[i]-.82)<1e-5,'Submerged rock uses wet traction at the same threshold as visual effects');
+assert(p.tyres.every(w=>w.rock===1&&w.wet),'Wet rock audio receives the same real contact waterline');
 p.waterHeight=()=>rockTop-.02;p.step(dt,{brake:true});
 for(let i=0;i<4;i++)assert(Math.abs(p.vehicle.wheelFrictionSlip(i)-dryFriction[i])<1e-5,'Emerging contact immediately regains dry grip');
 

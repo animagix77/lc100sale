@@ -118,7 +118,7 @@ function toggleCenterLock(){
  say(locked?'Rusty: Front and rear now working together. Someone in this vehicle should.':'Rusty: Center unlocked. A little less argument in the corners.');canvas.focus({preventScroll:true});
 }
 $('center-lock').addEventListener('click',toggleCenterLock);
-function deployBoards(){if(!loaded||paused)return;cancelCruise();const result=recovery.deploy();if(result==='ok'){unstuck.dismiss();showUnstuck(false);say('Rusty: Orange boards. Finally, a sensible impulse purchase. Lock the center and ease forward in 4LO.');}else if(result==='moving')say('Rusty: Slow to a crawl first. The boards are not a high-speed delivery service.');else if(result==='tilted')say('Rusty: Boards are not a rotisserie. Tip it over and we’ll return you to the last checkpoint.');else say('Rusty: Boards are down. Ease forward, then they’ll return to the rack.');canvas.focus({preventScroll:true})}
+function deployBoards(){if(!loaded||paused)return;cancelCruise();const result=recovery.deploy();if(result==='ok'){unstuck.dismiss();showUnstuck(false);say('Rusty: Orange boards. Finally, a sensible impulse purchase. Lock the center and ease forward in 4LO.');}else if(result==='moving')say('Rusty: Ease off and slow to a crawl. A little rocking is fine; we’ll hold the truck while placing the boards.');else if(result==='tilted')say('Rusty: Boards are not a rotisserie. Tip it over and we’ll return you to the last checkpoint.');else say('Rusty: Boards are down. Ease forward, then they’ll return to the rack.');canvas.focus({preventScroll:true})}
 $('recover').addEventListener('click',deployBoards);
 function showUnstuck(visible){
  const panel=$('unstuck-help');

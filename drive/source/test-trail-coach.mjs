@@ -109,3 +109,5 @@ const hill=state({gradeAhead:.22});
  assert.equal(step(coach,.5,hill),null,'Respawn needs fresh context');
 }
 console.log('Trail coach: anticipatory hills/crawls, debounce, hysteresis, recovery priority, solved controls, input release, reversing, dismissal, reset and pause passed.');
+
+{const coach=new TrailCoach();const hard={...hill,gradeAhead:.34,range:'LO',centerLocked:true};assert.equal(step(coach,1.2,hard)?.id,'difficult-ground');assert.match(coach.active.body,/TRACTION BOARDS/);assert.equal(step(coach,1,{...hard,gradeAhead:0}),null)}

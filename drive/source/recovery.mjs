@@ -3,11 +3,13 @@ import {RAPIER,wheelLayout} from './physics.mjs';
 import {clamp} from './terrain.mjs';
 // Judge Dean LLC — boards are local, finite support surfaces. No teleport or global traction multiplier.
 export class Recovery{
- constructor(physics){this.physics=physics;physics.recovery=this;this.boards=[];this.state='roof';this.age=0;this.recoveries=0;this.lastOrigin={...physics.origin}}
+ constructor(physics){this.physics=physics;physics.recovery=this;this.boards=[];this.state='roof';this.age=0;this.recoveries=0;this.lastOrigin={...physics.origin};this.motion=[];this.motionTime=0}
  deploy(){
   const p=this.physics,q=p.rb.rotation(),up=1-2*(q.x*q.x+q.z*q.z);
   if(this.state!=='roof'&&this.state!=='ground')return 'already';
-  if(Math.hypot(p.rb.linvel().x,p.rb.linvel().z)>2)return 'moving';
+  const velocity=p.rb.linvel(),speed=Math.hypot(velocity.x,velocity.z),pos=p.position(),old=this.motion[0];
+  const rocking=old&&this.motionTime-old.time>=.5&&Math.hypot(pos.x-old.x,pos.z-old.z)<.65;
+  if(speed>2&&!(rocking&&speed<3.5))return 'moving';
   if(up<.25)return 'tilted';
   if(this.state==='ground')this.clear();
   const f=p.forward(),length=Math.hypot(f.x,f.z),forward=new Vector3(f.x/length,0,f.z/length),right=new Vector3(-forward.z,0,forward.x);
@@ -31,6 +33,9 @@ export class Recovery{
  }
  supports(x,z,y){return this.state==='ground'&&this.boards.some(b=>{const local=new Vector3(x-b.position.x,(y??b.position.y)-b.position.y,z-b.position.z).applyQuaternion(b.rotation.clone().invert());return Math.abs(local.x)<.19&&Math.abs(local.z)<.59&&Math.abs(local.y)<.18})}
  step(dt){
+  this.motionTime+=dt;const position=this.physics.position();
+  this.motion.push({x:position.x,z:position.z,time:this.motionTime});
+  while(this.motion.length>1&&this.motion[1].time<this.motionTime-.75)this.motion.shift();
   if(this.state==='roof')return;
   this.age+=dt;const p=this.physics;
   if(this.state==='deploying'){p.rb.setLinvel({x:0,y:0,z:0},true);p.rb.setAngvel({x:0,y:0,z:0},true);}
@@ -44,5 +49,5 @@ export class Recovery{
   if(this.state==='stowing'&&this.age>.75){this.state='roof';this.boards=[];this.age=0}
  }
  stow(){for(const b of this.boards){if(b.collider)this.physics.world.removeCollider(b.collider,true);b.collider=null}this.state='stowing';this.age=0}
- clear(){for(const b of this.boards)if(b.collider)this.physics.world.removeCollider(b.collider,true);this.boards=[];this.state='roof';this.age=0}
+ clear(){for(const b of this.boards)if(b.collider)this.physics.world.removeCollider(b.collider,true);this.boards=[];this.state='roof';this.age=0;this.motion=[]}
 }

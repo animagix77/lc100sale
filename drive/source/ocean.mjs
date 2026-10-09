@@ -73,7 +73,9 @@ export class Ocean{
    }
   }
   this.tireFoamNode=tireFoam;
-  const foam=max(max(max(crestFoam, wash.add(lace)),wake.a.mul(wakeGain).mul(smoothstep(.18,.60,foamNoise))),tireFoam);
+// Foam marks turbulent water, independently of the shallow-depth geometry limiter.
+  // Multiplying by wakeGain hid the wake precisely where tyres churn the shallows.
+  const foam=max(max(max(crestFoam, wash.add(lace)),wake.a.mul(smoothstep(.015,.12,depth)).mul(1.65).min(.92).mul(smoothstep(.12,.52,foamNoise))),tireFoam);
   // The custom water shader must explicitly receive the vehicle's local lights.
   // Wave/wake normals break the reflection into moving highlights (GGX specular).
   let vehicleSheen=vec3(0);

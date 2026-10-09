@@ -61,9 +61,11 @@ export class TrailCoach{
    hint={id:'traction-boards',title:'You’ve found the parking spot.',body:'Ease off and deploy TRACTION BOARDS. Four boards go under the tyres; use gentle throttle to climb out. The roof jewellery earns its keep.',targets:['boards']};
   }else if(recovery==='roof'&&this.hardActive){
    if(state.range!=='LO'){
-    hint={id:'low-range',title:crawling?'Crawl first. Brag later.':'More hill. Less hero.',body:`${release}${release?'select':'Select'} 4LO${state.centerLocked?'':' and CENTER LOCK'} for this ${crawling?'crawl':'climb'}. Low range gives you slower, stronger drive.${!release?' You can switch while coasting.':''}`,targets:state.centerLocked?['range']:['range','lock']};
+    hint={id:'low-range',title:crawling?'Crawl first. Brag later.':'More hill. Less hero.',body:`${release}${release?'select':'Select'} 4LO${state.centerLocked?'':' and CENTER LOCK'} for this ${crawling?'crawl':'climb'}. Low range gives you slower, stronger drive. If the tyres keep spinning without progress, traction boards may be needed.${!release?' You can switch while coasting.':''}`,targets:state.centerLocked?['range']:['range','lock']};
    }else if(!state.centerLocked){
-    hint={id:'center-lock',title:'Give both axles a job.',body:`${release}${release?'engage':'Engage'} CENTER LOCK to link the front and rear axles on this loose ${crawling?'crawl':'climb'}. Gentle throttle. Enthusiasm isn’t traction.`,targets:['lock']};
+    hint={id:'center-lock',title:'Give both axles a job.',body:`${release}${release?'engage':'Engage'} CENTER LOCK to link the front and rear axles on this loose ${crawling?'crawl':'climb'}. Gentle throttle. If you stop making progress, ease off and use TRACTION BOARDS; a little rocking is fine.`,targets:['lock']};
+   }else if(grade>.28||Number(state.rocky)>.8){
+    hint={id:'difficult-ground',title:'Slow and steady from here.',body:'4LO and CENTER LOCK are set. Keep a gentle throttle through this difficult section. If the tyres spin without progress, ease off and deploy TRACTION BOARDS. A little rocking is fine.',targets:[]};
    }
   }
   // Solved conditions disappear immediately; new actionable advice (for example
