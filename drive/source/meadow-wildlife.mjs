@@ -12,16 +12,19 @@ const grassy=s=>s.grass>=.30&&s.riverApproach<=.18&&s.river<=.05&&s.snow<.15&&s.
 export class MeadowWildlife{
  constructor(scene,field,{mobile=false,reduced=false}={}){
   Object.assign(this,{scene,field,mobile,reduced});this.dummy=new THREE.Object3D();this.stats={birds:0,fireflies:0};
-  this.fireflyCapacity=mobile?32:64;this.radius=mobile?34:46;
+  // Keep the entire buffered patch grid: truncating nearest patches made lit
+  // insects appear/disappear whenever the truck crossed a streaming cell.
+  this.fireflyCapacity=mobile?98:162;this.radius=mobile?34:46;
+  this.fadeStart=mobile?9:14;this.fadeEnd=mobile?22:32;
   this.fireflyData=Array.from({length:this.fireflyCapacity},()=>({x:0,y:0,z:0,phase:0,pace:0,size:0}));
   this.fireflyKey='';this.fireflyCount=0;this.disposed=false;
   this.offsets=[];for(let z=-4;z<=4;z++)for(let x=-4;x<=4;x++)this.offsets.push({x,z,d:x*x+z*z});this.offsets.sort((a,b)=>a.d-b.d||a.z-b.z||a.x-b.x);
 
   const glowGeometry=new THREE.PlaneGeometry(1,1);this.fireflyAlpha=new THREE.InstancedBufferAttribute(new Float32Array(this.fireflyCapacity),1);glowGeometry.setAttribute('fireflyAlpha',this.fireflyAlpha);
   const glowMat=new THREE.MeshBasicNodeMaterial({color:'#ffdb79',transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false,fog:false});
-  const radius=uv().sub(.5).length().mul(2),halo=float(1).sub(smoothstep(0,1,radius)).pow(2),core=float(1).sub(smoothstep(0,.18,radius));
+  const radius=uv().sub(.5).length().mul(2),halo=float(1).sub(smoothstep(0,.8,radius)).pow(3),core=float(1).sub(smoothstep(0,.18,radius));
   glowMat.color.multiplyScalar(3.4);
-  glowMat.opacityNode=halo.mul(.45).add(core.mul(.95)).mul(attribute('fireflyAlpha','float'));
+  glowMat.opacityNode=halo.mul(.12).add(core.mul(.95)).mul(attribute('fireflyAlpha','float'));
   this.fireflies=new THREE.InstancedMesh(glowGeometry,glowMat,this.fireflyCapacity);this.fireflies.count=0;this.fireflies.frustumCulled=false;this.fireflies.visible=false;this.fireflies.renderOrder=3;scene.add(this.fireflies);
  }
  _height(x,z){const height=this.field?.height(x,z);return Number.isFinite(height)?height:baseHeight(x,z)}
@@ -39,7 +42,7 @@ export class MeadowWildlife{
     const x=anchorX+(j?1.1+rand(ix+61,iz)*1.8:0),z=anchorZ+(j?rand(ix+67,iz)*3-1.5:0),surface=surfaceAt(x,z);
     if(!grassy(surface))continue;
     const riparian=riverGreenery(x,z),hover=riparian>.3?1.38+rand(ix+13+j,iz)*.44:2.32+rand(ix+13+j,iz)*.48;
-    const f=this.fireflyData[count++];f.x=x;f.z=z;f.y=this._height(x,z)+hover;f.phase=rand(ix+23+j*11,iz)*TAU;f.pace=.78+rand(ix+29+j,iz)*.48;f.size=.80+rand(ix+31+j,iz)*.22;
+    const f=this.fireflyData[count++];f.x=x;f.z=z;f.y=this._height(x,z)+hover;f.phase=rand(ix+23+j*11,iz)*TAU;f.pace=.78+rand(ix+29+j,iz)*.48;f.size=.28+rand(ix+31+j,iz)*.10;
    }
   }
   this.fireflyCount=count;this.fireflies.count=count;this.fireflyKey=key;
@@ -47,20 +50,20 @@ export class MeadowWildlife{
  update(p,time,origin,camera,weather={}){
   if(this.disposed)return;
   if(!Number.isFinite(p?.x)||!Number.isFinite(p?.z)||!Number.isFinite(time)){this.fireflies.visible=false;this.stats.birds=this.stats.fireflies=0;return}
-  const ox=finite(origin?.x),oz=finite(origin?.z),surface=surfaceAt(p.x,p.z),d=this.dummy;
+  const ox=finite(origin?.x),oz=finite(origin?.z),d=this.dummy;
   this._refreshFireflies(p);
-  const dusk=Math.pow(1-smooth(-7,16,finite(weather.altitude,8)),.55),habitat=surface.snow<.15&&surface.volcanic<.10&&surface.biome!=='snow'&&surface.biome!=='volcanic'&&surface.biome!=='beach';
-  const strength=habitat?dusk*(1-Math.min(.75,finite(weather.rain)*.6+finite(weather.snow)*.8)):0,t=this.reduced?0:time;
-  this.fireflies.visible=strength>.002&&this.fireflyCount>0;let lit=0;
+  const dusk=Math.pow(1-smooth(-7,16,finite(weather.altitude,8)),.55);
+  const strength=dusk*(1-Math.min(.75,finite(weather.rain)*.6+finite(weather.snow)*.8)),t=this.reduced?0:time;
+  this.fireflies.visible=strength>.002&&this.fireflyCount>0;let lit=0,maxAlpha=0;
   for(let i=0;i<this.fireflyCount;i++){
    const f=this.fireflyData[i],x=f.x+(this.reduced?0:Math.sin(t*.42+f.phase)*.16),z=f.z+(this.reduced?0:Math.cos(t*.36+f.phase)*.16),y=f.y+(this.reduced?0:Math.sin(t*.70+f.phase)*.075);
    d.position.set(x-ox,y,z-oz);if(camera?.quaternion)d.quaternion.copy(camera.quaternion);else d.rotation.set(0,0,0);
-   const cameraDistance=camera?.position?d.position.distanceTo(camera.position):Math.hypot(x-p.x,z-p.z),near=smooth(3,7,cameraDistance),far=1-smooth(this.radius-12,this.radius+1,Math.hypot(x-p.x,z-p.z));
-   const blink=this.reduced?.48:.18+.82*Math.pow(Math.max(0,Math.sin(t*f.pace+f.phase)),1.6),alpha=Math.min(1,1.65*strength*blink*near*far);
-   this.fireflyAlpha.setX(i,alpha);if(alpha>.035)lit++;// Cap the nearby halo's apparent size so bright insects never become large orbs.
-   const glowSize=Math.min(f.size,cameraDistance*.035);d.scale.set(glowSize,glowSize,1);d.updateMatrix();this.fireflies.setMatrixAt(i,d.matrix);
+   const cameraDistance=camera?.position?d.position.distanceTo(camera.position):Math.hypot(x-p.x,z-p.z),near=smooth(3,7,cameraDistance),far=(1-smooth(this.fadeStart,this.fadeEnd,Math.hypot(x-p.x,z-p.z)))*(1-smooth(14,36,cameraDistance));
+   const blink=this.reduced?.48:.18+.82*Math.pow(Math.max(0,Math.sin(t*f.pace+f.phase)),1.6),alpha=Math.min(1,1.35*strength*blink*near*far);
+   maxAlpha=Math.max(maxAlpha,alpha);this.fireflyAlpha.setX(i,alpha);if(alpha>.035)lit++;// Cap the nearby halo's apparent size so bright insects never become large orbs.
+   const glowSize=Math.min(f.size,cameraDistance*.012);d.scale.set(glowSize,glowSize,1);d.updateMatrix();this.fireflies.setMatrixAt(i,d.matrix);
   }
-  this.fireflyAlpha.needsUpdate=true;this.fireflies.instanceMatrix.needsUpdate=true;this.stats.fireflies=this.fireflies.visible?lit:0;
+  this.fireflyAlpha.needsUpdate=true;this.fireflies.instanceMatrix.needsUpdate=true;this.fireflies.visible=this.fireflies.visible&&maxAlpha>0;this.stats.fireflies=this.fireflies.visible?lit:0;
  }
  reset(){
   // Recovery keeps ambient fireflies anchored in their existing world patches.

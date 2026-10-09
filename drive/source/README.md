@@ -1,3 +1,9 @@
+## Smaller fireflies with gradual approach — October 9, 2026
+
+Judge Dean LLC. Firefly sprites shrink from 0.80–1.02 m to 0.28–0.38 m, the apparent-size cap drops from 0.035 to 0.012 times camera distance, and a tighter halo contributes 0.12 instead of 0.45. The bright small core remains. Distance fades span 14–32 m on desktop and 9–22 m on mobile, with an additional camera-distance fade. Habitat is determined by each anchored patch rather than abruptly hiding/showing the whole pool at the truck’s biome boundary.
+
+The instance buffer now covers every candidate patch (162 desktop / 98 mobile), avoiding nearest-patch truncation. Its outer margin stays invisible before streaming adds or removes patches. The existing wildlife regression now traverses 572 cell boundaries across desktop/mobile, asserting new/removed lights are fully transparent and retained brightness stays continuous. Wildlife and scenery-fade checks passed; no full route rerun. Browser meadow approach verified compact glows, 28 active fireflies and no birds, with no reported console errors. Build, syntax and source whitespace checks passed; production model unchanged.
+
 ## One-tap recovery deployment — October 9, 2026
 
 Judge Dean LLC. A moving board request now applies the service brake and retries automatically for up to eight simulation seconds instead of silently rejecting the tap. Gas, reverse and cruise cannot override braking/placement; the initiating UI action clears held controls. Existing crawl/rocking acceptance, physical ground probes, rollover protection, four supports and automatic packing remain. Reset cancels a pending request. A visible status beside the mobile Boards button reports braking, placement, readiness or why placement could not finish, with an 18-second reading window.

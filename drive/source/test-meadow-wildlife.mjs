@@ -18,7 +18,7 @@ function assertFireflyCanopy(w){
  for(let i=0;i<w.fireflyCount;i++){
   const f=w.fireflyData[i],riparian=riverGreenery(f.x,f.z)>.3,ground=baseHeight(f.x,f.z),hover=w.fireflies.instanceMatrix.array[i*16+13]-ground;seenFireflyHabitats.add(riparian?'riparian':'meadow');
   assert(hover>=(riparian?1.3:2.2)&&hover<=(riparian?1.9:2.9),'Glows skim the actual short riparian grass or tall meadow canopy');
-  assert(f.size>=.8&&f.size<1.03,'Fireflies have a broader halo around their small luminous core');
+  assert(f.size>=.28&&f.size<.39,'Fireflies use compact pinprick sprites');
  }
 }
 const {scene,camera,wildlife:w}=setup();
@@ -45,7 +45,7 @@ assert(defaults.wildlife.stats.fireflies>=3,'Several meadow glows are visible wi
 assert(Math.max(...defaults.wildlife.fireflyAlpha.array)>.35,'Default dusk glows are bright enough to read');
 assert(defaults.wildlife.fireflyCount>=16,'Fireflies form small, populated patches');
 assert(defaults.wildlife.fireflies.material.color.r>3,'Fireflies retain a bright luminous core against dusk foliage');
-for(let i=0;i<defaults.wildlife.fireflyCount;i++){const matrix=new THREE.Matrix4();defaults.wildlife.fireflies.getMatrixAt(i,matrix);const position=new THREE.Vector3().setFromMatrixPosition(matrix),size=new THREE.Vector3().setFromMatrixScale(matrix).x;assert(size<=position.distanceTo(defaults.camera.position)*.035+.0001,'Nearby halos have a bounded apparent size');}
+for(let i=0;i<defaults.wildlife.fireflyCount;i++){const matrix=new THREE.Matrix4();defaults.wildlife.fireflies.getMatrixAt(i,matrix);const position=new THREE.Vector3().setFromMatrixPosition(matrix),size=new THREE.Vector3().setFromMatrixScale(matrix).x;assert(size<=position.distanceTo(defaults.camera.position)*.012+.0001,'Nearby halos have a bounded apparent size');}
 assert.equal(defaults.wildlife.fireflies.material.fog,false);assert(defaults.wildlife.fireflies.material.depthTest,'Glows must still be occluded by terrain');
 defaults.wildlife.dispose();
 
@@ -71,14 +71,32 @@ const fly=w.fireflyData[0];camera.position.set(fly.x-shifted.x+Math.sin(67*.42+f
 assert.equal(w.fireflies.geometry,geometry);assert.equal(w.fireflies.instanceMatrix.array,matrixArray);assert.equal(w.fireflyData,flyPool);
 
 const a=setup(),b=setup();move(a.wildlife,a.camera,start,0,day);move(b.wildlife,b.camera,start,0,day);assert.deepEqual(a.wildlife.fireflyData,b.wildlife.fireflyData,'Firefly scenery is deterministic');a.wildlife.dispose();b.wildlife.dispose();
-const mobile=setup({mobile:true});move(mobile.wildlife,mobile.camera,start,0,night);assert(mobile.wildlife.fireflyCapacity<w.fireflyCapacity,'Mobile retains a smaller firefly pool');assert(mobile.wildlife.fireflyCount<=32);assert.equal(mobile.wildlife.stats.birds,0);assert.equal(mobile.scene.children.length,1);mobile.wildlife.dispose();
+const mobile=setup({mobile:true});move(mobile.wildlife,mobile.camera,start,0,night);assert(mobile.wildlife.fireflyCapacity<w.fireflyCapacity,'Mobile retains a smaller firefly pool');assert(mobile.wildlife.fireflyCount<=98);assert.equal(mobile.wildlife.stats.birds,0);assert.equal(mobile.scene.children.length,1);mobile.wildlife.dispose();
 const reduced=setup({reduced:true});move(reduced.wildlife,reduced.camera,start,0,night);assert.equal(reduced.wildlife.stats.birds,0);const still=[...reduced.wildlife.fireflies.instanceMatrix.array],quiet=[...reduced.wildlife.fireflyAlpha.array];tick(reduced.wildlife,reduced.camera,{x:start.x,z:start.z-12},12,night,{speed:0});assert.deepEqual([...reduced.wildlife.fireflies.instanceMatrix.array],still,'Reduced motion freezes firefly drift');assert.deepEqual([...reduced.wildlife.fireflyAlpha.array],quiet,'Reduced motion replaces blinking with a quiet steady glow');reduced.wildlife.dispose();
 
 for(const value of [NaN,Infinity]){
  tick(w,camera,{x:value,z:start.z},80,night);assert(!w.fireflies.visible);assert.equal(w.stats.fireflies,0);
  tick(w,camera,start,value,night);assert(!w.fireflies.visible);assert.equal(w.stats.birds,0);
 }
+camera.position.set(bank.x+3,field.height(bank.x,bank.z)+3,bank.z+7);
 tick(w,camera,bank,80,night);assert(w.fireflies.visible,'A valid update restores glows after invalid input');
 assert([...w.fireflies.instanceMatrix.array].every(Number.isFinite),'All firefly transforms remain finite');
 w.dispose();w.dispose();assert.equal(scene.children.length,0,'Disposal removes the firefly mesh safely');assert.equal(w.stats.fireflies,0);
 console.log('Meadow wildlife: birds removed, riverbank sunset/night glows, canopy placement, camera clearance, deterministic pools, mobile budgets, reduced motion, rebasing and disposal passed.');
+
+// Judge Dean LLC — a cell refresh must never introduce or remove a visible light.
+for(const mobile of [false,true]){
+ const {wildlife:w,camera}=setup({mobile,reduced:true});let crossings=0;
+ const snapshot=p=>{
+  camera.position.set(p.x+3,field.height(p.x,p.z)+3,p.z+7);tick(w,camera,p,0,night);
+  return new Map(w.fireflyData.slice(0,w.fireflyCount).map((f,i)=>[`${f.x},${f.z}`,w.fireflyAlpha.getX(i)]));
+ };
+ for(let x=170;x<=270;x+=10)for(let z=-360;z<=-240;z+=10)for(const axis of ['x','z']){
+  const before=snapshot({x:x-(axis==='x'?.001:0),z:z-(axis==='z'?.001:0)}),after=snapshot({x:x+(axis==='x'?.001:0),z:z+(axis==='z'?.001:0)});
+  for(const [key,alpha] of before){if(!after.has(key))assert.equal(alpha,0,'Removed patches are already fully faded');else assert(Math.abs(after.get(key)-alpha)<.002,'Shared lights stay continuous across a streaming boundary');}
+  for(const [key,alpha] of after)if(!before.has(key))assert.equal(alpha,0,'New patches begin invisible');
+  crossings++;
+ }
+ assert(crossings>250);w.dispose();
+}
+console.log('Firefly streaming: desktop and mobile cell boundaries retain continuous brightness; added/removed patches are invisible.');
