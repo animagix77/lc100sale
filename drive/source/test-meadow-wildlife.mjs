@@ -22,35 +22,21 @@ function assertFireflyCanopy(w){
  }
 }
 const {scene,camera,wildlife:w}=setup();
-const geometries=[w.birds.geometry,w.fireflies.geometry],matrices=[w.birds.instanceMatrix.array,w.fireflies.instanceMatrix.array],birdPool=w.birdData,flyPool=w.fireflyData;
-// A plausible speed alone, or a stationary wheelspin, must never disturb grass.
-for(let i=0;i<180;i++)tick(w,camera,start,i/60,night);assert.equal(w.stats.birds,0,'A parked car never repeatedly flushes birds');assertFireflyCanopy(w);
-const end=move(w,camera,start,4);assert(w.stats.birds===1,'Driving through grass flushes exactly one recognizable bird');
-const flock=w.birdData.filter(b=>b.active).map(b=>({...b}));assert(flock.every(b=>b.vz<0),'Flights move away in the vehicle travel direction');
-for(const b of flock){assert(surfaceAt(b.x,b.z).grass>=.30,'Each launch site is actually grass');assert(Math.hypot(b.vx,b.vz)>6);assert(b.ttl>=4.3&&b.ttl<=5&&b.size>=1.35,'A clear single-bird silhouette flies away over several seconds')}
-assert(flock.every(b=>b.y-baseHeight(b.x,b.z)>=2.5),'Meadow birds launch above the tall grass instead of disappearing inside it');
-const count=w.cooldowns.size;for(let i=0;i<400;i++)tick(w,camera,end,6+i/60,night,{speed:0,heading:0,grounded:true});
-assert.equal(w.stats.birds,0,'All birds leave the scene after a short flight');assert.equal(w.cooldowns.size,count,'No repeated stationary trigger');
-move(w,camera,start,15);assert.equal(w.stats.birds,0,'Returning through the same world patch respects its cooldown');
-move(w,camera,start,135);assert(w.stats.birds>0,'A visited patch can recover after its cooldown');
-
+const geometry=w.fireflies.geometry,matrixArray=w.fireflies.instanceMatrix.array,flyPool=w.fireflyData;
+assert.equal(scene.children.length,1,'Meadow scenery allocates only its firefly mesh');
+assert.equal(w.birds,undefined,'The grass-bird mesh is removed');
+assert.equal(w.birdData,undefined,'No flight pool is allocated');
+for(let i=0;i<180;i++)tick(w,camera,start,i/60,night);assertFireflyCanopy(w);
+for(const weather of [day,night,{altitude:8,rain:.7},{altitude:8,snow:.7}]){
+ move(w,camera,start,4,weather);
+ assert.equal(w.stats.birds,0,'Driving through grass in any weather never launches birds');
+ assert.equal(scene.children.length,1,'Travel does not add a bird mesh');
+}
 for(const [name,p] of Object.entries({beach:{x:-14,z:0},dunes:{x:64,z:-164},approach:{x:236,z:-312},river:{x:248,z:-336},snow:{x:312,z:-600},volcano:{x:527,z:-680}})){
- const item=setup();move(item.wildlife,item.camera,p,0,night);assert.equal(item.wildlife.stats.birds,0,`${name} does not flush grass birds`);
+ const item=setup();move(item.wildlife,item.camera,p,0,night);assert.equal(item.wildlife.stats.birds,0,`${name} has no flying birds`);
  if(name==='snow'||name==='volcano'||name==='beach'){assert.equal(item.wildlife.stats.fireflies,0,`${name} does not show fireflies`);assert(!item.wildlife.fireflies.visible)}
  item.wildlife.dispose();
 }
-// A rising hillside must not swallow a departing flock back into tall grass.
-const uphill=setup();uphill.wildlife.field={height:(x,z)=>field.height(x,z)+Math.max(0,start.z-z-6)*1.4};
-move(uphill.wildlife,uphill.camera,start,0,day);
-tick(uphill.wildlife,uphill.camera,{x:start.x,z:start.z-12},2,day,{speed:0});
-let uphillBirds=0;
-for(let i=0;i<uphill.wildlife.birdCapacity;i++){
- const bird=uphill.wildlife.birdData[i];if(!bird.active)continue;uphillBirds++;
- const matrix=uphill.wildlife.birds.instanceMatrix.array,offset=i*16,ground=uphill.wildlife.field.height(matrix[offset+12],matrix[offset+14]);
- assert(matrix[offset+13]-ground>=bird.clearance-.0001,'Departing birds maintain their cached canopy clearance on rising ground');
- assert.equal(bird.clearance,2.5,'Meadow clearance is retained from the launch habitat');
-}
-assert(uphillBirds>0,'The uphill check exercises an active flock');uphill.wildlife.dispose();
 
 const defaults=setup(),meadowWeather=biomeWeather(start.x,start.z);
 tick(defaults.wildlife,defaults.camera,start,12,meadowWeather,{speed:0});
@@ -62,9 +48,6 @@ assert(defaults.wildlife.fireflies.material.color.r>3,'Fireflies retain a bright
 for(let i=0;i<defaults.wildlife.fireflyCount;i++){const matrix=new THREE.Matrix4();defaults.wildlife.fireflies.getMatrixAt(i,matrix);const position=new THREE.Vector3().setFromMatrixPosition(matrix),size=new THREE.Vector3().setFromMatrixScale(matrix).x;assert(size<=position.distanceTo(defaults.camera.position)*.035+.0001,'Nearby halos have a bounded apparent size');}
 assert.equal(defaults.wildlife.fireflies.material.fog,false);assert(defaults.wildlife.fireflies.material.depthTest,'Glows must still be occluded by terrain');
 defaults.wildlife.dispose();
-
-const air=setup();tick(air.wildlife,air.camera,start,0);for(let i=1;i<=60;i++)tick(air.wildlife,air.camera,{x:start.x,z:start.z-i*.1},i/60,night,{speed:6,grounded:false});assert.equal(air.wildlife.stats.birds,0,'Airborne travel cannot disturb grass');air.wildlife.dispose();
-const teleport=setup();tick(teleport.wildlife,teleport.camera,start,0);tick(teleport.wildlife,teleport.camera,{x:255,z:-67},1/60);assert.equal(teleport.wildlife.stats.birds,0,'A recovery jump never sweeps birds along the intervening path');teleport.wildlife.dispose();
 
 const bank={x:220,z:riverZ(220)+17};camera.position.set(bank.x+3,field.height(bank.x,bank.z)+3,bank.z+7);
 w.reset();tick(w,camera,bank,65,night,{speed:0});assert(w.fireflyCount>0&&w.stats.fireflies>0,'Riparian woodland has small night glows');assert(w.fireflies.material.isMeshBasicNodeMaterial,'Fireflies use native WebGPU node material');
@@ -85,30 +68,17 @@ const shifted={x:512,z:-512};camera.position.x-=shifted.x;camera.position.z-=shi
 for(let i=0;i<w.fireflyCount;i++){assert(Math.abs(w.fireflies.instanceMatrix.array[i*16+12]-(before[i*16+12]-shifted.x))<.0001);assert(Math.abs(w.fireflies.instanceMatrix.array[i*16+14]-(before[i*16+14]-shifted.z))<.0001)}
 assert.deepEqual([...w.fireflyAlpha.array],alphas,'Floating origin does not change glow visibility');
 const fly=w.fireflyData[0];camera.position.set(fly.x-shifted.x+Math.sin(67*.42+fly.phase)*.16,fly.y+Math.sin(67*.70+fly.phase)*.075,fly.z-shifted.z+Math.cos(67*.36+fly.phase)*.16);tick(w,camera,bank,67,night,{speed:0},shifted);assert.equal(w.fireflyAlpha.getX(0),0,'Glows disappear before reaching the camera');
-assert.equal(w.birds.geometry,geometries[0]);assert.equal(w.fireflies.geometry,geometries[1]);assert.equal(w.birds.instanceMatrix.array,matrices[0]);assert.equal(w.fireflies.instanceMatrix.array,matrices[1]);assert.equal(w.birdData,birdPool);assert.equal(w.fireflyData,flyPool);
+assert.equal(w.fireflies.geometry,geometry);assert.equal(w.fireflies.instanceMatrix.array,matrixArray);assert.equal(w.fireflyData,flyPool);
 
-const a=setup(),b=setup();move(a.wildlife,a.camera,start,0,day);move(b.wildlife,b.camera,start,0,day);assert.deepEqual(a.wildlife.birdData,b.wildlife.birdData,'The same drive produces deterministic bird flights');assert.deepEqual(a.wildlife.fireflyData,b.wildlife.fireflyData,'Firefly scenery is deterministic');
-const birdBefore=[...a.wildlife.birds.instanceMatrix.array];tick(a.wildlife,a.camera,{x:start.x,z:start.z-12},2,day,{speed:0},shifted);
-for(let i=0;i<a.wildlife.birdCapacity;i++)if(a.wildlife.birdData[i].active){assert(Math.abs(a.wildlife.birds.instanceMatrix.array[i*16+12]-(birdBefore[i*16+12]-512))<.0001);assert(Math.abs(a.wildlife.birds.instanceMatrix.array[i*16+14]-(birdBefore[i*16+14]+512))<.0001)}
-a.wildlife.dispose();b.wildlife.dispose();
-
-// There is no flock wallpaper following the truck across every grass patch.
-const sparse=setup();move(sparse.wildlife,sparse.camera,start,0,day);
-const first=sparse.wildlife.lastFlush;let peak=0;
-for(let i=121;i<=600;i++){tick(sparse.wildlife,sparse.camera,{x:start.x,z:start.z-i*.1},i/60,day);peak=Math.max(peak,sparse.wildlife.stats.birds)}
-assert.equal(sparse.wildlife.lastFlush,first,'Continuous driving does not flush another flock within twelve seconds');
-assert(peak<=1,'Only one grass bird may be in flight');
-for(const weather of [night,{altitude:8,rain:.7},{altitude:8,snow:.7}]){const quiet=setup();move(quiet.wildlife,quiet.camera,start,0,weather);assert.equal(quiet.wildlife.stats.birds,0,'Wet and dark scenes keep the air clear of brown bird shapes');quiet.wildlife.dispose()}
-const crawl=setup();tick(crawl.wildlife,crawl.camera,start,0,day);
-for(let i=1;i<=90;i++)tick(crawl.wildlife,crawl.camera,{x:start.x,z:start.z-i*.1},i/60,day);
-assert.equal(crawl.wildlife.stats.birds,0,'Short movements through grass do not immediately spray birds');crawl.wildlife.dispose();sparse.wildlife.dispose();
-
-const mobile=setup({mobile:true});move(mobile.wildlife,mobile.camera,start,0,day);assert(mobile.wildlife.birdCapacity===1&&w.birdCapacity===1&&mobile.wildlife.fireflyCapacity<w.fireflyCapacity,'Both platforms allow one bird; mobile retains a smaller firefly pool');assert(mobile.wildlife.fireflyCount<=32&&mobile.wildlife.stats.birds<=1);mobile.wildlife.dispose();
+const a=setup(),b=setup();move(a.wildlife,a.camera,start,0,day);move(b.wildlife,b.camera,start,0,day);assert.deepEqual(a.wildlife.fireflyData,b.wildlife.fireflyData,'Firefly scenery is deterministic');a.wildlife.dispose();b.wildlife.dispose();
+const mobile=setup({mobile:true});move(mobile.wildlife,mobile.camera,start,0,night);assert(mobile.wildlife.fireflyCapacity<w.fireflyCapacity,'Mobile retains a smaller firefly pool');assert(mobile.wildlife.fireflyCount<=32);assert.equal(mobile.wildlife.stats.birds,0);assert.equal(mobile.scene.children.length,1);mobile.wildlife.dispose();
 const reduced=setup({reduced:true});move(reduced.wildlife,reduced.camera,start,0,night);assert.equal(reduced.wildlife.stats.birds,0);const still=[...reduced.wildlife.fireflies.instanceMatrix.array],quiet=[...reduced.wildlife.fireflyAlpha.array];tick(reduced.wildlife,reduced.camera,{x:start.x,z:start.z-12},12,night,{speed:0});assert.deepEqual([...reduced.wildlife.fireflies.instanceMatrix.array],still,'Reduced motion freezes firefly drift');assert.deepEqual([...reduced.wildlife.fireflyAlpha.array],quiet,'Reduced motion replaces blinking with a quiet steady glow');reduced.wildlife.dispose();
 
-// World patch history is bounded even after many distinct grassy areas are visited.
-let visit=0;for(let z=-430;z<60;z+=14)for(let x=90;x<380;x+=14){const s=surfaceAt(x,z);if(s.grass<.4||s.riverApproach>.1||s.snow>.1||s.volcanic>.05)continue;w.reset();w._flush({x,z},100+visit++*50,0,-1,6)}
-assert(visit>128&&w.cooldowns.size<=128,'The disturbance history remains bounded on long drives');
-for(const mesh of [w.birds,w.fireflies])assert([...mesh.instanceMatrix.array].every(Number.isFinite),'All transforms remain finite');
-w.dispose();w.dispose();assert.equal(scene.children.length,0,'Disposal removes both meshes safely');
-console.log('Meadow wildlife: grass-only contact, finite short flights, stationary/airborne/teleport guards, patch cooldowns, riverbank sunset/night glows, camera clearance, deterministic pools, mobile budgets, reduced motion, rebasing and disposal passed.');
+for(const value of [NaN,Infinity]){
+ tick(w,camera,{x:value,z:start.z},80,night);assert(!w.fireflies.visible);assert.equal(w.stats.fireflies,0);
+ tick(w,camera,start,value,night);assert(!w.fireflies.visible);assert.equal(w.stats.birds,0);
+}
+tick(w,camera,bank,80,night);assert(w.fireflies.visible,'A valid update restores glows after invalid input');
+assert([...w.fireflies.instanceMatrix.array].every(Number.isFinite),'All firefly transforms remain finite');
+w.dispose();w.dispose();assert.equal(scene.children.length,0,'Disposal removes the firefly mesh safely');assert.equal(w.stats.fireflies,0);
+console.log('Meadow wildlife: birds removed, riverbank sunset/night glows, canopy placement, camera clearance, deterministic pools, mobile budgets, reduced motion, rebasing and disposal passed.');

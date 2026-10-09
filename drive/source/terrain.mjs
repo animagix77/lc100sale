@@ -93,7 +93,12 @@ export class SandField{
    for(const tx of [Math.floor((i*.5-.001)/32),Math.floor((i*.5+.001)/32)])for(const tz of [Math.floor((j*.5-.001)/32),Math.floor((j*.5+.001)/32)])this.dirty.add(`${tx},${tz}`);
   }
  }
- stamp(x,z,load=1,travel=.17,slip=0){this.stamps++;this.clock++;const ix=Math.round(x*2),iz=Math.round(z*2),surface=surfaceAt(x,z),soft=surface.soft;for(let j=iz-2;j<=iz+2;j++)for(let i=ix-2;i<=ix+2;i++){const r=Math.hypot(i*.5-x,j*.5-z);if(r>1.0)continue;const key=`${i},${j}`,old=this.ruts.get(key)?.depth||0;const energy=clamp(travel/.17,.1,2.5),dig=1+soft*Math.min(3,slip)*.50;
+ stamp(x,z,load=1,travel=.17,slip=0,heading=0){this.stamps++;this.clock++;
+ const material=surfaceAt(x,z);
+ if(material.biome==='beach'&&x-shore(z)<35&&material.snow<.1&&material.mud<.1&&material.river<.1&&material.volcanic<.1){
+  this.stampSand(x,z,load,travel,slip,heading,material.soft);this.trim();return;
+ }
+ const ix=Math.round(x*2),iz=Math.round(z*2),surface=surfaceAt(x,z),soft=surface.soft;for(let j=iz-2;j<=iz+2;j++)for(let i=ix-2;i<=ix+2;i++){const r=Math.hypot(i*.5-x,j*.5-z);if(r>1.0)continue;const key=`${i},${j}`,old=this.ruts.get(key)?.depth||0;const energy=clamp(travel/.17,.1,2.5),dig=1+soft*Math.min(3,slip)*.50;
  const depression=-.025*(1+surface.snow*.9+surface.mud*.7)*(.35+soft)*clamp(load,.25,1.7)*energy*dig*Math.exp(-r*r/.16);
  const berm=r>.44?.010*(1+surface.snow*2.0)*energy*soft*Math.exp(-Math.pow((r-.76)/.19,2)):0;
  // Rolling compacts a shallow track; sustained wheelspin can excavate a deep hole.
@@ -102,6 +107,29 @@ export class SandField{
  const cap=surface.snow>.1?Math.min(looseCap,.26+.10*offTrail):surface.mud>.1?Math.min(looseCap,.22+.32*offTrail):looseCap;
  const depth=clamp(old+depression+berm,Math.min(old,-cap),.16);this.ruts.set(key,{depth,t:this.clock});this.deepest=Math.min(this.deepest,depth);for(const tx of [Math.floor((i*.5-.001)/32),Math.floor((i*.5+.001)/32)])for(const tz of [Math.floor((j*.5-.001)/32),Math.floor((j*.5+.001)/32)])this.dirty.add(`${tx},${tz}`)}
  // Retain the most recent ~kilometres of tracks without growing memory indefinitely.
- if(this.ruts.size>90000){let n=0;for(const key of this.ruts.keys()){this.ruts.delete(key);if(++n===12000)break}}
+ this.trim();
  }
+ writeOffset(i,j,depth){
+  this.ruts.set(`${i},${j}`,{depth,t:this.clock});this.deepest=Math.min(this.deepest,depth);
+  for(const tx of [Math.floor((i*.5-.001)/32),Math.floor((i*.5+.001)/32)])for(const tz of [Math.floor((j*.5-.001)/32),Math.floor((j*.5+.001)/32)])this.dirty.add(`${tx},${tz}`);
+ }
+ stampSand(x,z,load,travel,slip,heading,soft){
+  // Firm beach still yields to a 2.5-tonne truck. Deformation is independent
+  // of drivetrain softness, so readable ruts do not add artificial drag.
+  const exposed=smooth(4,15,x-shore(z)),spin=smooth(.35,2,slip),energy=clamp(travel/.17,.1,2.5),pressure=clamp(load,.25,1.7);
+  const cut=(.036+.030*soft)*exposed*pressure*energy*(1+soft*Math.min(3,slip)*.5);
+  const cap=(.14+.14*soft+(.04+.52*soft)*spin)*(.35+.65*exposed),rimCap=(.085+.075*soft+.055*spin)*exposed;
+  const ix=Math.round(x*2),iz=Math.round(z*2),cs=Math.cos(heading),sn=Math.sin(heading),shoulders=[],sideWeights=[0,0];let removed=0;
+  for(let j=iz-2;j<=iz+2;j++)for(let i=ix-2;i<=ix+2;i++){
+   const dx=i*.5-x,dz=j*.5-z,across=dx*cs-dz*sn,along=dx*sn+dz*cs;
+   if(Math.abs(across)>1.02||Math.abs(along)>1.02)continue;
+   const longitudinal=Math.exp(-along*along/.30),old=this.gridOffset(i,j),depth=Math.max(Math.min(old,-cap),old-cut*Math.exp(-across*across/.105)*(1-smooth(.30,.50,Math.abs(across)))*longitudinal);
+   if(depth<old-1e-8){removed+=old-depth;this.writeOffset(i,j,depth)}
+   if(Math.abs(across)>.38){const weight=Math.exp(-Math.pow((Math.abs(across)-.66)/.23,2))*longitudinal;const side=across<0?0:1;shoulders.push({i,j,weight,side});sideWeights[side]+=weight;}
+  }
+  // Move a share of the actual excavated volume sideways; the rest compacts.
+  // Once a trench reaches its cap, spinning cannot grow an endless sand wall.
+  if(removed>0)for(const {i,j,weight,side} of shoulders){const old=this.gridOffset(i,j),depth=Math.max(old,Math.min(rimCap,old+removed*(.70+soft*.12)*.5*weight/sideWeights[side]));if(depth>old+1e-8)this.writeOffset(i,j,depth)}
+ }
+ trim(){if(this.ruts.size>90000){let n=0;for(const key of this.ruts.keys()){this.ruts.delete(key);if(++n===12000)break}}}
 }

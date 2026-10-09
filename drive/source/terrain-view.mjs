@@ -8,7 +8,7 @@ const riverSoil=new THREE.Color('#66503a'),riverGravel=new THREE.Color('#8b8070'
 const basalt=new THREE.Color('#39363b'),trailStone=new THREE.Color('#75646a');
 const wet=new THREE.Color('#584c4b'),dry=new THREE.Color('#ce925c'),shadeColor=new THREE.Color('#885466'),crest=new THREE.Color('#dca165');
 // Rut walls catch the sunset; compressed troughs stay visibly darker than untouched sand.
-function rutShade(offset){return offset<0?1-Math.min(.44,-offset*.82):1+Math.min(.08,offset*.5)}
+function rutShade(offset){return offset<0?1-Math.min(.44,-offset*1.6):1+Math.min(.13,offset*.85)}
 export class TerrainView{
  constructor(scene,physics,field){this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;this.focus={x:0,z:0};this.safetyGround=null;
  const world=positionWorld.xz.add(this.origin),z=world.y;
@@ -17,7 +17,7 @@ export class TerrainView{
  const front=sin(this.clock.mul(.8).sub(z.mul(.026)).add(sin(z.mul(.16)).mul(.22))).mul(4.8).add(1).add(sin(z.mul(.46).add(this.clock.mul(.35))).mul(.42));
  const fresh=float(1).sub(smoothstep(front.add(7),front.add(11),d));
  const damp=float(1).sub(smoothstep(12,22,d));
- const detail=attribute('terrainDetail','vec4'),surface=attribute('surface','vec3');
+ const detail=attribute('terrainDetail','vec4'),surface=attribute('surface','vec3'),compacted=smoothstep(.025,.16,attribute('deformation','float').negate());
  const close=float(1).sub(smoothstep(55,140,cameraPosition.distance(positionWorld)));
  const broad=mx_noise_float(vec3(world.x.mul(.12),positionWorld.y.mul(.18),world.y.mul(.12)));
  const grain=mx_noise_float(vec3(world.x.mul(2.8),positionWorld.y.mul(1.3),world.y.mul(2.8)));
@@ -30,9 +30,9 @@ export class TerrainView{
  const grit=mx_noise_float(vec3(world.x.mul(32),float(2.3),world.y.mul(32)));
  const clumps=mx_noise_float(vec3(world.x.mul(8),float(7.1),world.y.mul(8)));
  const soilShade=clumps.mul(.18).add(grit.mul(.20).mul(fineFade)).mul(soil).mul(close).add(1);
- const textureShade=soilShade.mul(broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1)));
+ const textureShade=mix(soilShade.mul(broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1))),float(1),compacted.mul(.65));
  const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh)).mul(stratified).mul(textureShade);mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z).mul(clumps.mul(.10).mul(soil).add(.95)).clamp(.06,1);if(!flat){
-   const relief=grain.mul(.022).add(clumps.mul(.012).add(grit.mul(.0025).mul(fineFade)).mul(soil)).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z));
+   const relief=grain.mul(.022).add(clumps.mul(.012).add(grit.mul(.0025).mul(fineFade)).mul(soil)).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z)).mul(mix(float(1),float(.25),compacted));
    const dx=positionView.dFdx(),dy=positionView.dFdy(),r1=dy.cross(normalView),r2=normalView.cross(dx),det=dx.dot(r1);
    mat.normalNode=normalView.mul(det.abs()).sub(r1.mul(relief.dFdx()).add(r2.mul(relief.dFdy())).mul(det.sign())).normalize();
   }return mat};
@@ -40,7 +40,7 @@ export class TerrainView{
  // Row-sized work units keep procedural terrain off the critical render frame.
  // Only the initial load and explicit teleports drain these synchronously.
  *geometryRows(tx,tz,n=N,size=SIZE,far=false){
-  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=new Float32Array(count),baseColors=new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
+  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=new Float32Array(count),deformations=new Float32Array(count),baseColors=new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
   // Near geometry used to evaluate the same procedural height five times per
   // vertex for slope tinting. Cache the padded half-metre grid once, yielding
   // each row, so collision-bearing tiles keep up with a 50-mph drive.
@@ -49,7 +49,7 @@ export class TerrainView{
   for(let j=0;j<=n;j++){
    for(let i=0;i<=n;i++){
     const k=j*(n+1)+i,k3=k*3,k4=k*4,x=tx+i*size/n,z=tz+j*size/n,base=gridHeights?gridHeights[(j+2)*stride+i+2]:baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
-    ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;heights[k]=base;
+    ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;heights[k]=base;deformations[k]=deformation;
     const d=x-shore(z);c.lerpColors(wet,dry,smooth(12,24,d));
     const sx=gridHeights?(gridHeights[(j+2)*stride+i+4]-gridHeights[(j+2)*stride+i])*.5:(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=gridHeights?(gridHeights[(j+4)*stride+i+2]-gridHeights[j*stride+i+2])*.5:(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
     c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
@@ -66,7 +66,7 @@ export class TerrainView{
    }
    yield;
   }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(ps,3));g.setAttribute('color',new THREE.BufferAttribute(colors,3));g.setAttribute('surface',new THREE.BufferAttribute(surfaces,3));g.setAttribute('terrainDetail',new THREE.BufferAttribute(details,4));g.setIndex(new THREE.BufferAttribute(idx,1));
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(ps,3));g.setAttribute('color',new THREE.BufferAttribute(colors,3));g.setAttribute('surface',new THREE.BufferAttribute(surfaces,3));g.setAttribute('terrainDetail',new THREE.BufferAttribute(details,4));g.setAttribute('deformation',new THREE.BufferAttribute(deformations,1));g.setIndex(new THREE.BufferAttribute(idx,1));
   if(far)g.setAttribute('normal',new THREE.BufferAttribute(normals,3));else{g.computeVertexNormals();g.userData.baseHeights=heights;g.userData.baseColors=baseColors;}
   g.userData.origin=offset;g.userData.grid={tx,tz,n,size};g.computeBoundingSphere();return g;
  }
@@ -148,9 +148,9 @@ export class TerrainView{
   const g=t.mesh.geometry,a=g.attributes.position,c=g.attributes.color,{baseHeights,baseColors}=g.userData;let changed=false;
   for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){
    const k=j*(N+1)+i,offset=this.field.gridOffset(t.tx*N+i,t.tz*N+j),height=baseHeights[k]+offset;
-   if(Math.abs(a.getY(k)-height)<1e-6)continue;const shade=rutShade(offset);a.setY(k,height);c.setXYZ(k,baseColors[k*3]*shade,baseColors[k*3+1]*shade,baseColors[k*3+2]*shade);changed=true;
+   if(Math.abs(a.getY(k)-height)<1e-6)continue;const shade=rutShade(offset);a.setY(k,height);g.attributes.deformation.setX(k,offset);c.setXYZ(k,baseColors[k*3]*shade,baseColors[k*3+1]*shade,baseColors[k*3+2]*shade);changed=true;
   }
-  if(changed){a.needsUpdate=true;c.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}return changed;
+  if(changed){a.needsUpdate=true;c.needsUpdate=true;g.attributes.deformation.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}return changed;
  }
  refresh(){this.tick++;if(this.safetyGround&&this.field.dirty.size)this.ensureGround(this.focus.x,this.focus.z,true);for(const key of this.field.dirty){const t=this.tiles.get(key);if(t&&this.applyRuts(t))this.collider(t);}this.field.dirty.clear();}
  dispose(){this.clearTiles();if(this.far){this.scene.remove(this.far);this.far.geometry.dispose();this.far=null;}this.material.dispose();this.farMaterial.dispose();this.farHidden.clear();this.needed.clear();}

@@ -53,7 +53,7 @@ export class DrivePhysics{
   const waterSurface=this.waterHeight(x,z,this.time);
   const wet=contact&&!!c&&Number.isFinite(waterSurface)&&waterSurface>c.y+.025;
   const grip=onBoard?1:onSolid?(wet?.82:1):contactSurface.grip*(wet?.88:1);
-  return {roadSpeed,load,soft:soil,depth:Math.max(0,depth-contactSurface.snow*.34),contact,tractionControl:true,grip,throttle:soilThrottle};
+  return {heading:Math.atan2(-direction.x,-direction.z),roadSpeed,load,soft:soil,depth:Math.max(0,depth-contactSurface.snow*.34),contact,tractionControl:true,grip,throttle:soilThrottle};
  });
  // One engine governor sees the mean shaft speed. A freely spinning axle
  // consumes that speed budget; the center lock can transfer torque to grip.
@@ -110,7 +110,7 @@ export class DrivePhysics{
   const w=this.tyres[i],c=this.vehicle.wheelContactPoint(i);if(!c||!this.vehicle.wheelIsInContact(i))continue;
   const x=c.x+this.origin.x,z=c.z+this.origin.z,slipWork=Math.max(0,w.slip-.35);
   w.travel+=(Math.abs(this.speed)+slipWork*.8)*dt;
-  if(w.travel>=.17){const travel=Math.min(w.travel,.34);w.travel-=travel;const load=clamp((this.vehicle.wheelSuspensionForce(i)||6000)/6000,.25,1.7);if(this.recovery?.supports(x,z,c.y)||this.obstacles?.has(this.vehicle.wheelGroundObject(i)))continue;this.sand?.stamp(x,z,load,travel,slipWork);this.marks.push({x,z,wheel:i,slip:slipWork,soft:w.soft,load,dir:Math.sign(w.omega)||1});if(this.marks.length>256)this.marks.shift()}
+  if(w.travel>=.17){const travel=Math.min(w.travel,.34);w.travel-=travel;const load=clamp((this.vehicle.wheelSuspensionForce(i)||6000)/6000,.25,1.7);if(this.recovery?.supports(x,z,c.y)||this.obstacles?.has(this.vehicle.wheelGroundObject(i)))continue;this.sand?.stamp(x,z,load,travel,slipWork,contacts[i].heading);this.marks.push({x,z,wheel:i,slip:slipWork,soft:w.soft,load,dir:Math.sign(w.omega)||1});if(this.marks.length>256)this.marks.shift()}
  }
  const burying=Math.abs(this.speed)<.4&&totalSlip/4>.7&&totalDepth/4>.28&&!!drive;this.stuckTime=burying?this.stuckTime+dt:Math.max(0,this.stuckTime-dt*2);this.stuck=this.stuckTime>1.5;
  }
