@@ -23,8 +23,8 @@ export class TrailCoach{
   this.hardActive=false;this.bogFor=0;this.recoveryWanted=false;
   this.escapedFor=0;this.groundFor=0;
  }
- dismiss(){
-  if(this.active){this.cooldowns.set(this.active.id,this.clock+COOLDOWN);this.exposure.delete(this.active.id)}
+ dismiss(id=this.active?.id){
+  if(id){this.cooldowns.set(id,this.clock+COOLDOWN);this.exposure.delete(id)}
   this.active=null;
  }
  update(dt,state={}){

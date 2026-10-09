@@ -1,5 +1,5 @@
 // Judge Dean LLC — reading time while attention is shared with driving.
-export function readingSeconds(text,{minimum=18,maximum=32}={}){
+export function readingSeconds(text,{minimum=30,maximum=45}={}){
  const words=String(text).trim().split(/\s+/).filter(Boolean).length;
  return Math.min(maximum,Math.max(minimum,6+words*.65));
 }

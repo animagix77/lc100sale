@@ -1,4 +1,5 @@
 import {DrivingMessages} from './driving-messages.mjs';
+import {TrailHintDisplay} from './trail-hint-display.mjs';
 import {LoosePebbles} from './loose-pebbles.mjs';
 import {puddleAt,puddleHeight} from './mud-puddles.mjs';
 import {MudPuddles} from './puddle-view.mjs';
@@ -69,7 +70,7 @@ if(!previewMode)audio.pause(true);
 const intro=previewMode?null:createDriveIntro($('drive-intro'),$('intro-start'),{onStart:()=>{started=true;say($('quip').textContent);setPaused(false)},onExit:exit});
 const pauseMenu=createPauseMenu($('paused'),{onResume:()=>setPaused(false)});
 const oceanRecovery=new OceanRecovery(),trailNarrator=new TrailNarrator();
-const trailCoach=new TrailCoach();let trailHint=null,trailHintKey='',trailSampleAt=-Infinity;
+const trailCoach=new TrailCoach(),trailHintDisplay=new TrailHintDisplay();let trailHint=null,trailHintKey='',trailSampleAt=-Infinity;
 let roadsideBrakeNotice=-Infinity;
 let trailReading={gradeAhead:0,gradeCurrent:0,rocky:0};
 const unstuck=new StuckRecovery();let unstuckResets=0;
@@ -82,7 +83,7 @@ const hudMenu=createHudMenu($('hud-menu'),$('hud-options'),{onOpen:()=>{keys.cle
 function say(s,options){if(messages.say(s,elapsed,options))$('quip').textContent=messages.text}
 function shiftInput(){const {gas,reverse,cruise:cruising}=drivingInput(keys,touch,cruise);return {gas,reverse,cruise:cruising}}
 function showTrailHint(hint){
- const key=hint?`${hint.id}|${hint.body}`:'';trailHint=hint;
+ const key=hint?`${hint.id}|${hint.body}|${hint.targets.join(",")}`:'';trailHint=hint;
  if(key===trailHintKey)return;trailHintKey=key;
  const panel=$('trail-tip');if(!hint&&panel.contains(document.activeElement))canvas.focus({preventScroll:true});panel.hidden=!hint;$('game').classList.toggle('has-trail-tip',!!hint);
  canvas.dataset.trailHint=hint?.id||'';
@@ -92,7 +93,7 @@ function showTrailHint(hint){
  $('center-lock').classList.toggle('suggested-control',targets.has('lock'));
  $('recover').classList.toggle('suggested-control',targets.has('boards'));
 }
-$('trail-tip-dismiss').addEventListener('click',()=>{trailCoach.dismiss();showTrailHint(null);canvas.focus({preventScroll:true})});
+$('trail-tip-dismiss').addEventListener('click',()=>{trailCoach.dismiss(trailHintDisplay.hint?.id);trailHintDisplay.clear();showTrailHint(null);canvas.focus({preventScroll:true})});
 function updateTrailHint(dt,p,f,contacts,maxSlip,region){
  const blocked=previewMode||!started||paused||physics.roadsideSafety.active||antenna?.holding||!$('radio-panel').hidden||!$('weather-panel').hidden;
  if(!blocked&&elapsed>=trailSampleAt){
@@ -105,9 +106,10 @@ function updateTrailHint(dt,p,f,contacts,maxSlip,region){
   trailReading={gradeCurrent:(h2-h0)/2,gradeAhead:(h8-h2)/6,
    rocky:Math.max(region.river*region.trail,approach.river*approach.trail,(lava?.causeway||0)*(lava?.influence||0))};
  }
- showTrailHint(trailCoach.update(dt,{...trailReading,...shiftInput(),speed:physics.speed,range:physics.range,
+ const candidate=trailCoach.update(dt,{...trailReading,...shiftInput(),speed:physics.speed,range:physics.range,
   centerLocked:physics.centerLocked,slip:maxSlip,stuck:physics.stuck||unstuck.visible,
-  recoveryState:recovery?.state,grounded:contacts>0||(unstuck.visible&&Math.abs(physics.rb.linvel().y)<.3),blocked}));
+  recoveryState:recovery?.state,grounded:contacts>0||(unstuck.visible&&Math.abs(physics.rb.linvel().y)<.3),blocked});
+ showTrailHint(trailHintDisplay.update(candidate,dt,{blocked,range:physics.range,centerLocked:physics.centerLocked,recoveryState:recovery?.pending?'deploying':recovery?.state}));
 }
 
 function chooseRange(range){if(!loaded||paused||previewMode)return;if(!physics.setRange(range,shiftInput())){say('Rusty: Lift off the gas and turn off cruise to change range. Gravity can keep doing its thing.');return}cancelCruise();document.querySelectorAll('button[data-range]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.range===range)));$('range-note').textContent=range==='LO'?'LOW SPEED · MORE TORQUE':'HIGH RANGE · CRUISING';$('cruise').title=range==='LO'?'Gentle crawl at about 3 mph':'Gentle cruise at about 8 mph';say(range==='LO'?'Rusty: Low range. More grunt. Less hurry. Soft sand still gets a vote.':'Rusty: High range. Back to beach speed.');canvas.focus({preventScroll:true})}
@@ -124,7 +126,7 @@ let recoveryNoticeUntil=0,recoveryNoticeKey='';
 function syncRecoveryNotice(){
  const key=recovery?.result||'',panel=$('recovery-status');
  const text={braking:'Braking to place boards…',ok:'Placing four boards…',placing:'Placing four boards…',ready:'Boards down. Select 4LO and ease forward.',tilted:'Truck too tilted. Return to your checkpoint.',unsettled:'Couldn’t settle. Brake or reposition, then tap Boards.',packing:'Packing the boards…',packed:'Boards back on the roof.',already:'Boards are being placed or packed.'}[key]||'';
- if(key!==recoveryNoticeKey){recoveryNoticeKey=key;recoveryNoticeUntil=elapsed+18;panel.textContent=text;}
+ if(key!==recoveryNoticeKey){recoveryNoticeKey=key;recoveryNoticeUntil=elapsed+30;panel.textContent=text;}
  panel.hidden=!text||(!recovery?.pending&&recovery?.state!=='deploying'&&elapsed>=recoveryNoticeUntil);
 }
 function deployBoards(){
@@ -184,7 +186,7 @@ const atmosphere=new CoastalAtmosphere(scene,field,{mobile,reduced});
 
 function mergeRigid(group){group.updateWorldMatrix(true,true);const inv=group.matrixWorld.clone().invert(),sets=new Map(),remove=[];group.traverse(o=>{if(!o.isMesh)return;let g=o.geometry.clone();g=g.index?g.toNonIndexed():g;for(const name of Object.keys(g.attributes))if(!['position','normal',...(o.material.map?['uv']:[])].includes(name))g.deleteAttribute(name);g.applyMatrix4(inv.clone().multiply(o.matrixWorld));const key=o.material.uuid;if(!sets.has(key))sets.set(key,{mat:o.material,geos:[]});sets.get(key).geos.push(g);remove.push(o)});for(const o of remove)o.removeFromParent();for(const v of sets.values()){const mesh=new THREE.Mesh(mergeGeometries(v.geos),v.mat);mesh.castShadow=mesh.receiveShadow=true;group.add(mesh)}}
 function reset(announce=true,customPose=null){
- touchCamera.reset();impactShake.reset(camera);oceanRecovery.reset();trailNarrator.resetContext();trailCoach.resetContext();trailSampleAt=-Infinity;showTrailHint(null);vehicleWetness?.reset();unstuck.reset();showUnstuck(false);hazards?.reset();wildlife.reset();recovery?.clear();cancelCruise();rollover.reset();respawnBrake=.55;accumulator=0;
+ touchCamera.reset();impactShake.reset(camera);oceanRecovery.reset();trailNarrator.resetContext();trailCoach.resetContext();trailHintDisplay.clear();trailSampleAt=-Infinity;showTrailHint(null);vehicleWetness?.reset();unstuck.reset();showUnstuck(false);hazards?.reset();wildlife.reset();recovery?.clear();cancelCruise();rollover.reset();respawnBrake=.55;accumulator=0;
  antenna?.restore(camera);if(antenna){antenna.shot=false;antenna.blend=0;}
  const pose=customPose??checkpointPose(route,(x,z)=>field.height(x,z)),z=previewMode?0:pose.z,x=previewMode?shore(z)+18:pose.x;
  terrain.prepareSpawn(x,z);beachLife.refresh({x,z},physics.origin);mountainDetails.refresh({x,z},physics.origin);lavaCrossing.update(elapsed,physics.origin);obstacles.refresh(beachLife);
