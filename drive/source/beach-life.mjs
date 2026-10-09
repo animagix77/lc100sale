@@ -112,7 +112,10 @@ export class BeachLife{
   const leaves=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1});
   this.crowns=make(crowns,leaves,treeCount);this.crowns.castShadow=true;this.crowns.receiveShadow=true;this.trunks.castShadow=true;
   const fern=fernGeometry(mobile),fernCount=mobile?360:600,fernMat=new THREE.MeshStandardNodeMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:1});
-  const fernPhase=attribute('fernPhase','float'),fernYaw=attribute('fernYaw','float'),flutter=sin(this.time.mul(1.4).add(fernPhase)).mul(.075).add(sin(this.time.mul(2.4).sub(fernPhase)).mul(.025)).mul(positionLocal.y.pow(2)).mul(this.windStrength);
+  // Custom positionNode runs after instancing: positionLocal includes bank elevation.
+  // Bend from intrinsic blade height so roots stay planted at every world height.
+  const fernHeight=attribute('position','vec3').y.sub(.035).max(0);
+  const fernPhase=attribute('fernPhase','float'),fernYaw=attribute('fernYaw','float'),flutter=sin(this.time.mul(1.4).add(fernPhase)).mul(.075).add(sin(this.time.mul(2.4).sub(fernPhase)).mul(.025)).mul(fernHeight.pow(2)).mul(this.windStrength);
   fernMat.positionNode=positionLocal.add(vec3(flutter.mul(cos(fernYaw)),flutter.abs().mul(-.30),flutter.mul(sin(fernYaw))));
   fern.setAttribute('fernPhase',new THREE.InstancedBufferAttribute(new Float32Array(fernCount),1));fern.setAttribute('fernYaw',new THREE.InstancedBufferAttribute(new Float32Array(fernCount),1));
   this.shrubs=make(fern,fernMat,fernCount);this.shrubs.receiveShadow=true;

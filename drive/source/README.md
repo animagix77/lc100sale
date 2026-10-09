@@ -1,3 +1,9 @@
+## Rooted riverbank ferns — October 9, 2026
+
+Judge Dean LLC. Flying green foliage at the first ford came from fern wind amplitude using `positionLocal.y` after Three applied the instance transform. Squaring the riverbank elevation amplified the motion and moved roots as well as fronds. The material now uses the intrinsic position attribute above the 3.5 cm root and keeps its existing bounded wind strength. Foliage remains planted at any elevation; fireflies are unchanged.
+
+`test-fern-wind` evaluates the actual material expression after instancing for desktop/mobile fern geometry, elevations 0 / 14.2 / 26 / 108 m, several animation times, capped strong wind and reduced motion. It failed against the old material and passes with the repair: planted roots and less than 2 cm maximum displacement in these sampled cases, independent of altitude. Six focused fern/scenery/streaming/grass/fade/wildlife tests passed. The suite now registers 73 entries; the entire route suite was not rerun for this visual-only fix. Build, syntax, authored-source whitespace and unchanged production GLB checksum passed. Local WebGPU crossing inspected after rebuilding; screenshot `3d/lc100-cleanup/review/dirt/rooted-river-ferns.jpg`, review paused at the ford.
+
 ## Gentler entry and contact feedback — October 9, 2026
 
 Judge Dean LLC. The marked corridor from flags 01 to 02 now rises smoothly from 0.61 m to 5.04 m instead of cresting near 8 m and dropping back into the saddle. Its 12 m core feathers into the surrounding dunes, with moderately compacted sand; physical ruts and off-route softness remain. `test-entry-drive` drives from base camp to flag 02 in default unlocked 4HI with real terrain, obstacles, deformation and loose pebbles, without boards or resets (32.1 simulated seconds).
