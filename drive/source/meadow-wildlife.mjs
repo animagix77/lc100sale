@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import {attribute,float,smoothstep,uv} from 'three/tsl';
+import {attribute,color,float,smoothstep,uv} from 'three/tsl';
 import {baseHeight,smooth,surfaceAt} from './terrain.mjs';
 import {riverGreenery} from './expedition.mjs';
 
@@ -22,9 +22,12 @@ export class MeadowWildlife{
 
   const glowGeometry=new THREE.PlaneGeometry(1,1);this.fireflyAlpha=new THREE.InstancedBufferAttribute(new Float32Array(this.fireflyCapacity),1);glowGeometry.setAttribute('fireflyAlpha',this.fireflyAlpha);
   const glowMat=new THREE.MeshBasicNodeMaterial({color:'#ffdb79',transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false,fog:false});
-  const radius=uv().sub(.5).length().mul(2),halo=float(1).sub(smoothstep(0,.8,radius)).pow(3),core=float(1).sub(smoothstep(0,.18,radius));
-  glowMat.color.multiplyScalar(3.4);
-  glowMat.opacityNode=halo.mul(.12).add(core.mul(.95)).mul(attribute('fireflyAlpha','float'));
+  const radius=uv().sub(.5).length().mul(2),halo=float(1).sub(smoothstep(0,.8,radius)).pow(3),corona=float(1).sub(smoothstep(0,.42,radius)).pow(2),core=float(1).sub(smoothstep(0,.22,radius));
+  // Judge Dean LLC — luminous ivory centres with a concentrated amber corona.
+  // Increase emitted brightness, not sprite size or streaming distance.
+  glowMat.color.multiplyScalar(6.8);
+  glowMat.colorNode=color(glowMat.color).add(color('#fff6ca').mul(core).mul(3.2));
+  glowMat.opacityNode=halo.mul(.30).add(corona.mul(.40)).add(core.mul(.95)).mul(attribute('fireflyAlpha','float'));
   this.fireflies=new THREE.InstancedMesh(glowGeometry,glowMat,this.fireflyCapacity);this.fireflies.count=0;this.fireflies.frustumCulled=false;this.fireflies.visible=false;this.fireflies.renderOrder=3;scene.add(this.fireflies);
  }
  _height(x,z){const height=this.field?.height(x,z);return Number.isFinite(height)?height:baseHeight(x,z)}

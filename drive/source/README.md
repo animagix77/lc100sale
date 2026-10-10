@@ -1,3 +1,9 @@
+## More luminous fireflies — October 9, 2026
+
+Judge Dean LLC. Fireflies retain their compact sprites and buffered approach fades, with brighter warm emission, an ivory centre and a concentrated amber corona. Base emission doubles from 3.4 to 6.8; the core adds 3.2, the compact halo rises from 0.12 to 0.30, and an inner corona adds 0.40. No sprite-size, density, streaming-distance or blink changes; this is a glow-material adjustment without additional dynamic lights.
+
+Existing wildlife checks pass, including 572 desktop/mobile streaming boundaries, camera clearance, day/night behavior, reduced motion and rebasing. Build, syntax and source whitespace checks pass. No full route rerun or vehicle model changes.
+
 ## Trail tips retain their reading window — October 9, 2026
 
 Judge Dean LLC. Longer timers alone did not prevent the contextual coach from clearing cards during a bounce, reverse input or departure from the obstacle. A separate display layer now retains unread instructions for 30–45 visible seconds through those changes. Irrelevant control highlights clear while retained words remain. Overlays suspend visible exposure; choosing the suggested controls, changing board state, dismissing or respawning still updates/clears the card. Dismissal of a retained card also applies its normal cooldown. New recovery advice can take priority.
