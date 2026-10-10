@@ -66,3 +66,35 @@
 #journey-dialog button.journey-primary{margin-top:24px;background:#f2a45f;border:2px solid #f2a45f;color:#182b2e;font-size:15px;font-weight:700;text-align:center;min-height:50px}
 #journey-dialog button.journey-primary:hover{background:#ffb777;border-color:#ffb777}
 #journey-dialog button:focus-visible{outline:3px solid #fff1ce;outline-offset:3px}
+
+/* Judge Dean LLC — shelter, fire, then a quiet view of camp. */
+.camp-steps{display:flex;gap:6px;padding:0;margin:20px 0;list-style:none;counter-reset:camp-step}
+.camp-steps li{flex:1;counter-increment:camp-step;padding:10px 8px;border-top:2px solid #ffffff22;color:#9eafac;font-size:12px}
+.camp-steps li:before{content:'0' counter(camp-step);display:block;font:10px monospace;margin-bottom:6px;opacity:.7}
+.camp-steps li[data-state=current]{border-color:#f2a45f;color:#ffcf9f;font-weight:700}
+.camp-steps li[data-state=done]{border-color:#89bba2;color:#b6dbc6}
+#journey-dialog.camp-dialog h2{font-size:28px;letter-spacing:-.7px;margin-bottom:8px}
+#journey-dialog.camp-dialog button.journey-secondary{background:transparent;border-color:#94aca355;color:#d3e0da}
+.camp-more{border-top:1px solid #ffffff1c;margin-top:22px;padding-top:16px;font-size:12px;color:#bccdc5}
+.camp-more summary{cursor:pointer;padding:8px 0}
+#camp-placement{bottom:max(16px,env(safe-area-inset-bottom));padding:16px 18px;box-shadow:0 12px 36px #07171966}
+#camp-placement[hidden]{display:none}
+.camp-eyebrow{display:block;color:#ffcb94;font:9px/1.5 monospace;letter-spacing:1.6px;margin-bottom:5px}
+#camp-placement>strong{font-size:20px;letter-spacing:-.4px}
+#camp-placement>p{font-size:12px;line-height:1.5;color:#c8d8d2}
+#camp-placement-status{min-height:36px;padding:7px 10px;border-radius:7px;background:#ffffff0a;color:#ffd2a5!important}
+#camp-placement[data-valid=true] #camp-placement-status{color:#c2e8d0!important;background:#7cb59d18}
+#camp-placement .camp-adjust{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+#camp-placement .camp-adjust button{font-size:11px;padding:7px 3px;background:#ffffff08}
+#camp-placement #camp-rotate{grid-column:1/-1;min-height:36px}
+#camp-placement .camp-placement-actions{display:grid;grid-template-columns:1fr 2fr;margin-top:12px;gap:8px}
+#camp-placement #camp-confirm{background:#f2a45f!important;border-color:#f2a45f;color:#182b2e;font-weight:700}
+#camp-placement #camp-cancel{background:transparent}
+#camp-drive{display:none}
+.camp-resting .drive-range,.camp-resting .touch-controls,.camp-resting .bottom,.camp-resting .destination,.camp-resting .expedition-map,.camp-resting #hood-camera,.camp-resting #engine-readout,.camp-resting #ford-status{display:none!important}
+.camp-resting #journey-controls{left:50%;right:auto;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(92vw,440px);max-width:none;padding:14px;background:#142d32ed;border:1px solid #dec9a344;border-radius:14px;justify-content:center;gap:8px;box-shadow:0 12px 36px #07171955}
+.camp-resting #journey-controls button{font-size:12px;min-height:44px;flex:1;padding:10px}
+.camp-resting #journey-plan{background:#f2a45f;color:#182b2e;border-color:#f2a45f;font-weight:700}
+.camp-resting #camp-drive{display:block;background:transparent}
+.camp-resting #camp-objective{order:-1;text-align:center;font-size:12px;padding-bottom:5px}
+@media(max-height:600px) and (orientation:landscape){#camp-placement{left:auto;right:16px;transform:none;width:min(42vw,400px);max-height:calc(100dvh - 70px);overflow:auto}#camp-placement .camp-adjust{grid-template-columns:repeat(5,1fr)}#camp-placement #camp-rotate{grid-column:auto;min-height:44px}#camp-placement #camp-placement-status{min-height:0;margin:6px 0}}
