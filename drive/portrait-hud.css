@@ -115,3 +115,36 @@
   }
  }
 }
+
+/* Judge Dean LLC — flow the mobile rows together, including recovery feedback. */
+.driving-hud{display:contents}
+.drive-range #center-lock[aria-pressed=false]{background:#18353bef;color:#fff2d9;border-color:#cedbd3aa}
+.drive-range #center-lock[aria-pressed=true]{background:#f2ad79;color:#17292d;border-color:#ffcf9e;font-weight:700;box-shadow:inset 0 0 0 1px #ffe2bb55}
+#ford-status:empty{display:none}
+@media(max-width:1050px) and (orientation:portrait){
+ #game:not(.camp-resting):not(.camp-placing) .driving-hud{display:grid;grid-template-columns:var(--stick-size) minmax(0,1fr) var(--ebrake-size);gap:12px;position:absolute;left:var(--hud-edge);right:var(--hud-edge);bottom:var(--touch-bottom);z-index:4;pointer-events:none}
+ #game:not(.camp-resting):not(.camp-placing) .driving-hud .drive-range,#game:not(.camp-resting):not(.camp-placing) .driving-hud #journey-controls{position:static;width:100%;max-width:none;margin:0;pointer-events:auto}
+ #game:not(.camp-resting):not(.camp-placing) .driving-hud .drive-range{grid-column:1/-1}
+ #game:not(.camp-resting):not(.camp-placing) .driving-hud #journey-controls{grid-column:2;min-height:var(--stick-size);max-width:140px;justify-self:center;flex-direction:column;flex-wrap:nowrap;justify-content:flex-end;align-items:stretch;gap:6px}
+ .driving-hud #journey-controls button{min-height:44px;padding:7px 3px;font-size:10px;line-height:1.2}
+ .driving-hud #engine-readout{order:-1;text-align:center;white-space:nowrap;padding:4px 0;font-size:9px}
+ .driving-hud #ford-status{font-size:10px;line-height:1.3}
+ .drive-range #center-lock{font-size:11px;line-height:1.3}
+ .drive-range #recover{font-size:11px}
+ #recovery-status{font-size:11px;line-height:1.35}
+}
+/* Expanded advice temporarily uses the navigation area, leaving the road clear. */
+@media(max-width:700px) and (orientation:portrait){
+ #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .expedition-map{visibility:hidden}
+ #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .destination .trail-tip{top:calc(var(--map-top) + 54px)}
+ #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .bottom{top:calc(max(12px,env(safe-area-inset-top)) + 2px);left:96px;width:80px;max-width:80px}
+ #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .speed small{display:none}
+}
+@media(orientation:landscape) and (max-height:600px){
+ @media(any-pointer:coarse),(max-width:700px){
+  #game:not(.camp-resting):not(.camp-placing) .driving-hud{display:flex;flex-direction:column-reverse;gap:8px;position:absolute;left:calc(var(--stick-size) + max(var(--hud-edge),env(safe-area-inset-left)) + 24px);right:calc(var(--ebrake-size) + max(var(--hud-edge),env(safe-area-inset-right)) + 24px);bottom:var(--touch-bottom);max-width:348px;z-index:4;pointer-events:none}
+  #game:not(.camp-resting):not(.camp-placing) .driving-hud .drive-range,#game:not(.camp-resting):not(.camp-placing) .driving-hud #journey-controls{position:static;width:100%;max-width:none;margin:0;pointer-events:auto}
+  .bottom{top:14px;bottom:auto;left:96px;right:auto;width:80px;max-width:80px}
+  .bottom .speed small{display:none}
+ }
+}
