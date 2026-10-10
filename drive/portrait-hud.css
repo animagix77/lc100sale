@@ -98,3 +98,20 @@
 .camp-resting #camp-drive{display:block;background:transparent}
 .camp-resting #camp-objective{order:-1;text-align:center;font-size:12px;padding-bottom:5px}
 @media(max-height:600px) and (orientation:landscape){#camp-placement{left:auto;right:16px;transform:none;width:min(42vw,400px);max-height:calc(100dvh - 70px);overflow:auto}#camp-placement .camp-adjust{grid-template-columns:repeat(5,1fr)}#camp-placement #camp-rotate{grid-column:auto;min-height:44px}#camp-placement #camp-placement-status{min-height:0;margin:6px 0}}
+
+/* Judge Dean LLC — landscape touch actions occupy the lane between the thumbs. */
+@media(orientation:landscape){
+ @media(any-pointer:coarse),(max-width:700px){
+  #journey-controls{left:calc(var(--stick-size) + max(var(--hud-edge),env(safe-area-inset-left)) + 24px);right:calc(var(--ebrake-size) + max(var(--hud-edge),env(safe-area-inset-right)) + 24px);bottom:var(--touch-bottom);width:auto;max-width:440px;gap:6px}
+  #journey-controls button{min-height:44px}
+  .bottom{right:auto;max-width:440px}
+  #ford-status:empty{display:none}
+  @media(max-height:600px){
+   #journey-controls{bottom:calc(var(--touch-bottom) + 56px);max-width:348px}
+   .drive-range{top:auto;bottom:var(--touch-bottom);left:calc(var(--stick-size) + max(var(--hud-edge),env(safe-area-inset-left)) + 24px);right:calc(var(--ebrake-size) + max(var(--hud-edge),env(safe-area-inset-right)) + 24px);width:auto;max-width:348px;grid-template-columns:minmax(88px,1fr) minmax(90px,1.1fr) minmax(72px,.85fr);gap:6px}
+   .drive-range button,.drive-range #center-lock,.drive-range #recover{min-height:44px}
+   .bottom{left:calc(var(--stick-size) + max(var(--hud-edge),env(safe-area-inset-left)) + 24px);right:calc(var(--ebrake-size) + max(var(--hud-edge),env(safe-area-inset-right)) + 24px);bottom:calc(var(--touch-bottom) + 140px);top:auto;max-width:348px;gap:10px}
+   .bottom #quip{display:none}
+  }
+ }
+}
