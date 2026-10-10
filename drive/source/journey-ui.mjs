@@ -11,6 +11,13 @@ export class JourneyPauseIntent{
  suspend(){if(this.active)this.resume=false;}
  close(hidden=false){const resume=this.active&&this.resume&&!hidden;this.active=false;this.resume=false;return resume;}
 }
+// One decision at a time: the first at launch, later choices at their junctions.
+export function availableRouteChoice(route){return ROUTE_FORKS.find((f,i)=>i===0?route.next<=f.at:route.next===f.at)||null;}
+export class JourneyRoutePrompts{
+ constructor(){this.seen=new Set();}
+ reset(){this.seen.clear();}
+ take(route,{opening=false}={}){const fork=availableRouteChoice(route);if(!fork||(!opening&&fork.id===ROUTE_FORKS[0].id)||this.seen.has(fork.id))return null;this.seen.add(fork.id);return fork;}
+}
 export function campReadiness({complete=false,distance=Infinity,speed=0,tent=false,fire=false}={}){
  if(!complete)return {ready:false,near:false,objective:'',reason:'Reach Sunset camp to pitch your shelter and light the fire.'};
  if(distance>=30)return {ready:false,near:false,objective:'Return to Sunset camp',reason:'Return to the Sunset camp clearing to set up camp.'};
@@ -37,13 +44,13 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
    for(const o of f.options){const active=selected===o.id;const b=button('',()=>{route.choose(f.id,o.id);onSave();render();dialog.querySelector(`[data-route="${f.id}:${o.id}"]`)?.focus();},route.next>f.at);b.dataset.route=`${f.id}:${o.id}`;b.className='journey-route';b.setAttribute('aria-pressed',String(active));const title=element('strong',o.name),description=element('span',o.description),state=element('span',active?'✓ Selected':'Select');description.className='journey-route-description';state.className='journey-route-state';b.append(title,state,description);parent.append(b);}
   }
  }
- function continueRoutes(){let changed=false;for(const f of ROUTE_FORKS){if(route.next<=f.at&&!route.choices[f.id])changed=route.choose(f.id,f.options[0].id)||changed;}if(changed)onSave();close();}
+
  function render(){
   dialog.replaceChildren();
   if(confirmRestart){dialog.append(element('h2','Start a new expedition?'),element('p','This resets your saved checkpoints and route choices, removes your tent and campfire, and returns the truck to Base camp.'),button('Keep this expedition',()=>{confirmRestart=false;render();}),button('Reset and start at Base camp',()=>{close();onRestart();}));return;}
-  const fork=ROUTE_FORKS.find(f=>f.id===focusedFork&&route.next<=f.at);
-  if(fork){const selected=fork.options.find(o=>o.id===route.choices[fork.id])||fork.options[0];dialog.append(element('h2',fork.title),element('p','Both trails reconnect. Select your route, then press Continue.'));routes(dialog,[fork],{heading:false});dialog.append(primaryButton('Continue',()=>{if(!route.choices[fork.id]){route.choose(fork.id,selected.id);onSave();}close();}));return;}
-  dialog.append(element('h2',route.complete?'Sunset camp':'Choose your expedition'));
+  const fork=focusedFork?ROUTE_FORKS.find(f=>f.id===focusedFork&&route.next<=f.at):availableRouteChoice(route);
+  if(fork){const selected=fork.options.find(o=>o.id===route.choices[fork.id])||fork.options[0];dialog.append(element('h2',fork.title),element('p','Choose one of these two paths. They branch apart, then rejoin the main trail. Press Continue to drive.'));routes(dialog,[fork],{heading:false});dialog.append(primaryButton('Continue',()=>{if(!route.choices[fork.id]){route.choose(fork.id,selected.id);onSave();}close();}));return;}
+  dialog.append(element('h2',route.complete?'Sunset camp':'Your expedition'));
   if(route.complete){const readiness=context().camp;dialog.append(element('p','Expedition complete. Your next stop is a place to rest.'),element('p',readiness.reason));
    const place=button(camp.tent?'Move tent':'Place Shiftpod-style tent',()=>{if(document.hidden)return;close({beginPlacement:true});onPlace();},!readiness.ready);
    const fire=button(camp.fire?'Extinguish campfire':'Light campfire',()=>{onFire();render();},!camp.tent||!readiness.near);
@@ -51,7 +58,7 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
    if(!camp.tent)dialog.append(element('p','Pitch your shelter to unlock the campfire.'));
    dialog.append(button(readiness.ready?'Keep exploring':'Back to driving',close));
    const history=document.createElement('details');history.append(element('summary','Routes travelled'));routes(history,ROUTE_FORKS);dialog.append(history,button('Start a new expedition',()=>{confirmRestart=true;render();}));
-  }else{dialog.append(element('p','Choose your routes before you drive, then press Continue. Both detours rejoin the main trail. Progress saves at each flag.'));routes(dialog,ROUTE_FORKS);dialog.append(element('p','Reach Sunset camp to pitch your shelter and light the fire.'),primaryButton('Continue',continueRoutes));}
+  }else{dialog.append(element('p',route.next<ROUTE_FORKS.at(-1).at?'Keep following the flags. You’ll choose between two paths when you reach the next fork.':'Your route choices are complete. Follow the flags to Sunset camp.'),element('p','Reach Sunset camp to pitch your shelter and light the fire.'),primaryButton('Continue',close));}
  }
  function open({forkId=null}={}){pauseIntent.open(context().paused);if(!dialog.open){focusedFork=forkId;confirmRestart=false;}onPause();render();if(!dialog.open)dialog.showModal();}
  dialog.addEventListener('cancel',e=>{e.preventDefault();if(confirmRestart){confirmRestart=false;render();}else close();});

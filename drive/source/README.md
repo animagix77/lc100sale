@@ -1,3 +1,9 @@
+## One fork at a time — October 10, 2026
+
+Judge Dean LLC. The opening offers only Dune climb versus Coastal shelf. Mud trail versus Fern bank appears once on arrival at the later valley junction. Continue saves only the currently displayed choice. Manual route planning also limits choices to the current junction; between junctions it explains that the next choice comes later. Saved future choices are retained and can be reviewed at their junction, including saves from the brief all-routes-at-start release. Restart resets prompt state. The two alternatives at each fork rejoin the main trail; geography and driving physics are unchanged.
+
+Four focused suites (journey UI, opening cinematic, waypoints/save migration, keyboard) pass. Regressions cover exactly two options, no future default writes, junction timing, no repeated prompts, legacy future selections and restart. Browser verified the first pair after the intro, the second pair at its junction, and Continue resuming toward Fern bank without reopening the dialog. Saved checkpoint behavior is unchanged. Marker `one-fork-at-a-time-20261010-1`.
+
 ## Route planning after the intro — October 10, 2026
 
 Judge Dean LLC. Completing or skipping the opening cinematic now opens route planning before driving; reduced motion uses the same handoff. Continue records any untouched defaults for both future forks. Automatic mid-drive fork prompts are removed; Routes & camp still allows manual edits to upcoming routes. New expeditions replay the opening and planner. Completed saved expeditions retain their camp arrival. Four focused suites (journey UI, opening cinematic, briefing, keyboard) pass; browser verified automatic intro completion into the planner, Continue resuming, and an undecided fork staying in the driving view. Marker `routes-after-intro-20261010-1`.
