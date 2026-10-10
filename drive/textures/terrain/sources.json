@@ -1,0 +1,61 @@
+[
+  {
+    "asset": "forest_floor",
+    "name": "forest",
+    "authors": {
+      "eye-candy.xyz": "All"
+    },
+    "dimensions": [
+      2139.9996280670166,
+      2139.9996280670166
+    ],
+    "source": "https://polyhaven.com/a/forest_floor",
+    "license": "CC0",
+    "downloadSources": [
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_floor/forest_floor_diff_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_floor/forest_floor_disp_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_floor/forest_floor_rough_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_floor/forest_floor_ao_1k.jpg"
+    ]
+  },
+  {
+    "asset": "rocky_gravel",
+    "name": "gravel",
+    "authors": {
+      "Dario Barresi": "Processing",
+      "Dimitrios Savva": "Photography"
+    },
+    "dimensions": [
+      1809.999942779541,
+      1809.999942779541
+    ],
+    "source": "https://polyhaven.com/a/rocky_gravel",
+    "license": "CC0",
+    "downloadSources": [
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_gravel/rocky_gravel_diff_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_gravel/rocky_gravel_disp_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_gravel/rocky_gravel_rough_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_gravel/rocky_gravel_ao_1k.jpg"
+    ]
+  },
+  {
+    "asset": "rock_boulder_dry",
+    "name": "stone",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "dimensions": [
+      1799.9999523162842,
+      1800.0001907348633
+    ],
+    "source": "https://polyhaven.com/a/rock_boulder_dry",
+    "license": "CC0",
+    "downloadSources": [
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_diff_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_disp_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_rough_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_ao_1k.jpg"
+    ]
+  }
+]

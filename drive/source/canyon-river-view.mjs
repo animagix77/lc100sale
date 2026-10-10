@@ -1,7 +1,8 @@
 // Judge Dean LLC — canyon river, gravel margins and flow around exposed boulders.
 import {RAPIDS,riverMistParticle} from './canyon-rapids.mjs';
+import {groundSurface,groundNormal,applyStoneSurface} from './ground-materials.mjs';
 import * as THREE from 'three/webgpu';
-import {uv,attribute,uniform,positionLocal,positionView,normalView,vec3,float,sin,mix,color,mx_noise_float,smoothstep} from 'three/tsl';
+import {uv,attribute,uniform,positionLocal,positionWorld,positionView,normalView,vec3,float,sin,mix,color,mx_noise_float,smoothstep} from 'three/tsl';
 import {canyonRiver} from './canyon.mjs';
 import {baseHeight} from './terrain.mjs';
 const random=n=>{const v=Math.sin(n*127.1+94.3)*43758.5453;return v-Math.floor(v)};
@@ -56,7 +57,14 @@ export class CanyonRiverView{
     for(let j=0;j<3;j++){const offsetWidth=[.98,1.22,1.85][j],z=r.z+side*r.halfWidth*offsetWidth;ps.push(x,baseHeight(x,z)+.035,z);c.set(j===0?'#56635d':j===1?'#7c7f6e':'#8c8574').multiplyScalar(.9+random(i+side*37)*.18);cs.push(c.r,c.g,c.b);if(i<steps&&j<2){const a=offset+i*3+j,b=a+3;idx.push(a,b,a+1,a+1,b,b+1)}}
    }
   }
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(ps,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));geo.setIndex(idx);geo.computeVertexNormals();const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide});const mesh=new THREE.Mesh(geo,mat);mesh.receiveShadow=true;this.group.add(mesh);this.resources.push(geo,mat);
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(ps,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));geo.setIndex(idx);geo.computeVertexNormals();const mat=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide});const mesh=new THREE.Mesh(geo,mat);mesh.receiveShadow=true;this.group.add(mesh);this.bankMesh=mesh;this.resources.push(geo,mat);
+ }
+ setGroundTextures(maps){
+  if(!maps)return;
+  applyStoneSurface(this.rockMesh.material,maps,{scale:.45,strength:.03});
+  const gravel=groundSurface(maps,'gravel',{scale:.6}),world=positionWorld.add(maps.origin);
+  const level=float(35.1).sub(world.x.sub(665).mul(.007)),wet=float(1).sub(smoothstep(.12,1.2,world.y.sub(level)));
+  const mat=this.bankMesh.material;mat.vertexColors=false;mat.colorNode=gravel.color.mul(mix(float(.95),float(.58),wet));mat.roughnessNode=mix(gravel.data.g.mul(.3).add(.65),float(.30),wet);mat.aoNode=mix(float(1),gravel.data.b,.4);mat.normalNode=groundNormal(gravel.data.r.mul(.025));mat.needsUpdate=true;
  }
  makeRocks(){
   const geo=new THREE.IcosahedronGeometry(1,1),position=geo.attributes.position;for(let i=0;i<position.count;i++){const x=position.getX(i),y=position.getY(i),z=position.getZ(i),n=1+Math.sin(x*7+y*4+z*9)*.13;position.setXYZ(i,x*n,y*n,z*n)}geo.computeVertexNormals();

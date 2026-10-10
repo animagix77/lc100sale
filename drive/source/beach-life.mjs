@@ -1,3 +1,5 @@
+import {riverStoneGeometry} from './river-stone-geometry.mjs';
+import {woodlandLeafCards} from './woodland-leaf-cards.mjs';
 import {canyonRockMask} from './canyon.mjs';
 import {inRoadsideClearing as roadsideClearing} from './roadside-spots.mjs';
 import {sceneryFade,stageSceneryArrival,syncSceneryFade,disposeSceneryFade} from './scenery-fade.mjs';
@@ -107,7 +109,7 @@ export class BeachLife{
   this.grass=make(geometry,grassMat,capacity);
   this.logs=make(logGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),180);
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),300);
-  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.87,flatShading:false}),480);
+  const rock=paint(riverStoneGeometry(),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.87,flatShading:false}),480);this.rocks.receiveShadow=true;this.rocks.castShadow=true;
   const treeCount=mobile?180:300;
   this.trunks=make(new THREE.CylinderGeometry(.16,.34,5.5,6).translate(0,2.75,0),new THREE.MeshStandardNodeMaterial({color:'#534d3d',roughness:1}),treeCount);
   const crowns=woodlandCrownGeometry(mobile);
@@ -124,6 +126,14 @@ export class BeachLife{
   for(const name of SCENERY_MESHES){const grass=name==='grass',small=name==='wrack'||name==='shrubs';sceneryFade(this[name],{anchor:this.fadeAnchor,clock:this.time,near:grass?30:small?34:58,far:grass?48:small?57:94,arrival:!grass,solidNear:name==='trunks'||name==='crowns'});}
   this.boats=[];const bg=boatGeometry(),bm=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.7});this.geometries.push(bg);this.materials.push(bm);
   for(let i=0;i<5;i++){const mesh=new THREE.Mesh(bg,bm);scene.add(mesh);this.boats.push({mesh,id:0,x:0,z:0})}
+ }
+ setCanopyTexture(map){
+  if(!map)return;
+  const old=this.crowns.geometry,geometry=woodlandLeafCards(this.mobile),ghost=this.crowns.userData.sceneryGhost;
+  for(const [name,a] of Object.entries(old.attributes))if(a.isInstancedBufferAttribute)geometry.setAttribute(name,a);
+  this.crowns.geometry=geometry;if(ghost)ghost.geometry=geometry;
+  for(const material of [this.crowns.material,ghost?.material].filter(Boolean)){material.map=map;material.side=THREE.DoubleSide;material.needsUpdate=true;}
+  this.geometries[this.geometries.indexOf(old)]=geometry;old.dispose();
  }
  _key(p,origin){return `${Math.floor(p.x/32)},${Math.floor(p.z/32)},${origin.x},${origin.z}`}
  _begin(p,origin,key){

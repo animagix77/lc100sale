@@ -1,6 +1,7 @@
+import {groundSurface,groundNormal} from './ground-materials.mjs';
 import {canyonProfile} from './canyon.mjs';
 import * as THREE from 'three/webgpu';
-import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,normalView,positionView,cameraPosition} from 'three/tsl';
+import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,cameraPosition} from 'three/tsl';
 import {RAPIER} from './physics.mjs';
 import {baseHeight,shore,smooth,noise,surfaceAt,beachRuts} from './terrain.mjs';
 const SIZE=32,N=64;
@@ -12,7 +13,7 @@ const wet=new THREE.Color('#584c4b'),dry=new THREE.Color('#ce925c'),shadeColor=n
 // Rut walls catch the sunset; compressed troughs stay visibly darker than untouched sand.
 function rutShade(offset){return offset<0?1-Math.min(.44,-offset*1.6):1+Math.min(.13,offset*.85)}
 export class TerrainView{
- constructor(scene,physics,field){this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;this.focus={x:0,z:0};this.safetyGround=null;
+ constructor(scene,physics,field,{groundTextures=null}={}){this.groundTextures=groundTextures;this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;this.focus={x:0,z:0};this.safetyGround=null;
  const world=positionWorld.xz.add(this.origin),z=world.y;
  const coast=float(-36).add(sin(z.mul(.006)).mul(8)).add(sin(z.mul(.019)).mul(3)),d=world.x.sub(coast);
  // Same wash phase as the surf. Persistent damp sand remains after the water retreats.
@@ -33,10 +34,25 @@ export class TerrainView{
  const clumps=mx_noise_float(vec3(world.x.mul(8),float(7.1),world.y.mul(8)));
  const soilShade=clumps.mul(.18).add(grit.mul(.20).mul(fineFade)).mul(soil).mul(close).add(1);
  const textureShade=mix(soilShade.mul(broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1))),float(1),compacted.mul(.65));
- const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh)).mul(stratified).mul(textureShade);mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z).mul(clumps.mul(.10).mul(soil).add(.95)).clamp(.06,1);if(!flat){
-   const relief=grain.mul(.022).add(clumps.mul(.012).add(grit.mul(.0025).mul(fineFade)).mul(soil)).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z)).mul(mix(float(1),float(.25),compacted));
-   const dx=positionView.dFdx(),dy=positionView.dFdy(),r1=dy.cross(normalView),r2=normalView.cross(dx),det=dx.dot(r1);
-   mat.normalNode=normalView.mul(det.abs()).sub(r1.mul(relief.dFdx()).add(r2.mul(relief.dFdy())).mul(det.sign())).normalize();
+ const photographed=groundTextures?(()=>{
+  const forest=groundSurface(groundTextures,'forest',{scale:.18}),gravel=groundSurface(groundTextures,'gravel',{scale:.55}),rock=groundSurface(groundTextures,'stone',{scale:.30,triplanar:true});
+  const noSnow=float(1).sub(surface.y),rockMask=detail.x.max(detail.z.mul(.65)).mul(noSnow).clamp(0,1),gravelMask=surface.x.mul(.85).add(detail.z).add(detail.y.mul(detail.w).mul(.65)).mul(noSnow).clamp(0,1),forestMask=detail.y.mul(noSnow).mul(float(1).sub(detail.x));
+  const coverage=forestMask.max(gravelMask).max(rockMask).mul(float(1).sub(surface.z.mul(.8))).clamp(0,1);
+  const tint=mix(vec3(1),attribute('color','vec3').mul(3.5).clamp(.16,1.15),detail.x);
+  const albedo=mix(mix(forest.color,gravel.color,gravelMask),rock.color.mul(tint),rockMask);
+  const data=mix(mix(forest.data,gravel.data,gravelMask),rock.data,rockMask);
+  const moisture=surface.x.mul(.50).add(detail.z.mul(.65)).add(damp.mul(.25)).clamp(0,1);
+  return {coverage,albedo,data,moisture};
+ })():null;
+ const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh)).mul(stratified).mul(textureShade);mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z).mul(clumps.mul(.10).mul(soil).add(.95)).clamp(.06,1);if(photographed){
+   const {coverage,albedo,data,moisture}=photographed;
+   mat.colorNode=mix(mat.colorNode,albedo.mul(textureShade).mul(mix(float(.98),float(.69),moisture)),coverage.mul(.90));
+   mat.roughnessNode=mix(mat.roughnessNode,mix(data.g.mul(.35).add(.60),float(.30),moisture),coverage);
+   mat.aoNode=mix(float(1),data.b,coverage.mul(.45));
+  }if(!flat){
+   let relief=grain.mul(.022).add(clumps.mul(.012).add(grit.mul(.0025).mul(fineFade)).mul(soil)).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z)).mul(mix(float(1),float(.25),compacted));
+   if(photographed)relief=mix(relief,photographed.data.r.mul(.055).mul(close),photographed.coverage);
+   mat.normalNode=groundNormal(relief);
   }return mat};
  this.material=make(false);this.farMaterial=make(true);this.far=null}
  // Row-sized work units keep procedural terrain off the critical render frame.
@@ -148,7 +164,7 @@ export class TerrainView{
   const size=this.tiles.size;this.settle();if(changed||size!==this.tiles.size)this.syncFarHole();this.ensureGround(x,z);
  }
  clearTiles(){if(this.safetyGround){this.p.world.removeCollider(this.safetyGround.collider,false);this.safetyGround=null;}for(const t of this.tiles.values()){this.scene.remove(t.mesh);t.mesh.geometry.dispose();this.p.world.removeCollider(t.collider,false);}for(const t of this.cache.values())t.mesh.geometry.dispose();this.tiles.clear();this.cache.clear();for(const j of this.pending.values())j.rows?.return();this.pending.clear();this.farJob?.rows.return();this.farJob=null;}
- animate(time){this.clock.value=time;this.origin.value.set(this.p.origin.x,this.p.origin.z);}
+ animate(time){this.groundTextures?.origin.value.set(this.p.origin.x,0,this.p.origin.z);this.clock.value=time;this.origin.value.set(this.p.origin.x,this.p.origin.z);}
  applyRuts(t){
   const g=t.mesh.geometry,a=g.attributes.position,c=g.attributes.color,{baseHeights,baseColors}=g.userData;let changed=false;
   for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){

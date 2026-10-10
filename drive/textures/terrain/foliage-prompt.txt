@@ -1,0 +1,6 @@
+Use case: photorealistic-natural
+Asset type: alpha-cut foliage texture for real-time 3D riverbank tree canopies.
+Subject: one irregular horizontal spray of small deciduous riverbank leaves and thin woody twigs, roughly 1–1.5 metres across, individually recognizable olive and sage green leaves, open gaps throughout, asymmetrical uneven edges.
+Composition: isolated complete branching cluster centred, fills approximately 85% of a square canvas, no trunk, ground or surrounding scene.
+Style: photographic diffuse material asset, soft neutral overcast lighting, restrained natural greens, sharp leaf edges, no baked harsh shadows, shiny highlights or blur.
+Constraints: genuinely transparent background including spaces between leaves; no text, watermark or frame; no birds, insects or flowers; avoid a thick solid green blob.
