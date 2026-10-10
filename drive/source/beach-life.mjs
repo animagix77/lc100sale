@@ -1,3 +1,4 @@
+import {groundNormal} from './ground-materials.mjs';
 import {riverStoneGeometry} from './river-stone-geometry.mjs';
 import {woodlandLeafCards} from './woodland-leaf-cards.mjs';
 import {canyonRockMask} from './canyon.mjs';
@@ -8,7 +9,7 @@ import {routeSample,riverMask,riverZ,riverGreenery,riverApproach,CAMP} from './e
 import {riverRocksNear} from './river-rocks.mjs';
 import {grassWindStrength} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
-import {positionLocal,attribute,uniform,sin,cos,vec3,float} from 'three/tsl';
+import {positionLocal,attribute,uniform,sin,cos,vec3,vec2,float,texture,uv,mix,smoothstep,positionWorld,cameraPosition} from 'three/tsl';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {baseHeight,shore,noise,smooth,surfaceAt} from './terrain.mjs';
 import {oceanHeight} from './ocean-height.mjs';
@@ -20,7 +21,7 @@ const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attribut
 const combine=gs=>{const clean=gs.map(g=>{const a=g.index?g.toNonIndexed():g;for(const k of Object.keys(a.attributes))if(!['position','normal','color'].includes(k))a.deleteAttribute(k);return a});const out=mergeGeometries(clean);for(const g of new Set([...gs,...clean]))g.dispose();return out};
 function beam(a,b,r,hex,segments=6,openEnded=false){const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*.72,r,p.distanceTo(q),segments,1,openEnded);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,hex)}
 function box(x,y,z,w,h,d,hex){return paint(new THREE.BoxGeometry(w,h,d).translate(x,y,z),hex)}
-function grassGeometry(){const positions=[],indices=[];for(let i=0;i<15;i++){const angle=i*2.399,height=.50+rand(i,8)*.65,lean=.18+rand(i,2)*.42,width=.065+rand(i,3)*.05,dx=Math.cos(angle),dz=Math.sin(angle),base=positions.length/3;for(let j=0;j<=4;j++){const t=j/4,w=width*(1-t)*.5;for(const side of [-1,1])positions.push(dx*(.10+lean*t*t)-dz*w*side,height*t,dz*(.10+lean*t*t)+dx*w*side);if(j<4){const a=base+j*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();return g}
+function grassGeometry(){const positions=[],colors=[],indices=[];for(let i=0;i<15;i++){const angle=i*2.399,height=.38+rand(i,8)*.62,lean=.15+rand(i,2)*.35,width=.015+rand(i,3)*.020,dx=Math.cos(angle),dz=Math.sin(angle),base=positions.length/3;for(let j=0;j<=4;j++){const t=j/4,w=width*(1-t)*.5;for(const side of [-1,1]){positions.push(dx*(.10+lean*t*t)-dz*w*side,height*t,dz*(.10+lean*t*t)+dx*w*side);const tone=.42+.52*Math.sqrt(t);colors.push(tone*.92,tone,tone*.80);}if(j<4){const a=base+j*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();return g}
 function logGeometry(){return combine([beam([-1,.07,0],[.05,.16,.06],.15,'#a8957b'),beam([.05,.16,.06],[1.1,.11,-.12],.12,'#a8957b'),beam([-.12,.14,.05],[.55,.30,.70],.065,'#95816b'),beam([-.73,.10,.04],[-.93,.23,-.45],.05,'#95816b'),beam([.55,.30,.70],[.78,.24,.91],.035,'#95816b')])}
 function wrackGeometry(){const gs=[];for(let i=0;i<8;i++){const g=new THREE.IcosahedronGeometry(.12+rand(i,19)*.10,0);g.scale(1,.25,.55);g.translate((rand(i,20)-.5)*.65,.025,(rand(i,21)-.5)*.4);gs.push(paint(g,i%3===0?'#b5ab91':'#665e42'))}return combine(gs)}
 
@@ -98,7 +99,7 @@ export class BeachLife{
  constructor(scene,{mobile=false,reduced=false}={}){
   this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.placementCaches={grass:new Map(),woodland:new Map(),debris:new Map()};this.time=uniform(0);this.fadeAnchor=uniform(new THREE.Vector2());this.windStrength=uniform(.4);this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,rocks:0,boats:5};
   const make=(geometry,material,count)=>{this.geometries.push(geometry);this.materials.push(material);const m=new THREE.InstancedMesh(geometry,material,count);m.frustumCulled=false;m.count=0;scene.add(m);return m};
-  const geometry=grassGeometry(),grassMat=new THREE.MeshStandardNodeMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
+  const geometry=grassGeometry(),grassMat=new THREE.MeshStandardNodeMaterial({color:'#ffffff',vertexColors:true,side:THREE.DoubleSide,roughness:1});
   const phase=attribute('windPhase','float'),height=attribute('position','vec3').y;
   const wind=sin(this.time.mul(1.15).sub(phase)).mul(.25).add(sin(this.time.mul(.48).sub(phase.mul(.43))).mul(.18)).add(sin(this.time.mul(2.7).add(phase.mul(2.1))).mul(.045));
   const bend=attribute('grassBend','vec3');
@@ -106,15 +107,15 @@ export class BeachLife{
   const yaw=attribute('grassYaw','float'),standing=float(1).sub(bend.y.mul(.98)),sway=wind.mul(this.windStrength).mul(height.pow(2)).mul(standing);
   grassMat.positionNode=positionLocal.add(vec3(bend.x.mul(height),bend.y.mul(height).mul(-.98),bend.z.mul(height))).add(vec3(sway.mul(cos(yaw).sub(sin(yaw).mul(.4))),sway.abs().mul(-.12),sway.mul(sin(yaw).add(cos(yaw).mul(.4)))));
   const capacity=mobile?14000:22000;this.tracks=new GrassTracks();this.grassData=[];this.bendAttribute=new THREE.InstancedBufferAttribute(new Float32Array(capacity*3),3);geometry.setAttribute('grassBend',this.bendAttribute);geometry.setAttribute('windPhase',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));geometry.setAttribute('grassYaw',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
-  this.grass=make(geometry,grassMat,capacity);
+  this.grass=make(geometry,grassMat,capacity);this.grass.receiveShadow=true;
   this.logs=make(logGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),180);
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),300);
   const rock=paint(riverStoneGeometry(),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.87,flatShading:false}),480);this.rocks.receiveShadow=true;this.rocks.castShadow=true;
   const treeCount=mobile?180:300;
-  this.trunks=make(new THREE.CylinderGeometry(.16,.34,5.5,6).translate(0,2.75,0),new THREE.MeshStandardNodeMaterial({color:'#534d3d',roughness:1}),treeCount);
+  this.trunks=make(new THREE.CylinderGeometry(.16,.34,5.5,10).translate(0,2.75,0),new THREE.MeshStandardNodeMaterial({color:'#534d3d',roughness:1}),treeCount);
   const crowns=woodlandCrownGeometry(mobile);
   const leaves=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1});
-  this.crowns=make(crowns,leaves,treeCount);this.crowns.castShadow=true;this.crowns.receiveShadow=true;this.trunks.castShadow=true;
+  this.crowns=make(crowns,leaves,treeCount);this.crowns.castShadow=true;this.crowns.receiveShadow=true;this.trunks.castShadow=true;this.trunks.receiveShadow=true;
   const fern=fernGeometry(mobile),fernCount=mobile?360:600,fernMat=new THREE.MeshStandardNodeMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:1});
   // Custom positionNode runs after instancing: positionLocal includes bank elevation.
   // Bend from intrinsic blade height so roots stay planted at every world height.
@@ -126,6 +127,14 @@ export class BeachLife{
   for(const name of SCENERY_MESHES){const grass=name==='grass',small=name==='wrack'||name==='shrubs';sceneryFade(this[name],{anchor:this.fadeAnchor,clock:this.time,near:grass?30:small?34:58,far:grass?48:small?57:94,arrival:!grass,solidNear:name==='trunks'||name==='crowns'});}
   this.boats=[];const bg=boatGeometry(),bm=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.7});this.geometries.push(bg);this.materials.push(bm);
   for(let i=0;i<5;i++){const mesh=new THREE.Mesh(bg,bm);scene.add(mesh);this.boats.push({mesh,id:0,x:0,z:0})}
+ }
+ setBarkTextures(maps){
+  if(!maps?.bark)return;
+  const coords=uv().mul(vec2(1.6,5.5)),albedo=texture(maps.bark.color,coords).rgb,data=texture(maps.bark.surface,coords).rgb;
+  const near=float(1).sub(smoothstep(12,55,cameraPosition.distance(positionWorld)));
+  for(const material of [this.trunks.material,this.trunks.userData.sceneryGhost?.material].filter(Boolean)){
+   material.color.set('#ffffff');material.colorNode=albedo;material.roughnessNode=data.g.mul(.25).add(.73);material.aoNode=mix(float(1),data.b,.40);material.normalNode=groundNormal(data.r.mul(.022).mul(near));material.needsUpdate=true;
+  }
  }
  setCanopyTexture(map){
   if(!map)return;

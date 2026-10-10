@@ -16,7 +16,7 @@ function fixture({mobile=false,reduced=false,cameraPosition=new THREE.Vector3()}
  const sun=new THREE.Object3D();sun.material={color:new THREE.Color()};
  const skyMat=new THREE.MeshBasicNodeMaterial();
  const ocean={skyTop:{value:new THREE.Color()},skyHorizon:{value:new THREE.Color()},sunColor:{value:new THREE.Color()},sunDirection:{value:new THREE.Vector3()},brightness:{value:1},waveScale:{value:1}};
- const clouds={mesh:{material:{color:new THREE.Color()},count:0},wind:0};
+ const clouds={setCover(){},mesh:{material:{color:new THREE.Color()},count:0},wind:0};
  const view=new WeatherView({scene,skyMat,sun,hemi:new THREE.HemisphereLight(),light:new THREE.DirectionalLight(),ocean,clouds,mobile,reduced});
  view.set({altitude:20,cloud:.4,wind:0,rain:1,snow:1,fog:false});
  // Identical samples make moving and stationary cameras directly comparable.

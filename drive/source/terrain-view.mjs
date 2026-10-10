@@ -9,7 +9,7 @@ const meadow=new THREE.Color('#697c48'),snowColor=new THREE.Color('#dce7ef'),mud
 const canyonStone=new THREE.Color('#827a70'),canyonLayer=new THREE.Color('#565d5b');
 const riverSoil=new THREE.Color('#66503a'),riverGravel=new THREE.Color('#8b8070');
 const basalt=new THREE.Color('#39363b'),trailStone=new THREE.Color('#75646a');
-const wet=new THREE.Color('#584c4b'),dry=new THREE.Color('#ce925c'),shadeColor=new THREE.Color('#885466'),crest=new THREE.Color('#dca165');
+const wet=new THREE.Color('#655f51'),dry=new THREE.Color('#b8a07c'),shadeColor=new THREE.Color('#82765f'),crest=new THREE.Color('#cabb97');
 // Rut walls catch the sunset; compressed troughs stay visibly darker than untouched sand.
 function rutShade(offset){return offset<0?1-Math.min(.44,-offset*1.6):1+Math.min(.13,offset*.85)}
 export class TerrainView{
@@ -35,7 +35,7 @@ export class TerrainView{
  const soilShade=clumps.mul(.18).add(grit.mul(.20).mul(fineFade)).mul(soil).mul(close).add(1);
  const textureShade=mix(soilShade.mul(broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1))),float(1),compacted.mul(.65));
  const photographed=groundTextures?(()=>{
-  const forest=groundSurface(groundTextures,'forest',{scale:.18}),gravel=groundSurface(groundTextures,'gravel',{scale:.55}),rock=groundSurface(groundTextures,'stone',{scale:.30,triplanar:true});
+  const forest=groundSurface(groundTextures,'forest',{scale:.38}),gravel=groundSurface(groundTextures,'gravel',{scale:.55}),rock=groundSurface(groundTextures,'stone',{scale:.30,triplanar:true});
   const noSnow=float(1).sub(surface.y),rockMask=detail.x.max(detail.z.mul(.65)).mul(noSnow).clamp(0,1),gravelMask=surface.x.mul(.85).add(detail.z).add(detail.y.mul(detail.w).mul(.65)).mul(noSnow).clamp(0,1),forestMask=detail.y.mul(noSnow).mul(float(1).sub(detail.x));
   const coverage=forestMask.max(gravelMask).max(rockMask).mul(float(1).sub(surface.z.mul(.8))).clamp(0,1);
   const tint=mix(vec3(1),attribute('color','vec3').mul(3.5).clamp(.16,1.15),detail.x);
@@ -54,7 +54,7 @@ export class TerrainView{
    if(photographed)relief=mix(relief,photographed.data.r.mul(.055).mul(close),photographed.coverage);
    mat.normalNode=groundNormal(relief);
   }return mat};
- this.material=make(false);this.farMaterial=make(true);this.far=null}
+ this.material=make(false);this.farMaterial=make(false);this.far=null}
  // Row-sized work units keep procedural terrain off the critical render frame.
  // Only the initial load and explicit teleports drain these synchronously.
  *geometryRows(tx,tz,n=N,size=SIZE,far=false){

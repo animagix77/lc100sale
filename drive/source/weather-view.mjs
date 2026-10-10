@@ -18,7 +18,7 @@ export class WeatherView{
   this.state=state;
   const a=state.altitude??8,c=clamp(state.cloud??.2,0,1),night=1-smooth(-9,-3,a),day=smooth(10,26,a),wet=clamp(Math.max(state.rain||0,state.snow||0),0,1);
   this.nightMix=night;this.stormShade.set('#748e98').lerp(this.tmp.set('#2e3f56'),night);
-  const sunset=['#49365f','#f5b77d','#da8174'],daylight=['#387fa1','#bad5d5','#83b1b7'],moon=['#101d37','#526680','#253c53'];
+  const sunset=['#627b91','#e7c79c','#adad9a'],daylight=['#437fa5','#c2d8df','#97b8c4'],moon=['#101d37','#526680','#253c53'];
   ['top','horizon','low'].forEach((key,i)=>this.colors[key].set(sunset[i]).lerp(this.tmp.set(daylight[i]),day).lerp(this.tmp.set(moon[i]),night).lerp(this.stormShade,c*.52+wet*.18));
   this.colors.light.set('#ffca82').lerp(this.tmp.set('#fff1d3'),day).lerp(this.tmp.set('#b4ccef'),night);
   // Warm raking sunlight against cool sky fill keeps the meadow dimensional.
@@ -55,7 +55,7 @@ export class WeatherView{
   const y=Math.max(-70,Math.sin(s.altitude*Math.PI/180)*620)*(1-this.nightMix)+200*this.nightMix;this.direction.set(-430,y,-650);
   this.sun.position.copy(camera.position).add(this.direction);this.sun.material.color.lerp(this.colors.light,k);this.sun.visible=s.cloud<.88&&!s.fog;this.sun.scale.setScalar(1-this.nightMix*.4);
   this.light.position.set(p.x+this.direction.x*.10,p.y+Math.max(20,y*.12),p.z+this.direction.z*.10);this.light.target.position.set(p.x,p.y,p.z);
-  this.clouds.mesh.material.color.lerp(this.colors.cloud,k);this.clouds.mesh.count=Math.round(25+s.cloud*65);this.clouds.wind=1+s.wind/15;
+  this.clouds.mesh.material.color.lerp(this.colors.cloud,k);this.cloudCover??=s.cloud;this.cloudCover+=(s.cloud-this.cloudCover)*k;this.clouds.setCover(this.cloudCover);this.clouds.wind=1+s.wind/15;
   this.ocean.skyTop.value.copy(this.top.value);this.ocean.skyHorizon.value.copy(this.horizon.value);this.ocean.sunColor.value.copy(this.colors.light).multiplyScalar((1-s.cloud)*this.day);
   this.ocean.sunDirection.value.copy(this.direction).normalize();this.ocean.brightness.value+=(this.brightness-this.ocean.brightness.value)*k;this.ocean.waveScale.value+=((.8+Math.min(s.wind,60)/60*.7)-this.ocean.waveScale.value)*k;
   this.precip.visible=s.rain>.01&&!this.reduced;this.snowflakes.visible=s.snow>.01&&!this.reduced;

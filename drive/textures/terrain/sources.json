@@ -57,5 +57,20 @@
       "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_rough_1k.jpg",
       "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_ao_1k.jpg"
     ]
+  },
+  {
+    "asset": "bark_brown_01",
+    "name": "bark",
+    "authors": {
+      "Rob Tuytel": "All"
+    },
+    "source": "https://polyhaven.com/a/bark_brown_01",
+    "license": "CC0",
+    "downloadSources": [
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_diff_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_disp_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_rough_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_ao_1k.jpg"
+    ]
   }
 ]

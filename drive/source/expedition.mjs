@@ -71,7 +71,7 @@ export function riverRippleScale(x,z){return smooth(0,.25,Math.max(0,riverProfil
 export function riverHeight(x,z,time=0){return riverLevel(x)+(Math.sin(x*.9+z*1.8-time*2.2)*.012+Math.sin(x*2.3+time*3.1)*.006)*riverRippleScale(x,z)}
 export function biomeWeather(x,z){const b=routeSample(x,z),w=b.weights;
  const canyon=(1-smooth(75,145,Math.abs(x-665)))*(1-smooth(65,120,Math.abs(z+470)));
- return {mode:'expedition',live:false,label:canyon>.6?'CANYON CROSSING':BIOMES[b.biome].name,canyon,volcanic:w.volcanic,altitude:8+canyon*12-w.river*6-w.grass*4+w.snow*8+w.mud*3-w.volcanic*16,cloud:.20+w.river*.18-w.grass*.05+w.snow*.65+w.mud*.74+w.volcanic*.30,wind:10+w.snow*15+w.mud*10+w.volcanic*12,rain:w.mud*.85,snow:w.snow*.88,fog:false,storm:false};
+ return {mode:'expedition',live:false,label:canyon>.6?'CANYON CROSSING':BIOMES[b.biome].name,canyon,volcanic:w.volcanic,altitude:8+canyon*12+w.river*14-w.grass*4+w.snow*8+w.mud*3-w.volcanic*16,cloud:.20+w.river*.18-w.grass*.05+w.snow*.65+w.mud*.74+w.volcanic*.30,wind:10+w.snow*15+w.mud*10+w.volcanic*12,rain:w.mud*.85,snow:w.snow*.88,fog:false,storm:false};
 }
 
 export const waterExists=(x,z)=>x<(-36+8*Math.sin(z*.006)+3*Math.sin(z*.019))+10||riverMask(x,z)>0;
