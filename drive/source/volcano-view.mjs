@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu';
-import {uniform,positionLocal,uv,sin,mix,color,mx_noise_float,vec3,float,smoothstep,abs} from 'three/tsl';
+import {uniform} from 'three/tsl';
+import {moltenMaterial} from './lava-material.mjs';
 import {VOLCANO} from './expedition.mjs';
 import {baseHeight} from './terrain.mjs';
 const rand=n=>{const a=Math.sin(n*127.1+71.7)*43758.5453;return a-Math.floor(a)};
@@ -8,22 +9,6 @@ export function eruptionParticle(i,time){
  const duration=2.5+rand(i+5)*1.7,t=((time+rand(i+1)*duration)%duration+duration)%duration,a=rand(i+2)*Math.PI*2;
  const flight=t/duration,r=Math.sin(flight*Math.PI)*(8+rand(i+3)*18);
  return {x:VOLCANO.x+Math.cos(a)*r,z:VOLCANO.z+Math.sin(a)*r,y:204+Math.sin(flight*Math.PI)*(22+rand(i+4)*36),scale:.55+rand(i+6)*.85};
-}
-// Black cooling rafts split around incandescent seams; the bright core travels down
-// the channel while its cooled edges remain stable against the basalt banks.
-function lavaMaterial(clock,{lake=false}={}){
- const mat=new THREE.MeshStandardNodeMaterial({roughness:.86,side:THREE.DoubleSide});
- const p=lake?vec3(positionLocal.x.mul(.11),positionLocal.y.mul(.11),float(3)):vec3(uv().x.mul(3.6),uv().y.mul(18).sub(clock.mul(.16)),float(3));
- const coarse=mx_noise_float(p).mul(.5).add(.5),fine=mx_noise_float(p.mul(3.8)).mul(.5).add(.5);
- const seam=float(1).sub(smoothstep(.025,.105,abs(coarse.sub(.5).add(fine.sub(.5).mul(.19)))));
- const hot=seam.mul(.64).add(smoothstep(.53,.72,coarse).mul(.36));
- const edge=lake?float(1):smoothstep(0,.19,uv().x).mul(float(1).sub(smoothstep(.81,1,uv().x)));
- const glow=hot.mul(edge).mul(sin(clock.mul(.8).add(p.y)).mul(.045).add(.955));
- mat.colorNode=mix(color('#231e26'),color('#973a20'),glow);
- mat.emissiveNode=mix(color('#ff4414'),color('#ffc466'),smoothstep(.42,.85,glow)).mul(glow.mul(2.35));
- mat.roughnessNode=mix(float(.95),float(.47),glow);
- if(lake)mat.positionNode=positionLocal.add(vec3(0,0,sin(positionLocal.x.mul(.25).add(clock.mul(.7))).mul(sin(positionLocal.y.mul(.18).sub(clock.mul(.48)))).mul(.28)));
- return mat;
 }
 function billowGeometry(){
  const g=new THREE.IcosahedronGeometry(1,2),p=g.attributes.position,v=new THREE.Vector3();
@@ -37,7 +22,7 @@ function billowGeometry(){
 export class VolcanoView{
  constructor(scene,{mobile=false,reduced=false}={}){
   this.scene=scene;this.reduced=reduced;this.clock=uniform(0);this.dummy=new THREE.Object3D();this.group=new THREE.Group();scene.add(this.group);this.flowPoints=[];this.rockPoints=[];this.color=new THREE.Color();this.emberColor=new THREE.Color('#ff8f32');this.vector=new THREE.Vector3();this.up=new THREE.Vector3(0,1,0);
-  this.material=lavaMaterial(this.clock);this.lakeMaterial=lavaMaterial(this.clock,{lake:true});
+  this.material=moltenMaterial(this.clock);this.lakeMaterial=moltenMaterial(this.clock,{mode:'lake'});
   const lake=new THREE.Mesh(new THREE.RingGeometry(0,VOLCANO.craterRadius,mobile?40:64,mobile?7:12),this.lakeMaterial);lake.rotation.x=-Math.PI/2;lake.position.set(VOLCANO.x,VOLCANO.lavaHeight,VOLCANO.z);this.group.add(lake);this.lake=lake;
   const positions=[],indices=[],uvs=[],rocks=[];
   // Streams are draped onto the mountain's remote northern and eastern flanks.

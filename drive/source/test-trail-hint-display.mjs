@@ -23,3 +23,17 @@ view.update({id:'boards-ready',title:'Boards down',body:'Ease forward.',targets:
 assert.equal(view.update(null,.1,{...hill,recoveryState:'stowing'}),null,'Packed boards do not retain obsolete instructions');
 view.clear();assert.equal(view.update(null,.1,hill),null,'Reset removes previous context');
 console.log('Trail hint display: minimum visible reading time through bounce, reverse, level ground and overlays; control updates, recovery, dismissal and reset passed.');
+
+// Judge Dean LLC — feathering WASD must not keep rewriting a visible paragraph.
+for(const range of ['HI','LO']){
+ const coach=new TrailCoach(),view=new TrailHintDisplay(),context={...hill,range,centerLocked:false};
+ const step=(seconds,state)=>{let result;for(let i=0;i<Math.ceil(seconds*60);i++)result=view.update(coach.update(1/60,state),1/60,state);return result;};
+ const first=step(1.2,context),words=JSON.stringify([first.title,first.body]);
+ for(let i=0;i<12;i++)for(const patch of [{gas:1},{gas:0},{reverse:1,speed:-.3},{gas:.5,rocky:.9},{gas:0,cruise:true},{gas:0,grounded:false}]){
+  const shown=step(.08,{...context,...patch});
+  assert(shown&&JSON.stringify([shown.title,shown.body])===words,'Pedals, reversing, small bounces and terrain thresholds preserve the words');
+ }
+ assert(view.visibleFor>6,'Reading time advances through input changes');
+ const next=step(.1,{...context,range:'LO',centerLocked:true});assert.equal(next,null,'Actually solving the advice still clears it');
+}
+console.log('Visible tip copy remains stable while alternating driving inputs and terrain signals.');

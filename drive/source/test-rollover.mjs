@@ -27,10 +27,11 @@ for(const hz of [30,60,120]){
  const m=ready();for(let i=0;i<1000;i++){const yaw=i*.04;assert(!m.update(dt,{x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)}),'Steering and camera heading cannot trigger a reset')}
 }
 const field=new SandField(),r=new WaypointRoute();
-for(const count of [0,1,7,23,24,25,48,4807]){
- r.next=r.passed=count;const before=[r.next,r.passed],pose=checkpointPose(r,(x,z)=>field.height(x,z)),checkpoint=LANDMARKS[count%WAYPOINT_COUNT],next=r.target();
- assert.deepEqual([pose.x,pose.z],[checkpoint.x,checkpoint.z],'Respawn is the last reached stop, including start and completed laps');
+for(const count of [0,1,7,16,17,18,19,WAYPOINT_COUNT-1,WAYPOINT_COUNT,WAYPOINT_COUNT+1,4807]){
+ r.next=r.passed=count;const before=[r.next,r.passed],pose=checkpointPose(r,(x,z)=>field.height(x,z)),checkpoint=LANDMARKS[Math.min(count,WAYPOINT_COUNT)],next=r.target();
+ assert.deepEqual([pose.x,pose.z],[checkpoint.x,checkpoint.z],'Respawn is the last reached stop, including start and completed expedition');
  assert.deepEqual([r.next,r.passed],before,'Choosing a checkpoint never removes or grants route progress');
+ if(count>=WAYPOINT_COUNT){assert(r.complete);continue;}
  assert(Math.hypot(pose.x-next.x,pose.z-next.z)>10,'The next target remains ahead rather than being collected by respawning');
  const dx=next.x-pose.x,dz=next.z-pose.z,len=Math.hypot(dx,dz);
  assert(Math.abs(-Math.sin(pose.yaw)-dx/len)<1e-8&&Math.abs(-Math.cos(pose.yaw)-dz/len)<1e-8,'Spawn faces the next unvisited stop');

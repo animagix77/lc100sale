@@ -1,3 +1,4 @@
+import {VEHICLE_SETUP} from './vehicle-spec.mjs';
 // Judge Dean LLC — actual molten-surface contact, then a short checkpoint recovery.
 import {Raycaster,Vector3} from 'three/webgpu';
 import {wheelLayout} from './physics.mjs';
@@ -9,7 +10,7 @@ export class LavaRecovery{
   const world=physics.position();if(Math.hypot(world.x-VOLCANO.x,world.z-VOLCANO.z)>360)return false;
   const position=physics.rb.translation(),rotation=physics.rb.rotation();
   for(const mesh of surfaces)mesh.updateWorldMatrix(true,false);
-  const samples=wheelLayout.map((w,i)=>({x:w.x,y:.06-(physics.vehicle.wheelSuspensionLength(i)??.5)-.45,z:w.z}));
+  const samples=wheelLayout.map((w,i)=>({x:w.x,y:.06-(physics.vehicle.wheelSuspensionLength(i)??.5)-VEHICLE_SETUP.wheelRadius,z:w.z}));
   samples.push({x:0,y:-.15,z:0});
   for(const sample of samples){
    this.point.set(sample.x,sample.y,sample.z).applyQuaternion(rotation).add(position);

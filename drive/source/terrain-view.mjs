@@ -1,9 +1,11 @@
+import {canyonProfile} from './canyon.mjs';
 import * as THREE from 'three/webgpu';
 import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,normalView,positionView,cameraPosition} from 'three/tsl';
 import {RAPIER} from './physics.mjs';
-import {baseHeight,shore,smooth,noise,surfaceAt} from './terrain.mjs';
+import {baseHeight,shore,smooth,noise,surfaceAt,beachRuts} from './terrain.mjs';
 const SIZE=32,N=64;
 const meadow=new THREE.Color('#697c48'),snowColor=new THREE.Color('#dce7ef'),mudColor=new THREE.Color('#594b3b'),stone=new THREE.Color('#777f80');
+const canyonStone=new THREE.Color('#827a70'),canyonLayer=new THREE.Color('#565d5b');
 const riverSoil=new THREE.Color('#66503a'),riverGravel=new THREE.Color('#8b8070');
 const basalt=new THREE.Color('#39363b'),trailStone=new THREE.Color('#75646a');
 const wet=new THREE.Color('#584c4b'),dry=new THREE.Color('#ce925c'),shadeColor=new THREE.Color('#885466'),crest=new THREE.Color('#dca165');
@@ -40,7 +42,7 @@ export class TerrainView{
  // Row-sized work units keep procedural terrain off the critical render frame.
  // Only the initial load and explicit teleports drain these synchronously.
  *geometryRows(tx,tz,n=N,size=SIZE,far=false){
-  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=new Float32Array(count),deformations=new Float32Array(count),baseColors=new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
+  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=new Float32Array(count),deformations=new Float32Array(count),oldRuts=new Float32Array(count),baseColors=new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
   // Near geometry used to evaluate the same procedural height five times per
   // vertex for slope tinting. Cache the padded half-metre grid once, yielding
   // each row, so collision-bearing tiles keep up with a 50-mph drive.
@@ -49,16 +51,19 @@ export class TerrainView{
   for(let j=0;j<=n;j++){
    for(let i=0;i<=n;i++){
     const k=j*(n+1)+i,k3=k*3,k4=k*4,x=tx+i*size/n,z=tz+j*size/n,base=gridHeights?gridHeights[(j+2)*stride+i+2]:baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
-    ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;heights[k]=base;deformations[k]=deformation;
+    const worn=far?0:beachRuts(x,z);oldRuts[k]=worn;
+    ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;heights[k]=base;deformations[k]=deformation+worn;
     const d=x-shore(z);c.lerpColors(wet,dry,smooth(12,24,d));
     const sx=gridHeights?(gridHeights[(j+2)*stride+i+4]-gridHeights[(j+2)*stride+i])*.5:(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=gridHeights?(gridHeights[(j+4)*stride+i+2]-gridHeights[j*stride+i+2])*.5:(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
     c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
     c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6).lerp(basalt,surface.volcanic*.97).lerp(trailStone,surface.volcanic*surface.trail*.45);// Brown alluvial soil and exposed gravel continue up both banks; no green carpet in the ford.
     c.lerp(mudColor,surface.grass*surface.trail*.30);
     c.lerp(riverSoil,surface.riverApproach*(1-surface.river)*.88).lerp(riverGravel,surface.riverApproach*(.14+.22*noise(x*1.3,z*1.3)));
+    const gorge=canyonProfile(x,z),cliff=Math.max(surface.canyonRock*.62,gorge.length*gorge.influence*smooth(.45,1.5,Math.hypot(sx,sz)));
+    c.lerp(canyonStone,cliff*.96).lerp(canyonLayer,cliff*(.16+.25*smooth(-.3,.5,Math.sin(y*.6+noise(x*.06,z*.06)*3))));
     c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
-    surfaces[k3]=surface.mud;surfaces[k3+1]=surface.snow;surfaces[k3+2]=surface.puddle;details[k4]=surface.volcanic;details[k4+1]=surface.grass;details[k4+2]=surface.river;details[k4+3]=surface.trail;
-    baseColors[k3]=c.r;baseColors[k3+1]=c.g;baseColors[k3+2]=c.b;c.multiplyScalar(rutShade(deformation));colors[k3]=c.r;colors[k3+1]=c.g;colors[k3+2]=c.b;
+    surfaces[k3]=surface.mud;surfaces[k3+1]=surface.snow;surfaces[k3+2]=surface.puddle;details[k4]=Math.max(surface.volcanic,cliff);details[k4+1]=surface.grass;details[k4+2]=surface.river;details[k4+3]=surface.trail;
+    c.multiplyScalar(rutShade(worn));baseColors[k3]=c.r;baseColors[k3+1]=c.g;baseColors[k3+2]=c.b;c.multiplyScalar(rutShade(deformation));colors[k3]=c.r;colors[k3+1]=c.g;colors[k3+2]=c.b;
     // Far shading uses face derivatives; an analytic normal avoids a whole-mesh
     // normal pass when the completed far buffer is swapped in.
     if(far){const inverse=1/Math.hypot(sx,1,sz);normals[k3]=-sx*inverse;normals[k3+1]=inverse;normals[k3+2]=-sz*inverse;}
@@ -67,7 +72,7 @@ export class TerrainView{
    yield;
   }
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(ps,3));g.setAttribute('color',new THREE.BufferAttribute(colors,3));g.setAttribute('surface',new THREE.BufferAttribute(surfaces,3));g.setAttribute('terrainDetail',new THREE.BufferAttribute(details,4));g.setAttribute('deformation',new THREE.BufferAttribute(deformations,1));g.setIndex(new THREE.BufferAttribute(idx,1));
-  if(far)g.setAttribute('normal',new THREE.BufferAttribute(normals,3));else{g.computeVertexNormals();g.userData.baseHeights=heights;g.userData.baseColors=baseColors;}
+  if(far)g.setAttribute('normal',new THREE.BufferAttribute(normals,3));else{g.computeVertexNormals();g.userData.baseHeights=heights;g.userData.baseColors=baseColors;g.userData.oldRuts=oldRuts;}
   g.userData.origin=offset;g.userData.grid={tx,tz,n,size};g.computeBoundingSphere();return g;
  }
  geometry(tx,tz,n=N,size=SIZE,far=false){const rows=this.geometryRows(tx,tz,n,size,far);let result;do{result=rows.next()}while(!result.done);return result.value;}
@@ -148,7 +153,7 @@ export class TerrainView{
   const g=t.mesh.geometry,a=g.attributes.position,c=g.attributes.color,{baseHeights,baseColors}=g.userData;let changed=false;
   for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){
    const k=j*(N+1)+i,offset=this.field.gridOffset(t.tx*N+i,t.tz*N+j),height=baseHeights[k]+offset;
-   if(Math.abs(a.getY(k)-height)<1e-6)continue;const shade=rutShade(offset);a.setY(k,height);g.attributes.deformation.setX(k,offset);c.setXYZ(k,baseColors[k*3]*shade,baseColors[k*3+1]*shade,baseColors[k*3+2]*shade);changed=true;
+   if(Math.abs(a.getY(k)-height)<1e-6)continue;const shade=rutShade(offset);a.setY(k,height);g.attributes.deformation.setX(k,offset+(g.userData.oldRuts?.[k]||0));c.setXYZ(k,baseColors[k*3]*shade,baseColors[k*3+1]*shade,baseColors[k*3+2]*shade);changed=true;
   }
   if(changed){a.needsUpdate=true;c.needsUpdate=true;g.attributes.deformation.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}return changed;
  }

@@ -32,8 +32,15 @@ export class WeatherView{
   const dusk=1-smooth(8,28,a);
   this.fogFar=(188-dusk*24-c*22-weatherVeil*65)*(1-fog)+76*fog;
   this.fogNear=(25-dusk*7-c*5-weatherVeil*6)*(1-fog)+9*fog;
-  this.lightTarget=(3.15-c*1.8-weatherVeil*.20)*(1-night)+.68*night;
-  this.hemiTarget=(1.18+c*.24)*(1-night)+1.13*night;
+  // Local lava vapor provides the near haze; retain the mountain's distant relief.
+  const volcanic=clamp(state.volcanic||0,0,1);this.fogFar+=volcanic*210;this.fogNear+=volcanic*18;
+  const canyon=clamp(state.canyon||0,0,1);this.fogFar+=canyon*390;this.fogNear+=canyon*18;
+  // Broad sky illumination lifts shaded rock without flattening its normals.
+  this.lightTarget=(2.65-c*1.55-weatherVeil*.20)*(1-night)+.68*night;
+  this.hemiTarget=(1.55+c*.24)*(1-night)+1.20*night;
+  this.shadowTarget=(.78-c*.43-weatherVeil*.08)*(1-night)+.48*night;
+  // PCF radius is in texels: scale with map resolution for equal world softness.
+  this.shadowRadiusTarget=(6+c*4+weatherVeil*2)*(this.light.shadow.mapSize.x/2048);
   this.environmentTarget=(.43-c*.08)*(1-night)+.26*night;
  }
  update(dt,camera,p,renderer){
@@ -42,6 +49,8 @@ export class WeatherView{
   this.scene.fog.color.lerp(this.horizon.value,k);this.scene.fog.far+=(this.fogFar-this.scene.fog.far)*k;this.scene.fog.near+=(this.fogNear-this.scene.fog.near)*k;
   this.hemi.color.lerp(this.colors.fill,k);this.hemi.groundColor.lerp(this.colors.ground,k);this.hemi.intensity+=(this.hemiTarget-this.hemi.intensity)*k;
   this.light.color.lerp(this.colors.light,k);this.light.intensity+=(this.lightTarget-this.light.intensity)*k;
+  this.light.shadow.intensity+=(this.shadowTarget-this.light.shadow.intensity)*k;
+  this.light.shadow.radius+=(this.shadowRadiusTarget-this.light.shadow.radius)*k;
   this.scene.environmentIntensity+=(this.environmentTarget-this.scene.environmentIntensity)*k;
   const y=Math.max(-70,Math.sin(s.altitude*Math.PI/180)*620)*(1-this.nightMix)+200*this.nightMix;this.direction.set(-430,y,-650);
   this.sun.position.copy(camera.position).add(this.direction);this.sun.material.color.lerp(this.colors.light,k);this.sun.visible=s.cloud<.88&&!s.fog;this.sun.scale.setScalar(1-this.nightMix*.4);

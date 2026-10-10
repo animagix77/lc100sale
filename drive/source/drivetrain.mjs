@@ -1,9 +1,11 @@
+import {VEHICLE_SETUP} from './vehicle-spec.mjs';
 import {clamp,smooth} from './terrain.mjs';
+// Gameplay governors and pedal/cruise input gains, not factory maximum speeds or engine torque.
 export const RANGES={HI:{name:'4HI',maxSpeed:22.352,cruise:3.55,force:2550,reverse:2.4},LO:{name:'4LO',maxSpeed:3.15,cruise:1.45,force:4900,reverse:1.7}};
 // Angular tyre dynamics: motor torque accelerates the wheel; ground reaction consumes torque.
 // An implicit contact spring avoids oscillation at the 120 Hz physics step.
 function tyreResponse(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake,handbrake=false,tractionControl=false,throttle=0,grip=1}){
- const radius=.45,inertia=18,sink=smooth(.24,.78,depth),mu=(1.12-.40*soft)*(1-.50*sink)*grip,cap=contact?Math.max(0,load)*mu:0;
+ const radius=VEHICLE_SETUP.rollingRadius,inertia=18,sink=smooth(.24,.78,depth),mu=(1.12-.40*soft)*(1-.50*sink)*grip,cap=contact?Math.max(0,load)*mu:0;
  // Loose soil and wet low-grip contacts shear under throttle in either direction.
  // Rotation follows applied torque and contact resistance, not chassis speed.
  const loose=clamp(soft+Math.max(0,1-grip)*1.6,0,1);
@@ -24,7 +26,7 @@ function tyreResponse(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake,h
 export function stepTyre(w,options){
  const {force,omega,sink}=tyreResponse(w,options),{dt,roadSpeed,depth,soft,contact}=options;
  w.omega=omega;w.angle=(w.angle+w.omega*dt)%(Math.PI*2);
- w.slip=contact?Math.abs(w.omega*.45-roadSpeed):Math.abs(w.omega*.45);
+ w.slip=contact?Math.abs(w.omega*VEHICLE_SETUP.rollingRadius-roadSpeed):Math.abs(w.omega*VEHICLE_SETUP.rollingRadius);
  Object.assign(w,{depth,soft,force,sink,contact});return force;
 }
 // Equal torque at each open axle. Locking the center constrains the *mean*

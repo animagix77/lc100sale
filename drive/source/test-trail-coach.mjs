@@ -33,8 +33,8 @@ const hill=state({gradeAhead:.22});
 {
  const coach=new TrailCoach();
  let hint=step(coach,1.2,state({rocky:.9,speed:2,cruise:true,gas:0}));
- assert.equal(hint.id,'low-range');assert.match(hint.title,/Crawl/);
- assert.match(hint.body,/Turn cruise off and release the accelerator/);
+ assert.equal(hint.id,'low-range');assert.match(hint.title,/Low range/);
+ assert.match(hint.body,/Ease off the accelerator and turn cruise off/);
  hint=coach.update(1/60,state({rocky:.9,speed:1,gas:0}));
  assert.match(hint.body,/switch while coasting/,'No stop requirement imposed on existing controls');
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import {uniform,positionLocal,smoothstep,float,materialColor,materialRoughness,mix} from 'three/tsl';
+import {uniform,positionLocal,smoothstep,float,materialColor,materialRoughness,mix,color,mx_noise_float} from 'three/tsl';
 
 const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,Number.isFinite(v)?v:0));
 const approach=(value,target,rate,dt)=>target+(value-target)*Math.exp(-rate*dt);
@@ -26,7 +26,7 @@ const roofEdges=[[-.82,1.98,-.72],[.82,1.98,-.72],[-.86,1.99,1.27],[.86,1.99,1.2
 export class VehicleWetness {
  constructor(scene,truck,{mobile=false,reduced=false,groundHeight=()=>-Infinity,waterHeight=()=>-Infinity}={}){
   this.scene=scene;this.truck=truck;this.reduced=reduced;this.groundHeight=groundHeight;this.waterHeight=waterHeight;
-  this.state=new WetnessState();this.rain=uniform(0);this.water=uniform(0);this.splashHeight=uniform(1);this.materials=[];
+  this.dirt=uniform(0);this.dirtAmount=0;this.state=new WetnessState();this.rain=uniform(0);this.water=uniform(0);this.splashHeight=uniform(1);this.materials=[];
   this.max=mobile?8:16;this.pool=Array.from({length:this.max},()=>({alive:false,x:0,y:0,z:0,vx:0,vy:0,vz:0,life:0,age:0}));
   this.dummy=new THREE.Object3D();this.point=new THREE.Vector3();this.emitCredit=0;this.serial=0;this.stats={wetness:0,drips:0};
   // Wrap only the original truck surfaces. Snow, lamps and recovery boards keep their own materials.
@@ -43,9 +43,11 @@ export class VehicleWetness {
     if(original.isNodeMaterial){mat.emissiveNode=original.emissiveNode;mat.colorNode=original.colorNode;mat.roughnessNode=original.roughnessNode;}
     const lower=isBody?float(1).sub(smoothstep(this.splashHeight.sub(.28),this.splashHeight.add(.35),positionLocal.y)):float(1);
     const amount=this.rain.max(this.water.mul(lower));
-    mat.colorNode=(mat.colorNode||materialColor).mul(float(1).sub(amount.mul(isBody?.105:.16)));
+    const dirtMask=(isBody?float(1).sub(smoothstep(.45,1.18,positionLocal.y)):float(1)).mul(this.dirt).mul(mx_noise_float(positionLocal.mul(18)).mul(.45).add(.55));
+    mat.colorNode=mix(mat.colorNode||materialColor,color('#70523a'),dirtMask);
+    mat.colorNode=mat.colorNode.mul(float(1).sub(amount.mul(isBody?.105:.16)));
     const rough=mat.roughnessNode||materialRoughness;
-    mat.roughnessNode=mix(rough,rough.mul(.48).max(.12),amount);
+    mat.roughnessNode=mix(mix(rough,float(.98),dirtMask),rough.mul(.48).max(.12),amount);
     mat.name=(original.name||'Vehicle surface')+' / wet coat';converted.set(key,mat);return mat;
    });
    mesh.material=Array.isArray(mesh.material)?mapped:mapped[0];this.materials.push({mesh,original:previous,mapped});
@@ -55,6 +57,7 @@ export class VehicleWetness {
   this.material=new THREE.MeshStandardNodeMaterial({color:'#abcbd0',roughness:.12,metalness:.05,transparent:true,opacity:.62,depthWrite:false});
   this.drops=new THREE.InstancedMesh(this.geometry,this.material,this.max);this.drops.name='Water draining from the LC100';this.drops.frustumCulled=false;this.drops.count=0;this.drops.visible=false;this.drops.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(this.drops);
  }
+ soilUpdate(dt,tyres,water){const work=tyres.reduce((n,w)=>n+(w.contact?(w.soft||0)*Math.min(2,Math.abs(w.omega)*.08+(w.slip||0)*.1):0),0)/4;this.dirtAmount=clamp(this.dirtAmount+work*dt*.035-(water.contact||0)*dt*.20);this.dirt.value=this.dirtAmount;}
  update(dt,weather={},water={},origin={x:0,z:0},velocity={x:0,y:0,z:0},time=0){
   if(!Number.isFinite(dt)||dt<=0)return;
   this.state.update(dt,{rain:weather.rain,contact:water.contact,depth:water.depth,speed:Math.hypot(velocity.x||0,velocity.z||0)});

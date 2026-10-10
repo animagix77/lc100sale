@@ -1,20 +1,9 @@
 import * as THREE from 'three/webgpu';
-import {uniform,positionLocal,uv,vec3,float,mx_noise_float,smoothstep,mix,color,abs} from 'three/tsl';
+import {uniform} from 'three/tsl';
+import {moltenMaterial} from './lava-material.mjs';
 import {LAVA_CROSSING,lavaCrossingPoint,lavaCrossingProfile} from './lava-crossing.mjs';
 import {baseHeight,lavaSurfaceHeight} from './terrain.mjs';
 const random=n=>{const x=Math.sin(n*127.1+58.4)*43758.5453;return x-Math.floor(x)};
-function crossingLavaMaterial(clock){
- const mat=new THREE.MeshStandardNodeMaterial({roughness:.87,side:THREE.DoubleSide});
- // Metre-scale cooled plates, rather than stretched UV bands, break up the flow.
- const p=vec3(positionLocal.x.mul(.63).add(clock.mul(.035)),positionLocal.z.mul(.57).sub(clock.mul(.065)),float(5));
- const coarse=mx_noise_float(p).mul(.5).add(.5),fine=mx_noise_float(p.mul(3.4)).mul(.5).add(.5);
- const fissure=float(1).sub(smoothstep(.018,.07,abs(coarse.sub(.5).add(fine.sub(.5).mul(.16)))));
- const edge=smoothstep(0,.18,uv().x).mul(float(1).sub(smoothstep(.82,1,uv().x)));
- const hot=fissure.mul(edge),core=smoothstep(.75,1,hot);
- mat.colorNode=mix(color('#29232a'),color('#b43615'),hot);
- mat.emissiveNode=mix(color('#ed3308'),color('#ffa93e'),core).mul(hot.mul(1.55));
- mat.roughnessNode=mix(float(.96),float(.55),hot);return mat;
-}
 export class LavaCrossingView{
  constructor(scene,{mobile=false,reduced=false}={}){
   this.scene=scene;this.reduced=reduced;this.clock=uniform(0);this.origin={x:Infinity,z:Infinity};this.group=new THREE.Group();scene.add(this.group);
@@ -30,7 +19,7 @@ export class LavaCrossingView{
    }
   }
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeVertexNormals();
-  this.lava=new THREE.Mesh(geometry,crossingLavaMaterial(this.clock));this.group.add(this.lava);
+  this.lava=new THREE.Mesh(geometry,moltenMaterial(this.clock,{mode:'crossing'}));this.group.add(this.lava);
   this.rockPoints=[];
   // Low embedded stones give each axle a distinct climb. The main line stays
   // wide enough for the LC100 and its spacer-poked tyres.

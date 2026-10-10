@@ -1,3 +1,4 @@
+import {VEHICLE_SETUP} from './vehicle-spec.mjs';
 import assert from 'node:assert/strict';
 import {stepDriveline} from './drivetrain.mjs';
 import {DrivePhysics,RAPIER} from './physics.mjs';
@@ -25,10 +26,10 @@ for(const locked of [false,true])assert.equal(run({locked,grip:false}).travel,0,
 const free=tyres();free[0].omega=4;free[1].omega=2;free[2].omega=-1;free[3].omega=1;
 const before=free.reduce((s,w)=>s+w.omega,0),motor=800;
 stepDriveline(free,free.map(()=>({roadSpeed:0,load:0,soft:0,depth:0,contact:false})),{dt,motor,locked:true});
-assert(Math.abs(free.reduce((s,w)=>s+w.omega,0)-(before+(4*motor*.45-before*.7)/18*dt))<1e-8,'Coupler does not invent engine torque');
+assert(Math.abs(free.reduce((s,w)=>s+w.omega,0)-(before+(4*motor*VEHICLE_SETUP.rollingRadius-before*.7)/18*dt))<1e-8,'Coupler does not invent engine torque');
 assert(Math.abs(free[0].omega-free[1].omega)>1.9,'Center lock does not lock left/right wheels');
 // Different axle paths in a corner generate dissipative scrub, not a steering multiplier.
-function corner(locked){const w=tyres();for(let i=0;i<4;i++)w[i].omega=(i<2?3.3:3)/.45;let out;
+function corner(locked){const w=tyres();for(let i=0;i<4;i++)w[i].omega=(i<2?3.3:3)/VEHICLE_SETUP.rollingRadius;let out;
  for(let n=0;n<180;n++)out=stepDriveline(w,w.map((_,i)=>({roadSpeed:i<2?3.3:3,load:6000,soft:0,depth:0,contact:true})),{dt,motor:0,locked});
  return {out,work:out.forces.reduce((sum,f,i)=>sum+f*(i<2?3.3:3),0)};}
 const openTurn=corner(false),lockedTurn=corner(true);

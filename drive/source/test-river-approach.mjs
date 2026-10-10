@@ -7,11 +7,13 @@ import {BeachLife} from './beach-life.mjs';
 import {riverRocksNear} from './river-rocks.mjs';
 
 const onSegment=(index,t)=>{const a=LANDMARKS[index],b=LANDMARKS[index+1];return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t}};
+const fernIndex=LANDMARKS.findIndex(p=>p.name==='Fern creek crossing');
+assert(fernIndex>0,'Fern creek crossing remains in the itinerary');
 const banks=[
  ['Rocky ford entry',LANDMARKS[6]],
  ['Rocky ford exit',onSegment(7,.48)],
- ['Fern creek entry',LANDMARKS[18]],
- ['Fern creek exit',onSegment(18,.7)]
+ ['Fern creek entry',LANDMARKS[fernIndex]],
+ ['Fern creek exit',onSegment(fernIndex,.7)]
 ];
 const field=new SandField(),terrain=new TerrainView(new THREE.Scene(),{origin:{x:0,z:0}},field);
 for(const [name,p] of banks){
@@ -26,13 +28,14 @@ for(const [name,p] of banks){
  const r=routeSample(p.x,p.z);
  for(const sign of [-1,1]){
   const x=p.x-r.dz*14*sign,z=p.z+r.dx*14*sign,bank=surfaceAt(x,z);
-  assert.equal(riverApproach(x,z),0,'Approach clearing stays inside the trail corridor');
+  if(routeSample(x,z).distance<8)continue; // The new alternate trail can occupy the old side probe.
+  assert.equal(riverApproach(x,z),0,'Approach clearing stays inside all trail corridors');
   if(bank.river<.05)assert(bank.grass>.25,'Lush grass survives on the adjacent dry riverbanks');
   else assert(bank.grass<.01,'Adjacent wet channel remains free of meadow color');
  }
 }
 terrain.dispose();
-for(const p of [onSegment(6,.85),onSegment(18,.35)]){
+for(const p of [onSegment(6,.85),onSegment(fernIndex,.35)]){
  const s=surfaceAt(p.x,p.z);
  assert(s.river>.9,'Probe lies within the actual crossing channel');
  assert(s.grass<.01,'The wet ford bed is not covered in meadow color');

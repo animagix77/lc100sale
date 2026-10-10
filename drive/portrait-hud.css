@@ -1,6 +1,6 @@
 /* Judge Dean LLC — a quiet portrait HUD, with the full route one tap away. */
 .tools-options{display:contents}.tools #hud-menu{display:none}
-@media(max-width:700px) and (orientation:portrait){
+@media(max-width:1050px) and (orientation:portrait){
  #game{--map-width:108px;--map-height:108px;--map-top:calc(max(12px,env(safe-area-inset-top)) + 58px);--hud-edge:14px;--stick-size:136px;--knob-size:56px;--ebrake-size:88px}
  .topbar{padding:max(12px,env(safe-area-inset-top)) var(--hud-edge) 0;align-items:center;z-index:4;background:none}
  .brand{font-size:21px}.tools{position:relative;display:flex;gap:6px}
@@ -27,3 +27,31 @@
  .destination .trail-tip{position:fixed;top:calc(var(--map-top) + var(--map-height) + 12px);left:var(--hud-edge);right:var(--hud-edge);width:auto;max-width:none;margin:0;padding:8px 12px 11px;background:#142a30ed}
  .trail-tip strong{font-size:14px}.destination .trail-tip p{font-size:11px;margin-top:5px}
 }
+
+/* Judge Dean LLC — expedition controls remain small and reachable. */
+#journey-controls{position:absolute;left:28px;bottom:110px;z-index:4;display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:440px;font-size:11px}
+#journey-controls button{padding:9px 12px;min-height:40px;border:1px solid #f1d8ad66;border-radius:18px;background:#173237a6;color:#fff0d4;font:inherit}
+#engine-readout{padding:6px;background:#17323788;border-radius:8px;font-size:10px}#ford-status{flex-basis:100%;color:#ffe0a7;text-shadow:0 1px 4px #000}
+.trail-tip.hint-compact #trail-tip-body{display:none}.trail-tip.hint-compact{padding-bottom:10px}.trail-tip.hint-compact #trail-tip-title:after{content:' · tap to read';font-size:10px;font-weight:400}#trail-tip-title{cursor:pointer;pointer-events:auto;min-height:32px}
+#journey-dialog{color:#f5e5c9;background:#172c31;border:1px solid #e5c79877;border-radius:18px;padding:24px;width:min(90vw,560px);max-height:85dvh;overflow:auto}#journey-dialog::backdrop{background:#08191bbb}#journey-dialog h2{margin-top:0}#journey-dialog p{line-height:1.5;font-size:13px}#journey-dialog button{display:block;text-align:left;width:100%;min-height:48px;margin:8px 0;padding:12px;border-radius:9px;border:1px solid #c5cbbf66;background:#284448;color:#f5e5c9;font:inherit;font-size:13px}#journey-dialog button[aria-pressed=true]{border-color:#ffcb83;background:#436255}#journey-dialog button:disabled{opacity:.5}
+#camp-placement{position:absolute;z-index:8;bottom:24px;left:50%;transform:translateX(-50%);width:min(92vw,440px);padding:16px;background:#132f32ed;border:1px solid #f5d5a477;border-radius:14px;font-size:13px;color:#f7e8cb}#camp-placement p{margin:8px 0}#camp-placement div{display:flex;gap:6px;flex-wrap:wrap}#camp-placement button{min-height:44px;padding:8px 12px;border-radius:8px;background:#38544e;border:1px solid #e3d1aa66;color:#fff4de}#camp-placement button:disabled{opacity:.45}#camp-confirm{background:#6b7150!important}
+@media(max-width:1050px) and (orientation:portrait){#journey-controls{left:14px;bottom:calc(var(--stick-size) + var(--touch-bottom) + 65px);right:14px;max-width:none}#journey-controls button{font-size:10px;min-height:36px;padding:8px}.destination .trail-tip{max-width:380px}#engine-readout{font-size:9px}}
+@media(max-height:600px) and (orientation:landscape){#journey-controls{bottom:78px;left:14px;max-width:300px}#engine-readout{display:none}.trail-tip{max-width:250px!important}}
+
+@media(max-width:1050px) and (orientation:portrait){.bottom{display:block;width:180px;max-width:calc(100% - 160px)}.desktop-help{display:none}.bottom #quip{display:block;position:fixed;left:14px;top:190px;max-width:min(340px,calc(100vw - 28px));padding:7px 10px;background:#152e3288;border-radius:8px;font-size:11px;line-height:1.4}.has-trail-tip .bottom #quip{display:none}.speed small{max-width:150px}.brand small{display:none}}
+.camp-placing .drive-range,.camp-placing .touch-controls,.camp-placing #journey-controls,.camp-placing .bottom,.camp-placing .destination,.camp-placing .expedition-map{display:none!important}
+
+/* Judge Dean LLC — the completed expedition keeps one compact next-step line. */
+#camp-objective{flex-basis:100%;color:#ffe0a7;text-shadow:0 1px 4px #000}#camp-objective:empty{display:none}
+
+/* Judge Dean LLC — restrained titles over the real opening camera sequence. */
+.opening-cinematic #game>:not(#view){visibility:hidden!important;pointer-events:none!important}
+.opening-film{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;overflow:hidden;background:transparent;color:#fff5df}
+.opening-film::backdrop{background:transparent}
+.opening-frame{position:absolute;inset:0;pointer-events:none;background:linear-gradient(#0a1519bb,transparent 32%,transparent 63%,#0a1519c9);border-top:clamp(26px,7vh,68px) solid #0b171b;border-bottom:clamp(26px,7vh,68px) solid #0b171b;opacity:var(--opening-fade,0)}
+.opening-titles{position:absolute;left:8%;top:22%;max-width:84%;text-shadow:0 2px 22px #071114aa;pointer-events:none;filter:opacity(var(--opening-fade,0))}
+.opening-eyebrow{font:9px/1.5 monospace;letter-spacing:3px;color:#f5d2ac;margin:0 0 20px}.opening-titles h1{font:800 clamp(62px,11vw,144px)/.9 Arial,sans-serif;letter-spacing:-5px;margin:0}.opening-titles h1 span{color:#f1b27a}.opening-name{font:12px/1.5 monospace;letter-spacing:7px;margin:18px 0}.opening-line{font:italic 16px/1.5 Georgia,serif;margin:0;color:#f9e7cd}
+.opening-chapter{position:absolute;left:8%;bottom:max(12vh,68px);margin:0;font:10px/1.6 monospace;letter-spacing:2px;text-shadow:0 2px 12px #000;opacity:var(--opening-fade,0);max-width:60%}
+.opening-skip{position:absolute;right:6%;bottom:max(11vh,60px);min-height:44px;padding:10px 15px;border:1px solid #fff5df66;border-radius:25px;background:#14272ccc;color:#fff5df;font:12px Arial,sans-serif;backdrop-filter:blur(8px)}.opening-skip span{margin-left:12px}.opening-skip:focus-visible{outline:2px solid #ffbf87;outline-offset:4px}
+@media(max-width:600px){.opening-titles{top:22%;left:7%}.opening-eyebrow{letter-spacing:2px;font-size:8px}.opening-name{letter-spacing:5px;font-size:10px}.opening-chapter{left:7%;bottom:19vh;max-width:86%;font-size:9px}.opening-skip{bottom:10vh;right:7%}}
+@media(prefers-reduced-motion:reduce){.opening-film{display:none}}

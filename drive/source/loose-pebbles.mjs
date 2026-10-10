@@ -1,4 +1,5 @@
 // Judge Dean LLC — bounded, persistent loose gravel with Rapier contact physics.
+import {VEHICLE_SETUP} from './vehicle-spec.mjs';
 import * as THREE from 'three/webgpu';
 import {RAPIER,wheelLayout} from './physics.mjs';
 import {surfaceAt,shore,smooth} from './terrain.mjs';
@@ -26,7 +27,7 @@ export class LoosePebbles{
   this.originalGroups=physics.chassis.collisionGroups();physics.chassis.setCollisionGroups(0x0001ffff);
   for(let i=0;i<4;i++){
    const body=physics.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased());
-   const collider=physics.world.createCollider(RAPIER.ColliderDesc.roundCylinder(.14,.425,.025).setFriction(.95).setRestitution(.02).setCollisionGroups(0x00020004),body);
+   const collider=physics.world.createCollider(RAPIER.ColliderDesc.roundCylinder(VEHICLE_SETUP.wheelWidth/2-.025,VEHICLE_SETUP.wheelRadius-.025,.025).setFriction(.95).setRestitution(.02).setCollisionGroups(0x00020004),body);
    this.tyres.push({body,collider});this.handles.add(collider.handle);
   }
   this.movers=[...this.tyres.map(t=>t.collider),physics.chassis];physics.loosePebbles=this;this.beforeStep();

@@ -6,6 +6,7 @@ const p=await DrivePhysics.create(),solid=new BeachObstacles(p,{radius:Infinity}
 rocks.count=2;ridge.count=1;ridge.userData.detailKey='ridge0';const life={key:'cell0',rocks,ridgeRocks:ridge},m=new THREE.Matrix4(),q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),.38);
 const put=(mesh,index,x,z)=>{m.compose(new THREE.Vector3(x-p.origin.x,2,z-p.origin.z),q,new THREE.Vector3(1.2,.8,1.4));mesh.setMatrixAt(index,m)};
 put(rocks,0,20,-30);put(rocks,1,40,-30);put(ridge,0,60,-30);
+const baselineColliders=p.world.colliders.len();
 let creates=0,removes=0;const create=p.world.createCollider.bind(p.world),remove=p.world.removeCollider.bind(p.world);p.world.createCollider=(...a)=>{creates++;return create(...a)};p.world.removeCollider=(...a)=>{removes++;return remove(...a)};
 solid.refresh(life);assert.equal(creates,3);assert.equal(removes,0);const initial=solid.colliders.map(c=>c.handle),count=p.world.colliders.len();
 life.key='cell1';solid.refresh(life);assert.equal(creates,3,'Shared cells keep existing shapes');assert.deepEqual(solid.colliders.map(c=>c.handle),initial);
@@ -17,7 +18,7 @@ p.world.step();for(const x of [20,40,60,80]){const hit=p.world.castRay(new RAPIE
 // Replacing one shape only retires that instance, with no stale membership.
 const retired=solid.colliders[2];rocks.count=2;life.key='cell3';solid.refresh(life);assert.equal(removes,1);assert.equal(creates,4);assert(!solid.has(retired));assert.equal(solid.kind(retired),undefined);assert.equal(p.world.colliders.len(),count);
 delete life.ridgeRocks;solid.refresh(life);assert.equal(removes,2,'Removed mesh group releases its collider');assert.equal(solid.colliders.length,2);
-solid.clear();assert.equal(removes,4);assert.equal(solid.colliders.length,0);assert.equal(solid.handles.size,0);assert.equal(solid.kinds.size,0);assert.equal(p.world.colliders.len(),1);solid.refresh(life);assert.equal(solid.colliders.length,2,'Clear supports rebuilding after reset');solid.dispose();p.dispose();rocks.dispose();ridge.dispose();g.dispose();mat.dispose();
+solid.clear();assert.equal(removes,4);assert.equal(solid.colliders.length,0);assert.equal(solid.handles.size,0);assert.equal(solid.kinds.size,0);assert.equal(p.world.colliders.len(),baselineColliders,'Clearing scenery preserves the truck and bridge colliders');solid.refresh(life);assert.equal(solid.colliders.length,2,'Clear supports rebuilding after reset');solid.dispose();p.dispose();rocks.dispose();ridge.dispose();g.dispose();mat.dispose();
 console.log('Obstacle streaming: retained handles, changed-only creation, independent groups, exact rebase surfaces and cleanup passed.');
 // Visible scenery extends much farther than the physical contact zone. Activate
 // it on approach without waiting for the larger 64m scenery cell to change.

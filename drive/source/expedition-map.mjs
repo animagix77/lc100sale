@@ -1,4 +1,4 @@
-import {LANDMARKS,riverZ,VOLCANO} from './expedition.mjs';
+import {LANDMARKS,BRANCH_PATHS,ROUTE_FORKS,riverZ,VOLCANO} from './expedition.mjs';
 import {lavaCrossingPoint} from './lava-crossing.mjs';
 
 const GATES=LANDMARKS.length-1,TAU=Math.PI*2;
@@ -9,7 +9,7 @@ const finitePoint=p=>Number.isFinite(p?.x)&&Number.isFinite(p?.z);
 const shore=z=>-36+8*Math.sin(z*.006)+3*Math.sin(z*.019);
 const REGIONS=[
  ['BEACH',20,104],['DUNES',110,-93],['GRASS',229,-217],
- ['RIVER',361,-338],['MUD',447,-177],['SNOW',246,-661],['VOLCANIC RIDGE',592,-762]
+ ['RIVER',361,-338],['MUD',447,-177],['SNOW',246,-661],['VOLCANIC RIDGE',592,-762],['CANYON',712,-472]
 ];
 
 // Coordinates stay in world space, including after the physics origin rebases.
@@ -23,7 +23,7 @@ export function createMapViewport(position,target,width,height,{overview=false,c
   return {width,height,centerX,centerZ,round:true,scale:Math.max(1,Math.min(width,height)/2-16)/radius};
  }
  if(overview){
-  const padding=Math.min(27,Math.max(18,width*.055),Math.max(18,height*.055)),minX=-41,maxX=663,minZ=-785,maxZ=104,rotation=width/height>2.1?Math.PI/4:0;
+  const padding=Math.min(27,Math.max(18,width*.055),Math.max(18,height*.055)),minX=-41,maxX=Math.max(663,...LANDMARKS.map(p=>p.x+40)),minZ=-785,maxZ=104,rotation=width/height>2.1?Math.PI/4:0;
   if(rotation){
    // Fit the actual diagonal ascent, not the corners of its old bounding box.
    const cos=Math.cos(rotation),sin=Math.sin(rotation),points=[...LANDMARKS,VOLCANO].map(p=>({u:p.x*cos-p.z*sin,v:p.x*sin+p.z*cos}));
@@ -57,7 +57,7 @@ export const mapHeadingVector=(heading,{rotation=0}={})=>({x:Math.sin(rotation-h
 
 export function getMapProgress(route){
  const passed=Math.max(0,Math.floor(Number(route?.passed)||0));
- return {passed,completed:passed%GATES,lap:Math.floor(passed/GATES)+1,nextLeg:passed%GATES+1};
+ return {passed,completed:Math.min(passed,GATES),lap:1,nextLeg:Math.min(passed+1,GATES)};
 }
 
 function path(ctx,points,viewport){
@@ -117,6 +117,7 @@ function landscape(ctx,viewport,overview,compact=false){
  path(ctx,coast,viewport);ctx.strokeStyle='#a89365';ctx.lineWidth=Math.max(2,Math.min(8,scale*11));ctx.stroke();
  const river=[];for(let x=-60;x<=520;x+=8)river.push({x,z:riverZ(x)});
  path(ctx,river,viewport);ctx.strokeStyle='#192f2c';ctx.lineWidth=Math.max(5,scale*16);ctx.stroke();ctx.strokeStyle='#77aeb9';ctx.lineWidth=Math.max(2.5,scale*9);ctx.stroke();
+ const bridge=[{x:665,z:-500},{x:665,z:-440}];path(ctx,[{x:575,z:-470},{x:790,z:-470}],viewport);ctx.strokeStyle='#365b66';ctx.lineWidth=Math.max(4,scale*20);ctx.stroke();path(ctx,bridge,viewport);ctx.strokeStyle='#f1dfbd';ctx.lineWidth=Math.max(2,scale*5);ctx.stroke();
  for(const channel of LAVA_PATHS){
   path(ctx,channel,viewport);ctx.strokeStyle='#463630';ctx.lineWidth=Math.max(4,Math.min(10,scale*13));ctx.stroke();ctx.strokeStyle='#bd6a49';ctx.lineWidth=Math.max(2,Math.min(6,scale*8));ctx.stroke();
  }
@@ -126,10 +127,11 @@ function landscape(ctx,viewport,overview,compact=false){
  }
 }
 
-function routeLine(ctx,viewport,progress){
- path(ctx,LANDMARKS,viewport);ctx.lineWidth=7;ctx.strokeStyle='#102922';ctx.stroke();ctx.lineWidth=3;ctx.strokeStyle='#cfbd94';ctx.stroke();
- if(progress.completed){path(ctx,LANDMARKS.slice(0,progress.completed+1),viewport);ctx.strokeStyle='#82c7a0';ctx.lineWidth=3.5;ctx.stroke()}
- path(ctx,[LANDMARKS[progress.completed],LANDMARKS[progress.completed+1]],viewport);ctx.strokeStyle='#ffcf88';ctx.lineWidth=4;ctx.stroke();
+function routeLine(ctx,viewport,progress,points=LANDMARKS){
+ for(const branch of [...BRANCH_PATHS,...ROUTE_FORKS.map(f=>LANDMARKS.slice(f.at,Math.max(...Object.keys(f.options[1].replacements).map(Number))+2))]){path(ctx,branch,viewport);ctx.setLineDash([4,5]);ctx.lineWidth=2;ctx.strokeStyle="#a1b8a0";ctx.stroke();ctx.setLineDash([])}
+ path(ctx,points,viewport);ctx.lineWidth=7;ctx.strokeStyle='#102922';ctx.stroke();ctx.lineWidth=3;ctx.strokeStyle='#cfbd94';ctx.stroke();
+ if(progress.completed){path(ctx,points.slice(0,progress.completed+1),viewport);ctx.strokeStyle='#82c7a0';ctx.lineWidth=3.5;ctx.stroke()}
+ if(progress.completed>=points.length-1)return;path(ctx,[points[progress.completed],points[progress.completed+1]],viewport);ctx.strokeStyle='#ffcf88';ctx.lineWidth=4;ctx.stroke();
 }
 
 function regionLabels(ctx,viewport){
@@ -150,9 +152,9 @@ function regionLabels(ctx,viewport){
 
 // A few gates sit close together around the ford. Move their numbered badges
 // with short leader lines so each gate remains readable on a phone overview.
-export function layoutOverviewGates(viewport,progress,target,regions=[],player=null){
+export function layoutOverviewGates(viewport,progress,target,regions=[],player=null,points=LANDMARKS){
  const occupied=[{x:target.x,y:target.y,r:14},...(player?[{x:player.x,y:player.y,r:13}]:[])],radius=9.5;
- const gates=LANDMARKS.slice(1).map((p,index)=>({point:projectMapPoint(p,viewport),leg:index+1,complete:index<progress.completed}));
+ const gates=points.slice(1).map((p,index)=>({point:projectMapPoint(p,viewport),leg:index+1,complete:index<progress.completed}));
  const layout=[];
  for(const gate of gates){
   if(gate.leg===progress.nextLeg)continue;
@@ -163,9 +165,9 @@ export function layoutOverviewGates(viewport,progress,target,regions=[],player=n
  }
  return layout;
 }
-function overviewGates(ctx,viewport,progress,target,regions,player){
+function overviewGates(ctx,viewport,progress,target,regions,player,points=LANDMARKS){
  ctx.font='700 10px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
- for(const gate of layoutOverviewGates(viewport,progress,target,regions,player)){
+ for(const gate of layoutOverviewGates(viewport,progress,target,regions,player,points)){
   const p=gate.point,spot=gate.spot,radius=spot.r;
   if(spot.x!==p.x||spot.y!==p.y){ctx.strokeStyle='#e2d1ad';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(spot.x,spot.y);ctx.stroke();circle(ctx,p.x,p.y,2,'#f1e2c1')}
   ctx.lineWidth=1.5;circle(ctx,spot.x,spot.y,radius,gate.complete?'#82c7a0':'#20382e',gate.complete?'#a9e3bc':'#b7ad8f');ctx.fillStyle=gate.complete?'#18362a':'#eee5d0';ctx.fillText(String(gate.leg),spot.x,spot.y+.3);
@@ -173,7 +175,7 @@ function overviewGates(ctx,viewport,progress,target,regions,player){
 }
 
 export class ExpeditionMap{
- constructor(canvas,{overviewCanvas=null,compact=()=>globalThis.matchMedia?.('(max-width:700px) and (orientation:portrait)').matches??false}={}){
+ constructor(canvas,{overviewCanvas=null,compact=()=>globalThis.matchMedia?.('(max-width:1050px) and (orientation:portrait)').matches??false}={}){
   this.compact=compact;
   this.canvas=canvas;this.overviewCanvas=overviewCanvas;this.surfaces=new Map();this.lastDraw=-Infinity;this.overviewVisible=false;
  }
@@ -203,20 +205,20 @@ export class ExpeditionMap{
    if(compact){ctx.beginPath();ctx.arc(width/2,height/2,Math.min(width,height)/2,0,TAU);ctx.clip()}
    landscape(ctx,viewport,full,compact);
    if(compact){
-    path(ctx,LANDMARKS,viewport);ctx.lineWidth=2;ctx.strokeStyle='#e6d2a8';ctx.stroke();
-    if(progress.completed){path(ctx,LANDMARKS.slice(0,progress.completed+1),viewport);ctx.strokeStyle='#85ddb1';ctx.stroke()}
+    path(ctx,route.points||LANDMARKS,viewport);ctx.lineWidth=2;ctx.strokeStyle='#e6d2a8';ctx.stroke();
+    if(progress.completed){path(ctx,(route.points||LANDMARKS).slice(0,progress.completed+1),viewport);ctx.strokeStyle='#85ddb1';ctx.stroke()}
     const goal=clampMapMarker(projectMapPoint(target,viewport),viewport,12),player=clampMapMarker(projectMapPoint(position,viewport),viewport,10);
     ctx.lineWidth=1.5;circle(ctx,goal.x,goal.y,4,'#ffbe7e','#15372c');
     circle(ctx,player.x,player.y,7,'#10292199');arrow(ctx,player.x,player.y,Number.isFinite(heading)?heading:0,5.5,viewport);
     ctx.font='700 9px system-ui,sans-serif';ctx.fillStyle='#fff1d2';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N',width/2,9);
     ctx.restore();rendered=true;continue;
    }
-   routeLine(ctx,viewport,progress);
+   routeLine(ctx,viewport,progress,route.points||LANDMARKS);
    const goal=clampMapMarker(projectMapPoint(target,viewport),viewport,24),player=clampMapMarker(projectMapPoint(position,viewport),viewport,17);
-   if(full){const regions=regionLabels(ctx,viewport);overviewGates(ctx,viewport,progress,goal,regions,player)}
+   if(full){const regions=regionLabels(ctx,viewport);overviewGates(ctx,viewport,progress,goal,regions,player,route.points||LANDMARKS)}
    else{
     ctx.strokeStyle='#efd099';ctx.globalAlpha=.6;ctx.lineWidth=1.5;ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.lineTo(goal.x,goal.y);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
-    for(let i=1;i<LANDMARKS.length;i++){if(i===progress.nextLeg)continue;const p=projectMapPoint(LANDMARKS[i],viewport);circle(ctx,p.x,p.y,2.5,i<=progress.completed?'#a4d9b5':'#e1d2b2')}
+    for(let i=1;i<LANDMARKS.length;i++){if(i===progress.nextLeg)continue;const p=projectMapPoint((route.points||LANDMARKS)[i],viewport);circle(ctx,p.x,p.y,2.5,i<=progress.completed?'#a4d9b5':'#e1d2b2')}
    }
    decorations(ctx,viewport,full);targetMarker(ctx,goal,target.leg||progress.nextLeg,{overview:full});
    circle(ctx,player.x,player.y,12,'#10292199');arrow(ctx,player.x,player.y,Number.isFinite(heading)?heading:0,full?10:9,viewport);

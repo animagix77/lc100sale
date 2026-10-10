@@ -33,20 +33,18 @@ for(const [width,height] of [[640,500],[350,642],[320,410],[760,220]]){
  assert.equal(overview.rotation,width/height>2.1?Math.PI/4:0,'Only wide overview maps rotate');
  const origin=projectMapPoint(position,overview),north=projectMapPoint({x:position.x,z:position.z-10},overview);
  if(overview.rotation){assert(north.x>origin.x&&north.y<origin.y,'North points diagonally up-right in the wide overview');const base=projectMapPoint(LANDMARKS[0],overview),summit=projectMapPoint(LANDMARKS[15],overview);assert(summit.x-base.x>width*.45,'Wide maps use the available width for the ascent')}else{close(north.x,origin.x);assert(north.y<origin.y)}
- if(width===350)assert(overview.scale>.44,'Phone overview uses the available width for a larger route');
- for(let completed=0;completed<24;completed++){
+ if(width===350){const xs=LANDMARKS.map(point=>projectMapPoint(point,overview).x);assert(Math.max(...xs)-Math.min(...xs)>width*.78,'Phone overview uses the available width for the expanded route');}
+ for(let completed=0;completed<WAYPOINT_COUNT;completed++){
   const progress={completed,nextLeg:completed+1},goal=projectMapPoint(LANDMARKS[progress.nextLeg],overview),layout=layoutOverviewGates(overview,progress,goal);
-  const circles=[{...goal,r:14},...layout.map(gate=>gate.spot)];assert.equal(circles.length,24,'Every gate gets a readable badge');
+  const circles=[{...goal,r:14},...layout.map(gate=>gate.spot)];assert.equal(circles.length,WAYPOINT_COUNT,'Every gate gets a readable badge');
   for(let i=0;i<circles.length;i++)for(let j=i+1;j<circles.length;j++)assert(Math.hypot(circles[i].x-circles[j].x,circles[i].y-circles[j].y)>circles[i].r+circles[j].r,'Gate numbers do not overlap at any leg');
  }
 }
 
 const route=new WaypointRoute();
 assert.deepEqual(getMapProgress(route),{passed:0,completed:0,lap:1,nextLeg:1});
-route.passed=route.next=23;assert.equal(getMapProgress(route).completed,23);assert.equal(getMapProgress(route).nextLeg,24);
-route.passed=route.next=WAYPOINT_COUNT;assert.deepEqual(getMapProgress(route),{passed:24,completed:0,lap:2,nextLeg:1});
-route.passed=route.next=WAYPOINT_COUNT*2+7;assert.deepEqual(getMapProgress(route),{passed:55,completed:7,lap:3,nextLeg:8});
-assert.equal(route.target().leg,getMapProgress(route).nextLeg,'Map follows the actual repeating route');
+route.passed=route.next=WAYPOINT_COUNT;assert.deepEqual(getMapProgress(route),{passed:WAYPOINT_COUNT,completed:WAYPOINT_COUNT,lap:1,nextLeg:WAYPOINT_COUNT});
+assert.equal(route.target().leg,getMapProgress(route).nextLeg,'Map retains camp at completion');
 
 function fakeCanvas(width,height){
  const calls=[],context=new Proxy({measureText:text=>({width:String(text).length*6})},{get:(object,key)=>key in object?object[key]:(...args)=>calls.push([key,...args])});
@@ -67,11 +65,11 @@ try{
  const fullWrites=overview.writes;map.draw(position,0,route,{overview:true,force:true});assert.equal(overview.writes,fullWrites);
  for(const [width,height] of [[350,642],[320,410],[640,500],[760,220]]){
   overview.clientWidth=width;overview.clientHeight=height;
-  for(let completed=0;completed<24;completed++){
+  for(let completed=0;completed<WAYPOINT_COUNT;completed++){
    route.passed=route.next=completed;overview.calls.length=0;map.draw(position,0,route,{overview:true,force:true});
-   const labels=overview.calls.filter(([name,text])=>name==='fillText'&&['BEACH','DUNES','GRASS','RIVER','MUD','SNOW','VOLCANIC RIDGE'].includes(text));
+   const labels=overview.calls.filter(([name,text])=>name==='fillText'&&['BEACH','DUNES','GRASS','RIVER','MUD','SNOW','VOLCANIC RIDGE','CANYON'].includes(text));
    const numbers=overview.calls.filter(([name,text])=>name==='fillText'&&/^\d+$/.test(text));
-   assert.equal(labels.length,7);assert.equal(numbers.length,24);
+   assert.equal(labels.length,8);assert.equal(numbers.length,WAYPOINT_COUNT);
    if(width===760)assert(overview.calls.filter(([name,angle])=>name==='rotate'&&Math.abs(angle-Math.PI/4)<1e-7).length>=2,'Both north arrow and truck heading follow the wide overview rotation');
    for(let i=0;i<numbers.length;i++)for(let j=i+1;j<numbers.length;j++){
     const [,a,ax,ay]=numbers[i],[,b,bx,by]=numbers[j],radiusA=Number(a)===completed+1?14:9.5,radiusB=Number(b)===completed+1?14:9.5;
@@ -88,7 +86,7 @@ try{
 }finally{
  if(previousDpr)Object.defineProperty(globalThis,'devicePixelRatio',previousDpr);else delete globalThis.devicePixelRatio;
 }
-console.log('Expedition map: local and overview coordinates, actual heading, edge bearings, floating origin, repeating laps, DPR resize and retained 12 Hz rendering passed.');
+console.log('Expedition map: local and overview coordinates, actual heading, edge bearings, floating origin, finite camp destination, DPR resize and retained 12 Hz rendering passed.');
 
 // Portrait's global route must fit the circle, including corners that a square
 // overview would clip. Off-route markers stay on its rim with the right bearing.
@@ -105,5 +103,5 @@ const roundMap=new ExpeditionMap(roundCanvas,{overviewCanvas:fullCanvas,compact:
 assert(roundMap.draw(position,0,new WaypointRoute(),{overview:true,force:true}));
 assert(roundCanvas.calls.some(([name])=>name==='clip'),'Round overview clips scenery to its circle');
 assert.equal(roundCanvas.calls.filter(([name])=>name==='fillText').length,1,'Tiny map avoids cluttered gate and region labels');
-assert(fullCanvas.calls.filter(([name,text])=>name==='fillText'&&/^\d+$/.test(text)).length===24,'Expanded map retains all numbered gates');
+assert(fullCanvas.calls.filter(([name,text])=>name==='fillText'&&/^\d+$/.test(text)).length===WAYPOINT_COUNT,'Expanded map retains all numbered gates');
 console.log('Portrait map: full-route circular fit, off-route bearing, restrained labels and detailed expanded map passed.');

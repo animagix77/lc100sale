@@ -56,7 +56,7 @@ export class VehicleLights{
   const state=lampState(altitude,this.dark,signals);this.dark=state.dark;this.state=state;
   const k=1-Math.exp(-Math.min(dt,1)*14),approach=(u,target)=>{u.value+=(target-u.value)*k};
   approach(this.head,state.dark?3.8:0);approach(this.tail,state.braking?.9:state.dark?.20:0);approach(this.stop,state.braking?.9:0);approach(this.reverse,state.reversing?4:0);
-  for(const beam of this.beams)beam.intensity=150*this.head.value/3.8;
+  for(const beam of this.beams)beam.intensity=95*this.head.value/3.8;
   this.rearGlow.intensity=this.tail.value*12;this.backup.intensity=this.reverse.value*10;
  }
  dispose(){this.volumes[0].geometry.dispose();this.volumeMaterial.dispose();this.group.removeFromParent();for(const light of [...this.beams,this.rearGlow,this.backup]){light.shadow?.map?.dispose();light.dispose();}for(const {mesh,original,mat} of this.materials){mesh.material=original;mat.dispose();}}

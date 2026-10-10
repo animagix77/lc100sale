@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
-import {DrivePhysics,RAPIER} from './physics.mjs';
+import {VEHICLE_SETUP} from './vehicle-spec.mjs';
+import {DrivePhysics,RAPIER,wheelLayout} from './physics.mjs';
 import {LoosePebbles,pebbleHabitat} from './loose-pebbles.mjs';
 const dt=1/120,field={height:()=>0};
 for(const mobile of [false,true]){
@@ -15,7 +16,7 @@ for(const mobile of [false,true]){
  assert([0,1,2,3].every(i=>!gravel.handles.has(p.vehicle.wheelGroundObject(i)?.handle)),'Suspension cannot raycast its own push shapes');
  const parked=p.rb.translation();assert(Math.abs(parked.x-start.x)<.02&&Math.abs(parked.z-start.z)<.02,'Push shapes do not push their own chassis');
  // Deliberately place one real convex pebble partly in the left tyre track.
- const rock=gravel.pool[1],x=start.x-.76,z=start.z-4,y=rock.radius*gravel.bottom+.012;
+ const rock=gravel.pool[1],x=start.x+wheelLayout[0].x+VEHICLE_SETUP.wheelWidth/2+.025,z=start.z-4,y=rock.radius*gravel.bottom+.012;
  Object.assign(rock,{key:'contact-test',x,z,moved:false});gravel.active.set(rock.key,rock);rock.body.setTranslation({x,y,z},false);rock.body.setEnabled(true);rock.body.wakeUp();
  let peakHeight=0,peakSpeed=0,angle=0,contact=false;
  for(let i=0;i<540;i++){

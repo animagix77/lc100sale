@@ -1,3 +1,4 @@
+import {BRIDGE_SPEC} from './canyon-bridge.mjs';
 import {Quaternion,Vector3,Matrix4} from 'three';
 import {RAPIER,wheelLayout} from './physics.mjs';
 import {clamp} from './terrain.mjs';
@@ -14,6 +15,8 @@ export class Recovery{
   const p=this.physics,q=p.rb.rotation(),up=1-2*(q.x*q.x+q.z*q.z);
   if(this.state!=='roof'&&this.state!=='ground')return 'already';
   const velocity=p.rb.linvel(),speed=Math.hypot(velocity.x,velocity.z),pos=p.position(),old=this.motion[0];
+  const onBridge=wheelLayout.some((_,i)=>p.vehicle.wheelIsInContact(i)&&p.bridge?.has(p.vehicle.wheelGroundObject(i)));
+  if(onBridge||(Math.abs(pos.x-BRIDGE_SPEC.centerX)<3.2&&Math.abs(pos.z-BRIDGE_SPEC.centerZ)<32&&pos.y>70))return 'bridge';
   const rocking=old&&this.motionTime-old.time>=.5&&Math.hypot(pos.x-old.x,pos.z-old.z)<.65;
   if(speed>2&&!(rocking&&speed<3.5))return 'moving';
   if(up<.25)return 'tilted';

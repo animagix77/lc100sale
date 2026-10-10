@@ -1,7 +1,8 @@
-import {inRoadsideClearing} from './roadside-spots.mjs';
+import {canyonRockMask} from './canyon.mjs';
+import {inRoadsideClearing as roadsideClearing} from './roadside-spots.mjs';
 import {sceneryFade,stageSceneryArrival,syncSceneryFade,disposeSceneryFade} from './scenery-fade.mjs';
 import {GrassTracks} from './grass-tracks.mjs';
-import {routeSample,riverMask,riverZ,riverGreenery,riverApproach} from './expedition.mjs';
+import {routeSample,riverMask,riverZ,riverGreenery,riverApproach,CAMP} from './expedition.mjs';
 import {riverRocksNear} from './river-rocks.mjs';
 import {grassWindStrength} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
@@ -11,6 +12,7 @@ import {baseHeight,shore,noise,smooth,surfaceAt} from './terrain.mjs';
 import {oceanHeight} from './ocean-height.mjs';
 // Static procedural placement only; live grass crushing stays in GrassTracks.
 const remembered=(cache,key,create,limit)=>{let value=cache.get(key);if(value!==undefined)return value;value=create();const fifo=cache.fifo??=[];if(cache.size>=limit){const at=cache.cursor??0;cache.delete(fifo[at]);fifo[at]=key;cache.cursor=(at+1)%limit}else fifo.push(key);cache.set(key,value);return value};
+const inRoadsideClearing=(x,z,pad=0)=>roadsideClearing(x,z,pad)||Math.hypot(x-CAMP.x,z-CAMP.z)<CAMP.radius+pad;
 const rand=(a,b=0)=>{const v=Math.sin(a*127.1+b*311.7)*43758.5453;return v-Math.floor(v)};
 const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attributes.position.count*3);for(let i=0;i<a.length;i+=3){a[i]=c.r;a[i+1]=c.g;a[i+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g};
 const combine=gs=>{const clean=gs.map(g=>{const a=g.index?g.toNonIndexed():g;for(const k of Object.keys(a.attributes))if(!['position','normal','color'].includes(k))a.deleteAttribute(k);return a});const out=mergeGeometries(clean);for(const g of new Set([...gs,...clean]))g.dispose();return out};
@@ -36,7 +38,7 @@ function woodlandCrownGeometry(mobile){
   leaf.scale(1.1,.60+rand(i,41)*.18,.91);leaf.rotateY(angle);leaf.translate(x,y+.30,z);parts.push(leaf);
  }
  for(let i=0;i<3;i++){
-  const leaf=paint(new THREE.IcosahedronGeometry(1.02-i*.10,0),foliage[(i+1)%foliage.length]);
+  const leaf=paint(new THREE.IcosahedronGeometry(1.02-i*.10,1),foliage[(i+1)%foliage.length]);
   leaf.scale(1,.74,1);leaf.translate(i===1?.42:-.25,6.30+i*.48,i===2?.38:-.10);parts.push(leaf);
  }
  return combine(parts);
@@ -105,7 +107,7 @@ export class BeachLife{
   this.grass=make(geometry,grassMat,capacity);
   this.logs=make(logGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),180);
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),300);
-  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.72,flatShading:true}),480);
+  const rock=paint(new THREE.IcosahedronGeometry(.4,1).scale(1.4,.7,1).translate(0,.18,0),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.87,flatShading:false}),480);
   const treeCount=mobile?180:300;
   this.trunks=make(new THREE.CylinderGeometry(.16,.34,5.5,6).translate(0,2.75,0),new THREE.MeshStandardNodeMaterial({color:'#534d3d',roughness:1}),treeCount);
   const crowns=woodlandCrownGeometry(mobile);
@@ -168,7 +170,7 @@ export class BeachLife{
     if(i%32===0)yield;
     const x=tx*64+rand(seed,i*3)*64,z=tz*64+rand(seed,i*3+1)*64,coast=x-shore(z),patch=noise(x*.085,z*.085);
     if(Math.hypot(x-centerX,z-centerZ)>76)continue;
-    const place=remembered(this.placementCaches.grass,`b${tx},${tz},${i}`,()=>{if(inRoadsideClearing(x,z))return null;const surface=surfaceAt(x,z),meadow=surface.grass>.22;if(meadow||coast<29||surface.riverApproach>.18||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.95)return null;return {meadow,y:baseHeight(x,z)}},40000);
+    const place=remembered(this.placementCaches.grass,`b${tx},${tz},${i}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z),meadow=surface.grass>.22;if(meadow||coast<29||surface.riverApproach>.18||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.95)return null;return {meadow,y:baseHeight(x,z)}},40000);
     if(!place||gi>=Math.floor(this.grass.instanceMatrix.count*.30))continue;const {meadow}=place;
     d.position.set(x-origin.x,place.y-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=meadow?1.05+rand(seed,i+700)*.65:.5+rand(seed,i+700)*.85;d.scale.set(meadow?1.5:scale,scale*(meadow?1.15:1),meadow?1.5:scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.set(meadow?'#718e4b':'#819366').lerp(new THREE.Color(meadow?'#b1b774':'#c4ba87'),rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
    }
@@ -227,7 +229,7 @@ export class BeachLife{
    if((ix&15)===0)yield;
    const x=(ix+rand(ix,iz)*.7)*spacing,z=(iz+rand(iz,ix)*.7)*spacing;
    if(Math.hypot(x-centerX,z-centerZ)>76||gi>=this.grass.instanceMatrix.count)continue;
-   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{if(inRoadsideClearing(x,z))return null;const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:routeSample(x,z).distance<4.5}},40000);if(!place)continue;
+   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:routeSample(x,z).distance<4.5}},40000);if(!place)continue;
    d.position.set(x-origin.x,place.y-.035,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);const {riparian,trail}=place;d.scale.set(1.7,riparian?(trail?.32:.72)+rand(ix,iz+2)*.3:1.45+rand(ix,iz+2)*.65,1.7);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);
    c.set(riparian?'#426c43':'#71874b').lerp(new THREE.Color(riparian?'#87a85e':'#b2b570'),rand(ix,iz+4));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);
    this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;

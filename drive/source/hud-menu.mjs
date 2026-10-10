@@ -1,6 +1,6 @@
 // Judge Dean LLC — keep occasional actions out of the portrait driving view.
 export function createHudMenu(toggle,options,{onOpen=()=>{}}={}){
- const media=matchMedia('(max-width:700px) and (orientation:portrait)');
+ const media=matchMedia('(max-width:1050px) and (orientation:portrait)');
  const toolbar=toggle.parentElement;
  function close({focus=false}={}){
   toolbar.classList.remove('menu-open');toggle.setAttribute('aria-expanded','false');

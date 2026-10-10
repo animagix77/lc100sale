@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {LANDMARKS,riverBounds,riverZ,riverLevel,riverWidth,riverProfile,riverMask,riverHeight,riverMouthBlend,waterExists} from './expedition.mjs';
 import {baseHeight,shore,SandField} from './terrain.mjs';
+import {BRIDGE_SPEC,bridgeDeckHeight} from './canyon-bridge.mjs';
 let shallowest=Infinity,deepest=0,maxBankError=0;
 for(let x=-60;x<520;x+=2){
  const z=riverZ(x),width=riverWidth(x),level=riverLevel(x);
@@ -42,11 +43,13 @@ for(let x=-60;x<=0;x+=.5){
 // tile boundaries; no geometry-only mask can hide a dry dam in the wheel surface.
 const field=new SandField();
 for(let x=-55;x<500;x+=.5)assert(field.height(x,riverZ(x))<riverLevel(x)-.24,'Collision bed follows the continuous water channel');
+// Route grades follow the timber deck and fixed landing sills, not the canyon floor beneath them.
+const routeHeight=(x,z)=>Math.abs(x-BRIDGE_SPEC.centerX)<BRIDGE_SPEC.width/2&&Math.abs(z-BRIDGE_SPEC.centerZ)<=BRIDGE_SPEC.span/2+1.4?bridgeDeckHeight(z):baseHeight(x,z);
 let steepest=0;
 for(let n=1;n<LANDMARKS.length;n++){
- const a=LANDMARKS[n-1],b=LANDMARKS[n],steps=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)*2);let last=baseHeight(a.x,a.z);
+ const a=LANDMARKS[n-1],b=LANDMARKS[n],steps=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)*2);let last=routeHeight(a.x,a.z);
  for(let i=1;i<=steps;i++){
-  const x=a.x+(b.x-a.x)*i/steps,z=a.z+(b.z-a.z)*i/steps,h=baseHeight(x,z),step=Math.hypot(b.x-a.x,b.z-a.z)/steps;
+  const x=a.x+(b.x-a.x)*i/steps,z=a.z+(b.z-a.z)*i/steps,h=routeHeight(x,z),step=Math.hypot(b.x-a.x,b.z-a.z)/steps;
   steepest=Math.max(steepest,Math.abs(h-last)/step);last=h;
  }
 }

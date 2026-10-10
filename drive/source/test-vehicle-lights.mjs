@@ -4,7 +4,7 @@ import {VehicleLights,lampState} from './vehicle-lights.mjs';
 import {DrivePhysics} from './physics.mjs';
 assert(lampState(8,false).dark);assert(!lampState(30,true).dark);assert(lampState(14,true).dark);assert(!lampState(14,false).dark);
 const truck=new THREE.Group(),body=new THREE.Group();body.name='Body';truck.add(body);const original=new THREE.MeshStandardMaterial({map:new THREE.Texture()}),mesh=new THREE.Mesh(new THREE.BoxGeometry(),original);body.add(mesh);
-const lights=new VehicleLights(truck);lights.update(1,8);assert(lights.head.value>3.7);assert(lights.beams.every(l=>l.intensity>140));assert(lights.tail.value>.19);assert.equal(lights.reverse.value,0);assert(mesh.material.isMeshStandardNodeMaterial);
+const lights=new VehicleLights(truck);lights.update(1,8);assert(lights.head.value>3.7);assert(lights.beams.every(l=>l.intensity>90));assert(lights.tail.value>.19);assert.equal(lights.reverse.value,0);assert(mesh.material.isMeshStandardNodeMaterial);
 lights.update(1,8,{braking:true});assert(lights.tail.value>.89);assert(lights.stop.value>.89);assert.equal(lights.reverse.value,0);
 lights.update(1,30,{reversing:true});assert(lights.head.value<.01);assert(lights.backup.intensity>39);assert(lights.tail.value<.01);
 truck.position.set(4,2,9);truck.rotation.y=Math.PI/2;truck.updateMatrixWorld(true);const a=new THREE.Vector3(),b=new THREE.Vector3();lights.beams[0].getWorldPosition(a);lights.beams[0].target.getWorldPosition(b);assert(b.x<a.x,'Beams turn with the truck');
