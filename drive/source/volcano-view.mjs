@@ -38,7 +38,7 @@ export class VolcanoView{
  constructor(scene,{mobile=false,reduced=false}={}){
   this.scene=scene;this.reduced=reduced;this.clock=uniform(0);this.dummy=new THREE.Object3D();this.group=new THREE.Group();scene.add(this.group);this.flowPoints=[];this.rockPoints=[];this.color=new THREE.Color();this.emberColor=new THREE.Color('#ff8f32');this.vector=new THREE.Vector3();this.up=new THREE.Vector3(0,1,0);
   this.material=lavaMaterial(this.clock);this.lakeMaterial=lavaMaterial(this.clock,{lake:true});
-  const lake=new THREE.Mesh(new THREE.RingGeometry(0,VOLCANO.craterRadius,mobile?40:64,mobile?7:12),this.lakeMaterial);lake.rotation.x=-Math.PI/2;lake.position.set(VOLCANO.x,VOLCANO.lavaHeight,VOLCANO.z);this.group.add(lake);
+  const lake=new THREE.Mesh(new THREE.RingGeometry(0,VOLCANO.craterRadius,mobile?40:64,mobile?7:12),this.lakeMaterial);lake.rotation.x=-Math.PI/2;lake.position.set(VOLCANO.x,VOLCANO.lavaHeight,VOLCANO.z);this.group.add(lake);this.lake=lake;
   const positions=[],indices=[],uvs=[],rocks=[];
   // Streams are draped onto the mountain's remote northern and eastern flanks.
   for(const [stream,[angle,length,width]] of [[-2.85,140,3.5],[-1.8,175,4.5],[-.65,195,5],[.2,180,4]].entries()){
@@ -55,7 +55,7 @@ export class VolcanoView{
     }
    }
   }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setIndex(indices);g.computeVertexNormals();this.group.add(new THREE.Mesh(g,this.material));
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setIndex(indices);g.computeVertexNormals();this.flows=new THREE.Mesh(g,this.material);this.group.add(this.flows);
   // Broken angular rim catches the warm eruption light without spilling onto the route.
   for(let i=0,n=mobile?28:44;i<n;i++){
    const a=i/n*Math.PI*2,r=33+rand(i+600)*6,x=VOLCANO.x+Math.cos(a)*r,z=VOLCANO.z+Math.sin(a)*r;

@@ -1,3 +1,9 @@
+## Lava ignition and checkpoint recovery — October 9, 2026
+
+Judge Dean LLC. Tire/underbody samples now test the actual rendered lava meshes: crossing channels, crater lake and hillside streams. Contact ignites bounded flame and smoke pools for three simulation seconds, cuts acceleration, and then uses the existing last-checkpoint reset. The dry basalt causeway and airborne clearance are excluded by surface-height contact. While burning, waypoint progression, board deployment and competing rollover recovery are suppressed; pause stops the sequence. Reset clears fire, smoke and the mobile-visible warning. The truck model and its materials remain untouched.
+
+Five focused lava-recovery/crossing/volcano/checkpoint/rollover checks passed, including the physical crossing in both directions and all checkpoint spawn locations. New tests cover molten surfaces, dry causeway, airborne clearance, origin shifts, burn duration, single respawn and bounded effect cleanup. Suite now registers 77 entries; no full route rerun. Browser review visibly ignited the truck, then returned to Base camp with one lava rescue and no remaining fire warning; console errors empty. Screenshot `3d/lc100-cleanup/review/dirt/lava-fire.png`. Local review adds a Lava recovery location and is paused after the successful reset. Build, syntax, whitespace and original model checksum passed.
+
 ## Stable recovery button hit target — October 9, 2026
 
 Judge Dean LLC. Owner narrowed intermittent board deployment to clicks on the middle/text of the button. The HUD replaced the button’s text contents every rendered frame, even with no state change. The button now retains a dedicated label span and only updates it when its text changes; aria-disabled also updates only on transitions. The label passes pointer events to the button and cannot be text-selected, so padding and glyphs share one stable click target. Recovery physics is unchanged.

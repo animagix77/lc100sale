@@ -116,3 +116,6 @@
 /* Judge Dean LLC — the entire recovery control is one stable pointer target. */
 .drive-range #recover{user-select:none;-webkit-user-select:none}
 .drive-range #recover>span{pointer-events:none;font:inherit;letter-spacing:inherit;color:inherit}
+
+/* Judge Dean LLC — brief lava recovery feedback. */
+#lava-warning{position:absolute;z-index:3;top:38%;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);margin:0;padding:14px 18px;border:1px solid #ffad58;border-radius:8px;background:#501b0deb;color:#fff1ca;text-align:center;font:bold 13px/1.5 Arial;pointer-events:none}#lava-warning[hidden]{display:none}
