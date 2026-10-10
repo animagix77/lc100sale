@@ -112,3 +112,7 @@
 
 /* Judge Dean LLC — recovery feedback remains visible beside the mobile controls. */
 #recovery-status{grid-column:1/-1;margin:0;padding:7px 9px;border-radius:6px;background:#142d32e8;color:#fff0d0;font:11px/1.4 Arial,Helvetica,sans-serif;pointer-events:none}#recovery-status[hidden]{display:none}
+
+/* Judge Dean LLC — the entire recovery control is one stable pointer target. */
+.drive-range #recover{user-select:none;-webkit-user-select:none}
+.drive-range #recover>span{pointer-events:none;font:inherit;letter-spacing:inherit;color:inherit}

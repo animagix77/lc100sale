@@ -1,3 +1,9 @@
+## Stable recovery button hit target — October 9, 2026
+
+Judge Dean LLC. Owner narrowed intermittent board deployment to clicks on the middle/text of the button. The HUD replaced the button’s text contents every rendered frame, even with no state change. The button now retains a dedicated label span and only updates it when its text changes; aria-disabled also updates only on transitions. The label passes pointer events to the button and cannot be text-selected, so padding and glyphs share one stable click target. Recovery physics is unchanged.
+
+Desktop and 390×844 browser hit checks found no obstructing overlay; nine sample points on the mobile button reached `#recover`. Native coordinate clicks on the desktop label centre and two mobile text positions all entered placement after the fix, including 200–350 ms presses. The original failure did not reproduce on the one pre-fix desktop press, so browser-specific cancellation remains a suspected mechanism, not a universally reproduced finding. Keyboard/touch regressions, build, syntax and whitespace checks pass. Local review updated and paused, viewport restored; screenshot `3d/lc100-cleanup/review/recovery/boards-label-click.png`. No model changes.
+
 ## More luminous fireflies — October 9, 2026
 
 Judge Dean LLC. Fireflies retain their compact sprites and buffered approach fades, with brighter warm emission, an ivory centre and a concentrated amber corona. Base emission doubles from 3.4 to 6.8; the core adds 3.2, the compact halo rises from 0.12 to 0.30, and an inner corona adds 0.40. No sprite-size, density, streaming-distance or blink changes; this is a glow-material adjustment without additional dynamic lights.

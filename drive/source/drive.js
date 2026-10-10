@@ -200,7 +200,13 @@ function reset(announce=true,customPose=null){
 function maybeRebase(){const p=physics.rb.translation();if(Math.abs(p.x)<512&&Math.abs(p.z)<512)return;const x=Math.round(p.x/32)*32,z=Math.round(p.z/32)*32;physics.rebase(x,z);camera.position.x-=x;camera.position.z-=z;weatherView.rebase(x,z);terrain.rebase();beachLife.refresh(physics.position(),physics.origin);mountainDetails.refresh(physics.position(),physics.origin);lavaCrossing.update(elapsed,physics.origin);obstacles.refresh(beachLife);trackCount=trackMesh.count=0;}
 function sync(dt){impactShake.restore(camera);antenna?.restore(camera);const p=physics.position(),local=physics.rb.translation(),rot=physics.rb.rotation();q.set(rot.x,rot.y,rot.z,rot.w);truck.position.set(local.x,local.y,local.z);truck.quaternion.copy(q);truck.translateY(-.70);const f=physics.forward(),heading=Math.atan2(-f.x,-f.z);wheels.forEach((w,i)=>{const length=physics.vehicle.wheelSuspensionLength(i)??.50;w.susp.position.y=.70+.06-length;w.steer.rotation.y=wheelLayout[i].front?physics.steer:0;w.roll.rotation.x=-physics.tyres[i].angle;});
  expeditionWeather(p);if(loaded)vehicleSnow?.update(dt,weatherView.state);vehicleLights?.update(dt,weatherView.state.altitude,physics.lighting,weatherView.state);ocean.updateVehicleLights(vehicleLights);if(vehicleLights)Object.assign(canvas.dataset,{headlights:String(vehicleLights.state.dark),brakeLights:String(vehicleLights.state.braking),reverseLights:String(vehicleLights.state.reversing)});
- recoveryView?.update();syncRecoveryNotice();$('recover').textContent=recovery?.pending?'Braking…':recovery?.state==='roof'?'Boards ↓':recovery?.state==='stowing'?'Packing…':recovery?.state==='ground'?'Reposition boards':'Placing boards…';$('recover').setAttribute('aria-disabled',String(recovery?.pending||recovery?.state==='deploying'||recovery?.state==='stowing'));
+ recoveryView?.update();syncRecoveryNotice();
+ // Keep the button and its label stable between pointer-down and pointer-up.
+ // Rebuilding text on every animation frame can cancel clicks over the glyphs.
+ const recoveryLabel=recovery?.pending?'Braking…':recovery?.state==='roof'?'Boards ↓':recovery?.state==='stowing'?'Packing…':recovery?.state==='ground'?'Reposition boards':'Placing boards…';
+ const recoveryLabelNode=$('recovery-label');if(recoveryLabelNode.textContent!==recoveryLabel)recoveryLabelNode.textContent=recoveryLabel;
+ const recoveryBusy=String(!!recovery?.pending||recovery?.state==='deploying'||recovery?.state==='stowing');
+ if($('recover').getAttribute('aria-disabled')!==recoveryBusy)$('recover').setAttribute('aria-disabled',recoveryBusy);
  for(const mark of physics.marks.splice(0)){
   if(sampleWaterHeight(mark.x,mark.z,elapsed)>field.height(mark.x,mark.z)+.025)continue;
   effects.emit(mark,heading,physics.speed,elapsed);printAt(mark,heading);
