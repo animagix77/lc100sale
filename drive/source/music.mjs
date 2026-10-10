@@ -38,7 +38,7 @@ export function createMusic(button,focus,{onPower=()=>{}}={}){
    clearTimeout(loadTimer);tuning=false;status='STEREO · ON AIR';render();ramp(targetGain(),animate?.65:.22);
   }catch{fail(request)}
  }
- function turnPower(){if(disposed)return;on=!on;version++;sweep?.stop();tuning=false;clearTimeout(loadTimer);clearTimeout(timer);status=on?'TUNING…':'POWER OFF';onPower(on);render();if(on)open(false);
+ function turnPower(){if(disposed)return;on=!on;version++;sweep?.stop();tuning=false;clearTimeout(loadTimer);clearTimeout(timer);status=on?'TUNING…':'POWER OFF';onPower(on);render();
   if(on&&!paused)void play({animate:true});else{ramp(0,.055);motor();timer=setTimeout(()=>media.pause(),220)}
  }
  function tune(i){if(disposed)return;const next=(i+STATIONS.length)%STATIONS.length;if(next===selected)return;const direction=Number(STATIONS[next].frequency)>=Number(STATIONS[selected].frequency)?1:-1;selected=next;render();if(on&&!paused)void play({retune:true,direction})}

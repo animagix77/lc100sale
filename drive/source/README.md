@@ -1,3 +1,7 @@
+## Radio remains open for station selection — October 10, 2026
+
+Judge Dean LLC. Power-on no longer closes the radio panel or returns focus to driving. Presets and tuning controls remain available after powering on and switching stations. Explicit Close and Escape retain their dismissal behavior. Radio, tuning and antenna regressions pass, including all eight presets, focus retention, power events, retry and disposal. Browser verified Power on retaining the panel and then tuning JAZZ without closing it. Marker `radio-stays-open-20261010-1`. Includes the published one-fork-at-a-time and route-backdrop changes below; saved progress is preserved.
+
 ## Route backdrop resumes driving — October 10, 2026
 
 Judge Dean LLC. Clicking/tapping outside the route dialog now uses the same confirmation as Continue: retain the selected path, save a missing displayed default, and resume the drive the dialog paused. Dialog padding, clicks inside cards and drags starting inside do not dismiss it. External pause ownership remains respected. Outside a reset confirmation cancels the reset step without erasing progress. Journey UI and keyboard regressions pass; actual browser backdrop click returned focus to the game and retained Fern bank with no captured errors. One-fork-at-a-time progression and saved checkpoint behavior remain intact. Marker `route-backdrop-20261010-1`.
