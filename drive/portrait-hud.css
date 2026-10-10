@@ -55,3 +55,14 @@
 .opening-skip{position:absolute;right:6%;bottom:max(11vh,60px);min-height:44px;padding:10px 15px;border:1px solid #fff5df66;border-radius:25px;background:#14272ccc;color:#fff5df;font:12px Arial,sans-serif;backdrop-filter:blur(8px)}.opening-skip span{margin-left:12px}.opening-skip:focus-visible{outline:2px solid #ffbf87;outline-offset:4px}
 @media(max-width:600px){.opening-titles{top:22%;left:7%}.opening-eyebrow{letter-spacing:2px;font-size:8px}.opening-name{letter-spacing:5px;font-size:10px}.opening-chapter{left:7%;bottom:19vh;max-width:86%;font-size:9px}.opening-skip{bottom:10vh;right:7%}}
 @media(prefers-reduced-motion:reduce){.opening-film{display:none}}
+
+/* Judge Dean LLC — route selection stays distinct from the confirmation action. */
+#journey-dialog button.journey-route{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;background:#203b40;border:2px solid #819b9955;text-align:left}
+#journey-dialog .journey-route strong{font-size:15px;line-height:1.4}
+#journey-dialog .journey-route-description{grid-column:1/-1;color:#c7d7d5;font-size:13px;line-height:1.5}
+#journey-dialog .journey-route-state{align-self:center;font-size:11px;color:#c7d7d5;white-space:nowrap}
+#journey-dialog button.journey-route[aria-pressed=true]{background:#294b50;border-color:#c4e2dc}
+#journey-dialog .journey-route[aria-pressed=true] .journey-route-state{color:#e4fff6;font-weight:700}
+#journey-dialog button.journey-primary{margin-top:24px;background:#f2a45f;border:2px solid #f2a45f;color:#182b2e;font-size:15px;font-weight:700;text-align:center;min-height:50px}
+#journey-dialog button.journey-primary:hover{background:#ffb777;border-color:#ffb777}
+#journey-dialog button:focus-visible{outline:3px solid #fff1ce;outline-offset:3px}

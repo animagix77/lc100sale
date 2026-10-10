@@ -1,3 +1,7 @@
+## Clearer route selection — October 10, 2026
+
+Judge Dean LLC. Route choices now separate their title, description and Select / Selected state. The selected card has a pale outline; the separate orange action reads Continue in both fork prompts and route planning. Instructions explain selection followed by Continue. Existing route saving and pause ownership are preserved. Journey UI and keyboard regressions passed; local browser verified alternative selection, confirmation into Coastal shelf, and a 390×844 layout with no captured errors. Cache marker `route-selection-20261010-1`.
+
 ## Expedition release — October 10, 2026
 
 Judge Dean LLC. Owner authorized publishing the reviewed gameplay/environment work. Release marker `expedition-canyon-20261010-1` covers route choices and camping, cinematic opening, terrain/ruts, V8 automatic drivetrain/audio, lava effects, the suspension bridge, canyon rapids/mist and softer shadows. Original truck GLB remains unchanged; model-rebuild candidates and local review tooling are excluded. Earlier LOCAL ONLY entries below describe their development state, superseded by this release.

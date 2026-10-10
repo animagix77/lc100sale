@@ -29,18 +29,19 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
  const pauseIntent=new JourneyPauseIntent();let hood=false,focusedFork=null,confirmRestart=false;
  const element=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;return e;};
  const button=(label,fn,disabled=false)=>{const b=element('button',label);b.disabled=disabled;b.addEventListener('click',fn);return b;};
+ const primaryButton=(label,fn)=>{const b=button(label,fn);b.className='journey-primary';return b;};
  function close({beginPlacement=false}={}){dialog.close();focusedFork=null;confirmRestart=false;const resume=pauseIntent.close(document.hidden);onResume(!document.hidden&&(beginPlacement||resume));}
  function routes(parent,forks,{heading=true}={}){
   for(const f of forks){if(heading)parent.append(element('h3',f.title));const selected=route.choices[f.id]||f.options[0].id;
-   parent.append(element('p',route.next>f.at?'Route travelled':route.choices[f.id]?'Selected route':'Default route — you can choose another trail.'));
-   for(const o of f.options){const active=selected===o.id;const b=button((active?'✓ ':'')+o.name+' — '+o.description,()=>{route.choose(f.id,o.id);onSave();render();dialog.querySelector(`[data-route="${f.id}:${o.id}"]`)?.focus();},route.next>f.at);b.dataset.route=`${f.id}:${o.id}`;b.setAttribute('aria-pressed',String(active));parent.append(b);}
+   parent.append(element('p',route.next>f.at?'Route travelled':'Select a route below.'));
+   for(const o of f.options){const active=selected===o.id;const b=button('',()=>{route.choose(f.id,o.id);onSave();render();dialog.querySelector(`[data-route="${f.id}:${o.id}"]`)?.focus();},route.next>f.at);b.dataset.route=`${f.id}:${o.id}`;b.className='journey-route';b.setAttribute('aria-pressed',String(active));const title=element('strong',o.name),description=element('span',o.description),state=element('span',active?'✓ Selected':'Select');description.className='journey-route-description';state.className='journey-route-state';b.append(title,state,description);parent.append(b);}
   }
  }
  function render(){
   dialog.replaceChildren();
   if(confirmRestart){dialog.append(element('h2','Start a new expedition?'),element('p','This resets your saved checkpoints and route choices, removes your tent and campfire, and returns the truck to Base camp.'),button('Keep this expedition',()=>{confirmRestart=false;render();}),button('Reset and start at Base camp',()=>{close();onRestart();}));return;}
   const fork=ROUTE_FORKS.find(f=>f.id===focusedFork&&route.next<=f.at);
-  if(fork){const selected=fork.options.find(o=>o.id===route.choices[fork.id])||fork.options[0];dialog.append(element('h2',fork.title),element('p','Both trails reconnect. Choose the surface you want to drive.'));routes(dialog,[fork],{heading:false});dialog.append(button('Continue via '+selected.name,()=>{if(!route.choices[fork.id]){route.choose(fork.id,selected.id);onSave();}close();}));return;}
+  if(fork){const selected=fork.options.find(o=>o.id===route.choices[fork.id])||fork.options[0];dialog.append(element('h2',fork.title),element('p','Both trails reconnect. Select your route, then press Continue.'));routes(dialog,[fork],{heading:false});dialog.append(primaryButton('Continue',()=>{if(!route.choices[fork.id]){route.choose(fork.id,selected.id);onSave();}close();}));return;}
   dialog.append(element('h2',route.complete?'Sunset camp':'Choose your expedition'));
   if(route.complete){const readiness=context().camp;dialog.append(element('p','Expedition complete. Your next stop is a place to rest.'),element('p',readiness.reason));
    const place=button(camp.tent?'Move tent':'Place Shiftpod-style tent',()=>{if(document.hidden)return;close({beginPlacement:true});onPlace();},!readiness.ready);
@@ -49,7 +50,7 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
    if(!camp.tent)dialog.append(element('p','Pitch your shelter to unlock the campfire.'));
    dialog.append(button(readiness.ready?'Keep exploring':'Back to driving',close));
    const history=document.createElement('details');history.append(element('summary','Routes travelled'));routes(history,ROUTE_FORKS);dialog.append(history,button('Start a new expedition',()=>{confirmRestart=true;render();}));
-  }else{dialog.append(element('p','A finite journey to Sunset camp. Alternate trails rejoin the main route. Progress saves at each flag.'));routes(dialog,ROUTE_FORKS);dialog.append(element('p','Reach Sunset camp to pitch your shelter and light the fire.'),button('Back to the trail',close));}
+  }else{dialog.append(element('p','A finite journey to Sunset camp. Alternate trails rejoin the main route. Progress saves at each flag.'));routes(dialog,ROUTE_FORKS);dialog.append(element('p','Reach Sunset camp to pitch your shelter and light the fire.'),primaryButton('Continue',close));}
  }
  function open({forkId=null}={}){pauseIntent.open(context().paused);if(!dialog.open){focusedFork=forkId;confirmRestart=false;}onPause();render();if(!dialog.open)dialog.showModal();}
  dialog.addEventListener('cancel',e=>{e.preventDefault();if(confirmRestart){confirmRestart=false;render();}else close();});
