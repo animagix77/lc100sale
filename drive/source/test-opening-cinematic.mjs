@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {OpeningShot,OpeningCinematic} from './opening-cinematic.mjs';
+import {syncVehicleTransform} from './vehicle-transform.mjs';
 const camera=new THREE.PerspectiveCamera(48,1,.1,1500);camera.position.set(3.7,4,10.5);camera.lookAt(0,1,-3);
 const original={p:camera.position.clone(),q:camera.quaternion.clone(),fov:camera.fov};
 const options={anchor:{x:0,y:1,z:0},forward:{x:0,z:-1},heightAt:(x,z)=>Math.max(0,1.4*Math.sin(x*.3)*Math.cos(z*.2)),waterAt:()=>.3};
@@ -35,3 +36,15 @@ for(let i=0;i<620;i++){
 }
 assert(widest<.98,`Portrait shot contains the vehicle width: ${widest}`);
 console.log('Phone framing keeps the truck inside the shot throughout the moving portion.');
+// A new journey can begin while the rendered model still sits at a saved hill.
+// Cinematic entry and driving must apply the same rigid-body/local-origin pose.
+const truck=new THREE.Object3D();truck.position.set(386,68,-562);
+for(const origin of [{x:0,z:0},{x:640,z:-512}])for(const tilt of [0,.18]){
+ const rotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt,.37,-tilt*.5));
+ const body={x:-14-origin.x,y:1.2,z:-origin.z};
+ const expected=new THREE.Matrix4().compose(new THREE.Vector3(body.x,body.y,body.z),rotation,new THREE.Vector3(1,1,1)).multiply(new THREE.Matrix4().makeTranslation(0,-.70,0));
+ syncVehicleTransform(truck,body,rotation);truck.updateMatrixWorld(true);
+ truck.matrixWorld.elements.forEach((v,i)=>assert(Math.abs(v-expected.elements[i])<1e-10,'Cinematic renders the reset rigid-body pose, including rotation and rebasing'));
+ const before=truck.position.clone();for(let i=0;i<60;i++)syncVehicleTransform(truck,body,rotation);assert(truck.position.equals(before),'Repeated synchronization cannot accumulate the model offset');
+}
+console.log('Cinematic vehicle reset: stale saved location, local origin, body tilt and repeat synchronization passed.');

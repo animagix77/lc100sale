@@ -1,4 +1,5 @@
 import {loadGroundTextures,applyStoneSurface} from './ground-materials.mjs';
+import {syncVehicleTransform} from './vehicle-transform.mjs';
 import {canyonAmbience} from './canyon-rapids.mjs';
 import {CanyonBridgeView} from './canyon-bridge-view.mjs';
 import {OpeningCinematic} from './opening-cinematic.mjs';
@@ -85,7 +86,15 @@ if(!previewMode)audio.pause(true);
 function openingFinished(){keys.clear();touchControls.reset();touchCamera.reset();respawnBrake=.55;accumulator=0;cameraOrbit.reset();weatherView.resetMotion(camera);last=performance.now();canvas.focus({preventScroll:true});say(continuingJourney?route.complete?'Welcome back to Sunset camp. Your shelter and route choices are saved.':'Welcome back. Continuing from '+route.checkpoint().name+'.':$('quip').textContent);showRouteChoice(true);if(route.complete&&campNear())journeyUI?.open();}
 const opening=previewMode?null:new OpeningCinematic({camera,onFinish:openingFinished});
 let continuingJourney=false;
-function playOpening(resumed=false){continuingJourney=resumed;started=true;setPaused(false);const origin={...physics.origin};if(!opening?.start({anchor:physics.rb.translation(),forward:physics.forward(),resumed,reduced,heightAt:(x,z)=>field.height(x+origin.x,z+origin.z),waterAt:(x,z)=>sampleWaterHeight(x+origin.x,z+origin.z,elapsed)}))openingFinished();}
+function playOpening(resumed=false){
+ continuingJourney=resumed;started=true;setPaused(false);
+ // The film suspends sync(): apply a reset before freezing its subject in place.
+ const origin={...physics.origin},{local}=syncVehiclePose();
+ if(!resumed)camera.lookAt(local.x,local.y+.65,local.z);
+ recoveryView?.update();
+ expeditionWeather(physics.position());weatherView.update(10,camera,local,renderer);vehicleSnow?.update(10,weatherView.state);vehicleLights?.update(1,weatherView.state.altitude,physics.lighting,weatherView.state);
+ if(!opening?.start({anchor:local,forward:physics.forward(),resumed,reduced,heightAt:(x,z)=>field.height(x+origin.x,z+origin.z),waterAt:(x,z)=>sampleWaterHeight(x+origin.x,z+origin.z,elapsed)}))openingFinished();
+}
 const pauseMenu=createPauseMenu($('paused'),{onResume:()=>setPaused(false)});
 const oceanRecovery=new OceanRecovery(),trailNarrator=new TrailNarrator();
 const trailCoach=new TrailCoach(),trailHintDisplay=new TrailHintDisplay({onExpire:id=>trailCoach.dismiss(id)});let trailHint=null,trailHintKey='',trailSampleAt=-Infinity;
@@ -103,7 +112,7 @@ const candidateJourney=previewMode?null:readJourney();
 const savedJourney=candidateJourney&&route.restore(candidateJourney.route)?candidateJourney:null;
 if(savedJourney)camp.restore(savedJourney.camp);
 const intro=previewMode?null:createDriveIntro($('drive-intro'),$('intro-start'),{savedCheckpoint:savedJourney?route.checkpoint().name:null,onStart:startNewExpedition,onContinue:()=>playOpening(true),onExit:exit});
-function startNewExpedition(){routePrompts.reset();route.next=route.passed=0;route.choices={};route.resetTracking();route.revision++;camp.tent=null;camp.fire=false;camp.cancel();campCamera.leave();campArrivalPending=false;updateCampCollider();persistJourney();reset(false);playOpening(false);}
+function startNewExpedition(){routePrompts.reset();route.next=route.passed=0;route.choices={};route.resetTracking();route.revision++;camp.tent=null;camp.fire=false;camp.cancel();campCamera.leave();campArrivalPending=false;updateCampCollider();persistJourney();reset(false);for(let i=0;i<240;i++)physics.step(1/120,{turn:0,brake:true});physics.rb.setLinvel({x:0,y:0,z:0},true);physics.rb.setAngvel({x:0,y:0,z:0},true);physics.marks.length=0;physics.soundEvents.length=0;playOpening(false);}
 function persistJourney(){if(!previewMode&&!saveJourney(route,camp))say('Checkpoint reached. This browser could not save it for your next visit.');}
 function campNear(){const p=physics.position();return route.complete&&Math.hypot(p.x-CAMP.x,p.z-CAMP.z)<30;}
 function enterCampView(){if(!campNear())return;cancelCruise();keys.clear();touchControls.reset();touchCamera.reset();cameraOrbit.reset();hoodCamera=false;campCamera.enter(camera,physics.origin);$('game').classList.add('camp-resting');}
@@ -237,12 +246,13 @@ function reset(announce=true,customPose=null){
  physics.reset(x,z,previewMode?field.height(x,z):pose.height);const yaw=pose.yaw;
  physics.rb.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
  route.resetTracking();messages.clear();cameraOrbit.reset();keys.clear();touchControls.reset();lastStamp=[];effects.clear();ocean.clear();aimHeight=null;recoveryCamera=0;camYaw=yaw;weatherTick=-1;
- camera.position.set(x-physics.origin.x+Math.sin(yaw)*11+Math.cos(yaw)*4,(previewMode?field.height(x,z):pose.height)+4,z-physics.origin.z+Math.cos(yaw)*11-Math.sin(yaw)*4);weatherView.resetMotion(camera);
+ camera.position.set(x-physics.origin.x+Math.sin(yaw)*11+Math.cos(yaw)*4,(previewMode?field.height(x,z):pose.height)+4,z-physics.origin.z+Math.cos(yaw)*11-Math.sin(yaw)*4);camera.lookAt(x-physics.origin.x,(previewMode?field.height(x,z):pose.height)+1.69,z-physics.origin.z);weatherView.resetMotion(camera);
  if(announce)say('Rusty: Back at the last checkpoint. Rubber side down this time.');
 }
 
 function maybeRebase(){const p=physics.rb.translation();if(Math.abs(p.x)<512&&Math.abs(p.z)<512)return;const x=Math.round(p.x/32)*32,z=Math.round(p.z/32)*32;physics.rebase(x,z);camera.position.x-=x;camera.position.z-=z;weatherView.rebase(x,z);terrain.rebase();updateCampCollider();beachLife.refresh(physics.position(),physics.origin);mountainDetails.refresh(physics.position(),physics.origin);lavaCrossing.update(elapsed,physics.origin);obstacles.refresh(beachLife);trackCount=trackMesh.count=0;}
-function sync(dt){bridgeView?.update(elapsed,camera);if(frameCount%30===0&&physics.bridge){const poses=physics.bridge.poses();canvas.dataset.bridgeMaxTilt=String(Math.max(...poses.map(p=>Math.acos(Math.min(1,Math.max(-1,1-2*(p.rotation.x*p.rotation.x+p.rotation.z*p.rotation.z)))))));canvas.dataset.bridgeDeckY=poses.map(p=>p.position.y.toFixed(2)).join(',');}impactShake.restore(camera);antenna?.restore(camera);const p=physics.position(),local=physics.rb.translation(),rot=physics.rb.rotation();q.set(rot.x,rot.y,rot.z,rot.w);truck.position.set(local.x,local.y,local.z);truck.quaternion.copy(q);truck.translateY(-.70);const f=physics.forward(),heading=Math.atan2(-f.x,-f.z);const rearCamber=rearAxle?.update(physics.vehicle.wheelSuspensionLength(2)??.5,physics.vehicle.wheelSuspensionLength(3)??.5)||0;wheels.forEach((w,i)=>{if(i>=2)w.steer.rotation.z=rearCamber;const length=physics.vehicle.wheelSuspensionLength(i)??.50;w.susp.position.y=.70+.06-length;w.steer.rotation.y=wheelLayout[i].front?physics.steer:0;w.roll.rotation.x=-physics.tyres[i].angle;});
+function syncVehiclePose(){const local=physics.rb.translation(),rot=physics.rb.rotation();q.set(rot.x,rot.y,rot.z,rot.w);syncVehicleTransform(truck,local,rot);const rearCamber=rearAxle?.update(physics.vehicle.wheelSuspensionLength(2)??.5,physics.vehicle.wheelSuspensionLength(3)??.5)||0;wheels.forEach((w,i)=>{if(i>=2)w.steer.rotation.z=rearCamber;const length=physics.vehicle.wheelSuspensionLength(i)??.50;w.susp.position.y=.70+.06-length;w.steer.rotation.y=wheelLayout[i].front?physics.steer:0;w.roll.rotation.x=-physics.tyres[i].angle;});return {local,rot};}
+function sync(dt){bridgeView?.update(elapsed,camera);if(frameCount%30===0&&physics.bridge){const poses=physics.bridge.poses();canvas.dataset.bridgeMaxTilt=String(Math.max(...poses.map(p=>Math.acos(Math.min(1,Math.max(-1,1-2*(p.rotation.x*p.rotation.x+p.rotation.z*p.rotation.z)))))));canvas.dataset.bridgeDeckY=poses.map(p=>p.position.y.toFixed(2)).join(',');}impactShake.restore(camera);antenna?.restore(camera);const p=physics.position(),{local,rot}=syncVehiclePose(),f=physics.forward(),heading=Math.atan2(-f.x,-f.z);
  expeditionWeather(p);if(loaded)vehicleSnow?.update(dt,weatherView.state);vehicleLights?.update(dt,weatherView.state.altitude,physics.lighting,weatherView.state);ocean.updateVehicleLights(vehicleLights);if(vehicleLights)Object.assign(canvas.dataset,{headlights:String(vehicleLights.state.dark),brakeLights:String(vehicleLights.state.braking),reverseLights:String(vehicleLights.state.reversing)});
  recoveryView?.update();syncRecoveryNotice();
  // Keep the button and its label stable between pointer-down and pointer-up.
