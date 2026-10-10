@@ -33,7 +33,7 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
  const dialog=document.createElement('dialog');dialog.id='journey-dialog';dialog.setAttribute('aria-label','Expedition routes and camp');document.body.append(dialog);
  const placement=document.createElement('section');placement.id='camp-placement';placement.hidden=true;placement.innerHTML='<strong>Place your shelter</strong><p>Tap the clearing to move the tent. Use the arrows for small adjustments.</p><p id="camp-placement-status" role="status"></p><div><button data-move="-1,0">Left</button><button data-move="0,-1">Farther</button><button data-move="0,1">Nearer</button><button data-move="1,0">Right</button><button id="camp-rotate">Rotate</button></div><div><button id="camp-confirm">Pitch tent</button><button id="camp-cancel">Cancel</button></div>';
  document.getElementById('game').append(placement);
- const pauseIntent=new JourneyPauseIntent();let hood=false,focusedFork=null,confirmRestart=false;
+ const pauseIntent=new JourneyPauseIntent();let hood=false,focusedFork=null,confirmRestart=false,backdropPress=false;
  const element=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;return e;};
  const button=(label,fn,disabled=false)=>{const b=element('button',label);b.disabled=disabled;b.addEventListener('click',fn);return b;};
  const primaryButton=(label,fn)=>{const b=button(label,fn);b.className='journey-primary';return b;};
@@ -45,11 +45,13 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
   }
  }
 
+ function displayedFork(){return focusedFork?ROUTE_FORKS.find(f=>f.id===focusedFork&&route.next<=f.at):availableRouteChoice(route);}
+ function continueSelection(){const fork=displayedFork();if(fork&&!route.choices[fork.id]){route.choose(fork.id,fork.options[0].id);onSave();}close();}
  function render(){
   dialog.replaceChildren();
   if(confirmRestart){dialog.append(element('h2','Start a new expedition?'),element('p','This resets your saved checkpoints and route choices, removes your tent and campfire, and returns the truck to Base camp.'),button('Keep this expedition',()=>{confirmRestart=false;render();}),button('Reset and start at Base camp',()=>{close();onRestart();}));return;}
-  const fork=focusedFork?ROUTE_FORKS.find(f=>f.id===focusedFork&&route.next<=f.at):availableRouteChoice(route);
-  if(fork){const selected=fork.options.find(o=>o.id===route.choices[fork.id])||fork.options[0];dialog.append(element('h2',fork.title),element('p','Choose one of these two paths. They branch apart, then rejoin the main trail. Press Continue to drive.'));routes(dialog,[fork],{heading:false});dialog.append(primaryButton('Continue',()=>{if(!route.choices[fork.id]){route.choose(fork.id,selected.id);onSave();}close();}));return;}
+  const fork=displayedFork();
+  if(fork){dialog.append(element('h2',fork.title),element('p','Choose one of these two paths. They branch apart, then rejoin the main trail. Press Continue or tap outside this box to drive.'));routes(dialog,[fork],{heading:false});dialog.append(primaryButton('Continue',continueSelection));return;}
   dialog.append(element('h2',route.complete?'Sunset camp':'Your expedition'));
   if(route.complete){const readiness=context().camp;dialog.append(element('p','Expedition complete. Your next stop is a place to rest.'),element('p',readiness.reason));
    const place=button(camp.tent?'Move tent':'Place Shiftpod-style tent',()=>{if(document.hidden)return;close({beginPlacement:true});onPlace();},!readiness.ready);
@@ -61,6 +63,11 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
   }else{dialog.append(element('p',route.next<ROUTE_FORKS.at(-1).at?'Keep following the flags. You’ll choose between two paths when you reach the next fork.':'Your route choices are complete. Follow the flags to Sunset camp.'),element('p','Reach Sunset camp to pitch your shelter and light the fire.'),primaryButton('Continue',close));}
  }
  function open({forkId=null}={}){pauseIntent.open(context().paused);if(!dialog.open){focusedFork=forkId;confirmRestart=false;}onPause();render();if(!dialog.open)dialog.showModal();}
+ // Padding is inside the dialog; only a gesture starting and ending on the backdrop dismisses.
+ const outside=e=>{if(e.target!==dialog)return false;const r=dialog.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom;};
+ dialog.addEventListener('pointerdown',e=>{backdropPress=outside(e);});
+ dialog.addEventListener('pointercancel',()=>{backdropPress=false;});
+ dialog.addEventListener('click',e=>{const dismiss=backdropPress&&outside(e);backdropPress=false;if(!dismiss)return;if(confirmRestart){confirmRestart=false;render();}else continueSelection();});
  dialog.addEventListener('cancel',e=>{e.preventDefault();if(confirmRestart){confirmRestart=false;render();}else close();});
  document.getElementById('journey-plan').onclick=()=>open();
  document.getElementById('hood-camera').onclick=e=>{hood=!hood;onCamera(hood);e.currentTarget.setAttribute('aria-pressed',String(hood));e.currentTarget.textContent=hood?'Chase view':'Hood view';};

@@ -15,6 +15,7 @@ class Element{
  addEventListener(k,fn){this.listeners[k]=fn;}
  querySelectorAll(selector){const nodes=this.children.flatMap(n=>[n,...n.querySelectorAll('*')]);if(selector==='*')return nodes;if(selector==='[data-move]')return [];if(selector.startsWith('[data-route=')){const value=selector.match(/"([^"]+)"/)[1];return nodes.filter(n=>n.dataset.route===value);}return [];}
  querySelector(selector){return this.querySelectorAll(selector)[0];}
+ getBoundingClientRect(){return {left:100,right:500,top:100,bottom:500};}
  showModal(){this.open=true;}
  close(){this.open=false;}
  focus(){}
@@ -40,5 +41,15 @@ assert.equal(campReadiness({complete:true,distance:0,tent:true,fire:true}).objec
 paused=false;camp.tent={x:154,z:40,y:5,yaw:0};ui.open();assert.equal(ui.dialog.children[3].textContent,'Light campfire','Lighting the fire is the next action after pitching');assert(texts().includes('Your shelter is pitched. Light the fire when you are ready.'));ui.suspendResume();click('Move tent');assert.equal(resumed,true,'Explicit placement resumes the selected active mode after external suspension');assert.equal(places,1);assert(!paused);
 ui.open();ui.suspendResume();document.hidden=true;click('Move tent');assert.equal(places,1,'Hidden document cannot start placement');assert(ui.dialog.open);document.hidden=false;click('Keep exploring');assert.equal(resumed,false,'Ordinary close still preserves external suspension');
 camp.fire=true;physics.fording={exposure:0,depth:0,stalled:false};ui.update(physics);assert.equal(document.getElementById('camp-objective').textContent,'Camp ready · Explore or relax');
+// Backdrop clicks behave like Continue, while padding and drag-out gestures stay open.
+route.next=0;route.choices={};paused=false;ui.open();
+const pointer=(x,y,target=ui.dialog)=>({clientX:x,clientY:y,target});
+const outside=pointer(30,30),inside=pointer(120,120);
+ui.dialog.listeners.pointerdown(inside);ui.dialog.listeners.click(inside);assert(ui.dialog.open,'Dialog padding is not the backdrop');
+ui.dialog.listeners.pointerdown(inside);ui.dialog.listeners.click(outside);assert(ui.dialog.open,'Dragging out of a route card cannot dismiss');
+ui.dialog.listeners.pointerdown(outside);ui.dialog.listeners.click(outside);assert(!ui.dialog.open&&resumed);assert.deepEqual(route.choices,{dunes:'saddle'},'Outside confirmation saves only the displayed default');
+ui.open();nodes().find(n=>n.dataset.route==='dunes:shelf').click();ui.dialog.listeners.pointerdown(outside);ui.dialog.listeners.click(outside);assert.equal(route.choices.dunes,'shelf');assert(!ui.dialog.open&&resumed,'Outside confirmation preserves the selected alternative');
+ui.open();ui.suspendResume();ui.dialog.listeners.pointerdown(outside);ui.dialog.listeners.click(outside);assert.equal(resumed,false,'Backdrop respects external pause ownership');
+route.next=route.count;ui.open();click('Start a new expedition');ui.dialog.listeners.pointerdown(outside);ui.dialog.listeners.click(outside);assert.equal(restarts,1,'Outside reset confirmation never resets progress');assert(ui.dialog.open);assert(!texts().includes('Start a new expedition?'));
 ui.dispose();delete globalThis.document;
 console.log('Journey UI: focused/default forks, camp readiness and ordering, two-step restart, pause ownership and actual reverse display passed.');

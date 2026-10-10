@@ -1,3 +1,7 @@
+## Route backdrop resumes driving — October 10, 2026
+
+Judge Dean LLC. Clicking/tapping outside the route dialog now uses the same confirmation as Continue: retain the selected path, save a missing displayed default, and resume the drive the dialog paused. Dialog padding, clicks inside cards and drags starting inside do not dismiss it. External pause ownership remains respected. Outside a reset confirmation cancels the reset step without erasing progress. Journey UI and keyboard regressions pass; actual browser backdrop click returned focus to the game and retained Fern bank with no captured errors. One-fork-at-a-time progression and saved checkpoint behavior remain intact. Marker `route-backdrop-20261010-1`.
+
 ## One fork at a time — October 10, 2026
 
 Judge Dean LLC. The opening offers only Dune climb versus Coastal shelf. Mud trail versus Fern bank appears once on arrival at the later valley junction. Continue saves only the currently displayed choice. Manual route planning also limits choices to the current junction; between junctions it explains that the next choice comes later. Saved future choices are retained and can be reviewed at their junction, including saves from the brief all-routes-at-start release. Restart resets prompt state. The two alternatives at each fork rejoin the main trail; geography and driving physics are unchanged.
