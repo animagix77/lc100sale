@@ -86,7 +86,7 @@ function playOpening(resumed=!!savedJourney){started=true;setPaused(false);const
 const intro=previewMode?null:createDriveIntro($('drive-intro'),$('intro-start'),{onStart:()=>playOpening(),onExit:exit});
 const pauseMenu=createPauseMenu($('paused'),{onResume:()=>setPaused(false)});
 const oceanRecovery=new OceanRecovery(),trailNarrator=new TrailNarrator();
-const trailCoach=new TrailCoach(),trailHintDisplay=new TrailHintDisplay();let trailHint=null,trailHintKey='',trailSampleAt=-Infinity;
+const trailCoach=new TrailCoach(),trailHintDisplay=new TrailHintDisplay({onExpire:id=>trailCoach.dismiss(id)});let trailHint=null,trailHintKey='',trailSampleAt=-Infinity;
 let roadsideBrakeNotice=-Infinity;
 let trailReading={gradeAhead:0,gradeCurrent:0,rocky:0};
 const unstuck=new StuckRecovery();let unstuckResets=0;

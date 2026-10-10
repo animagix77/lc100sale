@@ -113,3 +113,11 @@ console.log('Trail coach: anticipatory hills/crawls, debounce, hysteresis, recov
 {const coach=new TrailCoach();const hard={...hill,gradeAhead:.34,range:'LO',centerLocked:true};assert.equal(step(coach,1.2,hard)?.id,'difficult-ground');assert.match(coach.active.body,/TRACTION BOARDS/);assert.equal(step(coach,4.1,{...hard,gradeAhead:0}),null)}
 
 {const coach=new TrailCoach();step(coach,1.2,hill);assert.equal(step(coach,2,{...hill,gradeAhead:0})?.id,'low-range','A short level patch does not flash the advice away');assert.equal(step(coach,14,hill)?.id,'low-range','Long driving instructions remain visible beyond the previous thirteen-second cap')}
+
+{
+ const coach=new TrailCoach();step(coach,1.2,hill);
+ step(coach,2.5,{...hill,speed:0,slip:4,stuck:true});
+ assert.equal(coach.active.id,'traction-boards');
+ coach.dismiss('low-range');
+ assert.equal(coach.active.id,'traction-boards','Expiring a retained older card must not dismiss new recovery advice');
+}

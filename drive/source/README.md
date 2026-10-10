@@ -1,3 +1,9 @@
+## Snow-climb tip stability — October 10, 2026
+
+Judge Dean LLC. Retained tips now expire against their full visible reading time and notify TrailCoach to start the same dismissal cooldown. Previously, intermittent wheel contact or forward effort could exhaust the display before the generator, letting an already-read tip reappear on another W press. Recovery advice takes priority immediately; lower-priority climb advice must persist for 0.75 seconds before replacing it, avoiding card resets from brief wheel bounces. Solved controls and board deployment still update immediately. Expiring a retained older hint no longer clears a different new active recovery hint.
+
+Five focused suites passed: trail coach, trail hint display, keyboard, driving messages and recovery request. Added a 100-second throttle/contact-noise regression and priority-transition coverage. Production/review builds and authored-source whitespace checks passed. Browser held W across the approach to Snow line, observed one normal expiry with no immediate reappearance, and verified center-lock advice in 4LO. No captured console errors. Original truck GLB and save keys unchanged. Marker `snow-tip-stability-20261010-1`. Evidence: `3d/lc100-cleanup/review/canyon-bridge/snow-tip-stable.png` and `snow-tip-tests.log`.
+
 ## Radio remains open for station selection — October 10, 2026
 
 Judge Dean LLC. Power-on no longer closes the radio panel or returns focus to driving. Presets and tuning controls remain available after powering on and switching stations. Explicit Close and Escape retain their dismissal behavior. Radio, tuning and antenna regressions pass, including all eight presets, focus retention, power events, retry and disposal. Browser verified Power on retaining the panel and then tuning JAZZ without closing it. Marker `radio-stays-open-20261010-1`. Includes the published one-fork-at-a-time and route-backdrop changes below; saved progress is preserved.

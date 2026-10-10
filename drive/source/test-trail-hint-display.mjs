@@ -37,3 +37,32 @@ for(const range of ['HI','LO']){
  const next=step(.1,{...context,range:'LO',centerLocked:true});assert.equal(next,null,'Actually solving the advice still clears it');
 }
 console.log('Visible tip copy remains stable while alternating driving inputs and terrain signals.');
+
+// Judge Dean LLC — snowy wheel bounces used to exhaust the panel's reading
+// budget before the generator's, allowing the same tip to flash back on W.
+{
+ const coach=new TrailCoach(),view=new TrailHintDisplay({onExpire:id=>coach.dismiss(id)});
+ const transitions=[];let previous=null;
+ for(let frame=0;frame<60*100;frame++){
+  const time=frame/60,state={...hill,gas:frame%30<24?1:0,grounded:!(time%2.5>2.4)};
+  const shown=view.update(coach.update(1/60,state),1/60,state)?.id??null;
+  if(shown!==previous){transitions.push({time,id:shown});previous=shown;}
+ }
+ assert.deepEqual(transitions.map(t=>t.id),['low-range',null],'An expired climb tip stays dismissed while throttle and wheel contacts fluctuate');
+ assert(transitions[1].time-transitions[0].time>=30,'The driver receives the full reading window');
+}
+{
+ const view=new TrailHintDisplay(),state={...hill,range:'LO',centerLocked:true};
+ const boards={id:'traction-boards',title:'Recovery',body:'Deploy the boards.',targets:['boards']};
+ const climb={id:'difficult-ground',title:'Climb',body:'Keep a gentle throttle.',targets:[]};
+ view.update(boards,.1,state);
+ for(let cycle=0;cycle<8;cycle++){
+  for(let frame=0;frame<20;frame++)assert.equal(view.update(climb,1/60,state)?.id,'traction-boards','A brief lower-priority signal cannot reset recovery advice');
+  view.update(null,1/60,state);
+ }
+ for(let frame=0;frame<46;frame++)view.update(climb,1/60,state);
+ assert.equal(view.hint.id,'difficult-ground','Sustained progress may replace recovery advice');
+ view.update(boards,1/60,state);assert.equal(view.hint.id,'traction-boards','New recovery advice still takes priority immediately');
+ assert.equal(view.update(null,1/60,{...state,recoveryState:'deploying'}),null,'Deploying boards clears their advice immediately');
+}
+console.log('Snow-climb tips expire once through throttle/bounce noise; brief recovery downgrades do not reset the panel.');

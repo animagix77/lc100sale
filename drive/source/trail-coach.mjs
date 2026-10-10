@@ -25,7 +25,7 @@ export class TrailCoach{
  }
  dismiss(id=this.active?.id){
   if(id){this.cooldowns.set(id,this.clock+COOLDOWN);this.exposure.delete(id)}
-  this.active=null;
+  if(this.active?.id===id)this.active=null;
  }
  update(dt,state={}){
   if(!Number.isFinite(dt)||dt<=0)return this.active;
