@@ -1,3 +1,7 @@
+## Route planning after the intro — October 10, 2026
+
+Judge Dean LLC. Completing or skipping the opening cinematic now opens route planning before driving; reduced motion uses the same handoff. Continue records any untouched defaults for both future forks. Automatic mid-drive fork prompts are removed; Routes & camp still allows manual edits to upcoming routes. New expeditions replay the opening and planner. Completed saved expeditions retain their camp arrival. Four focused suites (journey UI, opening cinematic, briefing, keyboard) pass; browser verified automatic intro completion into the planner, Continue resuming, and an undecided fork staying in the driving view. Marker `routes-after-intro-20261010-1`.
+
 ## Clearer route selection — October 10, 2026
 
 Judge Dean LLC. Route choices now separate their title, description and Select / Selected state. The selected card has a pale outline; the separate orange action reads Continue in both fork prompts and route planning. Instructions explain selection followed by Continue. Existing route saving and pause ownership are preserved. Journey UI and keyboard regressions passed; local browser verified alternative selection, confirmation into Coastal shelf, and a 390×844 layout with no captured errors. Cache marker `route-selection-20261010-1`.

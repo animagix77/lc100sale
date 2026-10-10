@@ -37,6 +37,7 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
    for(const o of f.options){const active=selected===o.id;const b=button('',()=>{route.choose(f.id,o.id);onSave();render();dialog.querySelector(`[data-route="${f.id}:${o.id}"]`)?.focus();},route.next>f.at);b.dataset.route=`${f.id}:${o.id}`;b.className='journey-route';b.setAttribute('aria-pressed',String(active));const title=element('strong',o.name),description=element('span',o.description),state=element('span',active?'✓ Selected':'Select');description.className='journey-route-description';state.className='journey-route-state';b.append(title,state,description);parent.append(b);}
   }
  }
+ function continueRoutes(){let changed=false;for(const f of ROUTE_FORKS){if(route.next<=f.at&&!route.choices[f.id])changed=route.choose(f.id,f.options[0].id)||changed;}if(changed)onSave();close();}
  function render(){
   dialog.replaceChildren();
   if(confirmRestart){dialog.append(element('h2','Start a new expedition?'),element('p','This resets your saved checkpoints and route choices, removes your tent and campfire, and returns the truck to Base camp.'),button('Keep this expedition',()=>{confirmRestart=false;render();}),button('Reset and start at Base camp',()=>{close();onRestart();}));return;}
@@ -50,7 +51,7 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
    if(!camp.tent)dialog.append(element('p','Pitch your shelter to unlock the campfire.'));
    dialog.append(button(readiness.ready?'Keep exploring':'Back to driving',close));
    const history=document.createElement('details');history.append(element('summary','Routes travelled'));routes(history,ROUTE_FORKS);dialog.append(history,button('Start a new expedition',()=>{confirmRestart=true;render();}));
-  }else{dialog.append(element('p','A finite journey to Sunset camp. Alternate trails rejoin the main route. Progress saves at each flag.'));routes(dialog,ROUTE_FORKS);dialog.append(element('p','Reach Sunset camp to pitch your shelter and light the fire.'),primaryButton('Continue',close));}
+  }else{dialog.append(element('p','Choose your routes before you drive, then press Continue. Both detours rejoin the main trail. Progress saves at each flag.'));routes(dialog,ROUTE_FORKS);dialog.append(element('p','Reach Sunset camp to pitch your shelter and light the fire.'),primaryButton('Continue',continueRoutes));}
  }
  function open({forkId=null}={}){pauseIntent.open(context().paused);if(!dialog.open){focusedFork=forkId;confirmRestart=false;}onPause();render();if(!dialog.open)dialog.showModal();}
  dialog.addEventListener('cancel',e=>{e.preventDefault();if(confirmRestart){confirmRestart=false;render();}else close();});
