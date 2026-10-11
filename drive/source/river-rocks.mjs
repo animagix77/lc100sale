@@ -22,14 +22,24 @@ export function riverApproachRock(column,row){
  const scale=.38+rand(column+809,row)*.55;
  return {x,z,y:baseHeight(x,z)-.055,sx:scale*(1+rand(column+811,row)*.5),sy:scale*.42,sz:scale*(.85+rand(column+813,row)*.35),rx:0,rz:0,yaw:rand(column+817,row)*Math.PI*2,wet:false,tint:rand(column+823,row),approach:true};
 }
-export function riverRocksNear(x,z,radius=132){
- const rocks=[];
+// Judge Dean LLC — the candidate search itself yields, not just the final matrix
+// writes. A cold river approach formerly did thousands of height queries in one
+// indivisible call before BeachLife's next streaming-budget checkpoint.
+export function* riverRocksNearSteps(x,z,radius=132){
+ const rocks=[];let scanned=0;
  for(let column=Math.floor((x-radius)/3);column<=Math.ceil((x+radius)/3);column++)for(let row=-4;row<=4;row++){
+  if(scanned++%16===0)yield;
   const r=riverRock(column,row);if(r&&Math.hypot(r.x-x,r.z-z)<radius)rocks.push(r);
  }
  // Limit this extra grid to the narrow crossing belt rather than the whole streamed square.
  for(let column=Math.floor(Math.max(90,x-radius)/4);column<=Math.ceil(Math.min(520,x+radius)/4);column++)for(let row=Math.floor(Math.max(-404,z-radius)/4);row<=Math.ceil(Math.min(-276,z+radius)/4);row++){
+  if(scanned++%16===0)yield;
   const r=riverApproachRock(column,row);if(r&&Math.hypot(r.x-x,r.z-z)<radius)rocks.push(r);
  }
  return rocks.sort((a,b)=>(a.x-x)**2+(a.z-z)**2-((b.x-x)**2+(b.z-z)**2));
+}
+// Loading/tests can still ask for the complete deterministic list. Ordinary
+// scenery streaming delegates to the generator and retains its atomic commit.
+export function riverRocksNear(x,z,radius=132){
+ const steps=riverRocksNearSteps(x,z,radius);let result;do{result=steps.next();}while(!result.done);return result.value;
 }

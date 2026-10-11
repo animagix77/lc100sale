@@ -87,3 +87,16 @@ for(const mobile of [false,true])for(const p of [{x:248,z:-336},{x:466,z:-331}])
  console.log({mobile,crossing:p.x,approachStones:approach.length});
 }
 console.log('River approaches: brown muddy ground, clear plant footprints, lush banks, deterministic exposed stones, both fords and unchanged waterlines passed.');
+
+// Candidate terrain sampling yields too: matrix writes alone cannot bound a cold
+// approach when the entire list used to be computed before entering that loop.
+const {riverRocksNearSteps}=await import('./river-rocks.mjs');
+for(const point of [{x:248,z:-336},{x:466,z:-331}]){
+ const steps=riverRocksNearSteps(point.x,point.z),timings=[];let result,slices=0;
+ do{const start=performance.now();result=steps.next();timings.push(performance.now()-start);slices++;if(!result.done)assert.equal(result.value,undefined,'No incomplete rock list is exposed between slices');}while(!result.done);
+ assert(slices>100,'River and approach candidate grids yield during discovery');assert.deepEqual(result.value,riverRocksNear(point.x,point.z),'Loading and streamed discovery preserve identical geometry and ordering');
+ assert(result.value.length>300,'The full crossing retains its complete surrounding rock population');
+ for(let i=1;i<result.value.length;i++){const a=result.value[i-1],b=result.value[i];assert(Math.hypot(a.x-point.x,a.z-point.z)<=Math.hypot(b.x-point.x,b.z-point.z)+1e-9,'Streaming keeps nearest-first placement stable');}
+ console.log({crossing:point.x,discoverySlices:slices,largestSliceMs:Math.max(...timings).toFixed(3),rocks:result.value.length});
+}
+console.log('River discovery: budget checkpoints cover candidate queries, with exact complete geometry and stable nearest-first order.');

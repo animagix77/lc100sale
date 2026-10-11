@@ -1,16 +1,17 @@
 import {groundNormal} from './ground-materials.mjs';
 import {rockFormationMask} from './rock-placement.mjs';
 import {riverStoneGeometry} from './river-stone-geometry.mjs';
+import {woodlandTrunkGeometry} from './woodland-trunk.mjs';
 import {woodlandLeafCards} from './woodland-leaf-cards.mjs';
 import {canyonRockMask} from './canyon.mjs';
 import {inRoadsideClearing as roadsideClearing} from './roadside-spots.mjs';
 import {sceneryFade,stageSceneryArrival,syncSceneryFade,disposeSceneryFade} from './scenery-fade.mjs';
 import {GrassTracks} from './grass-tracks.mjs';
 import {routeSample,riverMask,riverZ,riverGreenery,riverApproach,CAMP} from './expedition.mjs';
-import {riverRocksNear} from './river-rocks.mjs';
+import {riverRocksNearSteps} from './river-rocks.mjs';
 import {grassWindStrength} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
-import {positionLocal,attribute,uniform,sin,cos,vec3,vec2,float,texture,uv,mix,smoothstep,positionWorld,cameraPosition} from 'three/tsl';
+import {positionLocal,attribute,uniform,sin,cos,vec3,vec2,float,texture,uv,mix,smoothstep,positionWorld,cameraPosition,normalViewGeometry} from 'three/tsl';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {baseHeight,shore,noise,smooth,surfaceAt} from './terrain.mjs';
 import {oceanHeight} from './ocean-height.mjs';
@@ -24,7 +25,25 @@ const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attribut
 const combine=gs=>{const clean=gs.map(g=>{const a=g.index?g.toNonIndexed():g;for(const k of Object.keys(a.attributes))if(!['position','normal','color'].includes(k))a.deleteAttribute(k);return a});const out=mergeGeometries(clean);for(const g of new Set([...gs,...clean]))g.dispose();return out};
 function beam(a,b,r,hex,segments=6,openEnded=false){const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*.72,r,p.distanceTo(q),segments,1,openEnded);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,hex)}
 function box(x,y,z,w,h,d,hex){return paint(new THREE.BoxGeometry(w,h,d).translate(x,y,z),hex)}
-function grassGeometry(){const positions=[],colors=[],indices=[];for(let i=0;i<15;i++){const angle=i*2.399,height=.38+rand(i,8)*.62,lean=.15+rand(i,2)*.35,width=.015+rand(i,3)*.020,dx=Math.cos(angle),dz=Math.sin(angle),base=positions.length/3;for(let j=0;j<=4;j++){const t=j/4,w=width*(1-t)*.5;for(const side of [-1,1]){positions.push(dx*(.10+lean*t*t)-dz*w*side,height*t,dz*(.10+lean*t*t)+dx*w*side);const tone=.42+.52*Math.sqrt(t);colors.push(tone*.92,tone,tone*.80);}if(j<4){const a=base+j*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();return g}
+function grassGeometry(){
+ const positions=[],colors=[],indices=[];
+ // A tuft mixes short, folded basal leaves and slender arching stems. The 120
+ // triangle ceiling matches the old15-blade mesh; nothing is added per frame.
+ for(let i=0;i<15;i++){
+  const folded=i%3===0,angle=i*2.399+rand(i,12)*.5,dx=Math.cos(angle),dz=Math.sin(angle),height=(folded?.24:.36)+rand(i,8)*(folded?.32:.54),lean=.22+rand(i,2)*.52,width=folded?.032+rand(i,3)*.020:.011+rand(i,3)*.017;
+  const root=.025+rand(i,9)*.20,curl=.04+rand(i,10)*.12,segments=3,columns=folded?3:2,base=positions.length/3;
+  for(let j=0;j<=segments;j++){
+   const t=j/segments,w=width*Math.sin((.16+t*.84)*Math.PI)*.5,y=Math.max(0,height*(t-curl*t*t*t)),reach=root+lean*t*t;
+   for(let side=0;side<columns;side++){
+    const offset=columns===3?side-1:side*2-1,crease=folded&&side===1?width*.28*Math.sin(t*Math.PI):0;
+    positions.push(dx*reach-dz*w*offset,y+crease,dz*reach+dx*w*offset);
+    const tone=(.34+.57*Math.sqrt(t))*(folded&&side===1?1.07:1);colors.push(tone*.94,tone,tone*(i%5===0?.92:.78));
+   }
+   if(j<segments)for(let side=0;side<columns-1;side++){const a=base+j*columns+side;indices.push(a,a+1,a+columns,a+1,a+columns+1,a+columns);}
+  }
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();return g;
+}
 function logGeometry(){return combine([beam([-1,.07,0],[.05,.16,.06],.15,'#a8957b'),beam([.05,.16,.06],[1.1,.11,-.12],.12,'#a8957b'),beam([-.12,.14,.05],[.55,.30,.70],.065,'#95816b'),beam([-.73,.10,.04],[-.93,.23,-.45],.05,'#95816b'),beam([.55,.30,.70],[.78,.24,.91],.035,'#95816b')])}
 function wrackGeometry(){const gs=[];for(let i=0;i<8;i++){const g=new THREE.IcosahedronGeometry(.12+rand(i,19)*.10,0);g.scale(1,.25,.55);g.translate((rand(i,20)-.5)*.65,.025,(rand(i,21)-.5)*.4);gs.push(paint(g,i%3===0?'#b5ab91':'#665e42'))}return combine(gs)}
 
@@ -118,7 +137,7 @@ export class BeachLife{
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),300);
   const rock=paint(riverStoneGeometry(),'#8c7e7b');this.rocks=make(rock,new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.87,flatShading:false}),480);this.rocks.receiveShadow=true;this.rocks.castShadow=true;
   const treeCount=mobile?180:300;
-  this.trunks=make(new THREE.CylinderGeometry(.16,.34,5.5,10).translate(0,2.75,0),new THREE.MeshStandardNodeMaterial({color:'#534d3d',roughness:1}),treeCount);
+  this.trunks=make(woodlandTrunkGeometry(mobile),new THREE.MeshStandardNodeMaterial({color:'#534d3d',roughness:1}),treeCount);
   const crowns=woodlandCrownGeometry(mobile);
   const leaves=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1});
   this.crowns=make(crowns,leaves,treeCount);this.crowns.castShadow=true;this.crowns.receiveShadow=true;this.trunks.castShadow=true;this.trunks.receiveShadow=true;
@@ -147,7 +166,12 @@ export class BeachLife{
   const old=this.crowns.geometry,geometry=woodlandLeafCards(this.mobile),ghost=this.crowns.userData.sceneryGhost;
   for(const [name,a] of Object.entries(old.attributes))if(a.isInstancedBufferAttribute)geometry.setAttribute(name,a);
   this.crowns.geometry=geometry;if(ghost)ghost.geometry=geometry;
-  for(const material of [this.crowns.material,ghost?.material].filter(Boolean)){material.map=map;material.side=THREE.DoubleSide;material.needsUpdate=true;}
+  for(const material of [this.crowns.material,ghost?.material].filter(Boolean)){
+   material.map=map;material.side=THREE.DoubleSide;
+   // These normals describe the crown, not a sheet of paper. Default DoubleSide
+   // lighting flips them on back-facing cards, producing black/cream patches.
+   material.normalNode=normalViewGeometry;material.needsUpdate=true;
+  }
   this.geometries[this.geometries.indexOf(old)]=geometry;old.dispose();
  }
  _key(p,origin){return `${Math.floor(p.x/32)},${Math.floor(p.z/32)},${origin.x},${origin.z}`}
@@ -267,7 +291,7 @@ export class BeachLife{
   }
   for(const [mesh,count] of [[this.trunks,ti],[this.crowns,ti],[this.shrubs,si]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}this.shrubs.geometry.attributes.fernPhase.needsUpdate=true;this.shrubs.geometry.attributes.fernYaw.needsUpdate=true;if(this.shrubs.instanceColor)this.shrubs.instanceColor.needsUpdate=true;
   // The same stable, world-space rock bed supplies rendering and rigid collision.
-  let rockBatch=0;for(const rock of riverRocksNear(cx*64+32,cz*64+32,132)){
+  const nearbyRiverRocks=yield*riverRocksNearSteps(cx*64+32,cz*64+32,132);let rockBatch=0;for(const rock of nearbyRiverRocks){
    if(rockBatch++%16===0)yield;
    if(ri>=this.rocks.instanceMatrix.count)break;
    d.position.set(rock.x-origin.x,rock.y,rock.z-origin.z);d.rotation.set(rock.rx,rock.yaw,rock.rz);d.scale.set(rock.sx,rock.sy,rock.sz);d.updateMatrix();this.rocks.setMatrixAt(ri,d.matrix);

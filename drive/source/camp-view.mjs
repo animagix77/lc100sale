@@ -89,7 +89,9 @@ export class CampView{
   const smokeMat=new THREE.MeshBasicMaterial({color:'#79736a',transparent:true,opacity:.13,depthWrite:false});this.resources.push(smokeMat);this.smoke=[];for(let i=0;i<8;i++)this.smoke.push(mesh(new THREE.SphereGeometry(1,8,6),smokeMat,this.fireGroup));
   // Translucent effects must not create solid silhouettes in the sun shadow map.
   for(const particle of [...this.flames,...this.smoke])particle.castShadow=false;
-  this.glow=new THREE.PointLight('#ffac59',0,15,2);this.glow.position.y=1;this.fireGroup.add(this.glow);
+  // Keep the light in the warmed scene even when distant camp geometry is hidden.
+  // Changing the visible light count would compile new lit shaders mid-drive.
+  this.glow=new THREE.PointLight('#ffac59',0,15,2);scene.add(this.glow);
   const boundary=new THREE.BufferGeometry().setFromPoints(Array.from({length:81},(_,i)=>{const x=CAMP.x+Math.sin(i/80*Math.PI*2)*(CAMP.radius-3),z=CAMP.z+Math.cos(i/80*Math.PI*2)*(CAMP.radius-3);return new THREE.Vector3(x,field.height(x,z)+.04,z)}));const boundaryMat=new THREE.LineBasicMaterial({color:'#a9d1b3',transparent:true,opacity:.6});this.resources.push(boundary,boundaryMat);this.boundary=new THREE.Line(boundary,boundaryMat);this.root.add(this.boundary);
   this.tent.visible=this.preview.visible=this.boundary.visible=false;
  }
@@ -98,11 +100,12 @@ export class CampView{
   this.tent.visible=!!state.tent;if(state.tent){this.tent.position.set(state.tent.x,state.tent.y,state.tent.z);this.tent.rotation.y=state.tent.yaw;}
   this.preview.visible=this.boundary.visible=state.placing;if(state.candidate){this.preview.position.set(state.candidate.x,this.field.height(state.candidate.x,state.candidate.z)+.05,state.candidate.z);this.preview.rotation.y=state.candidate.yaw;this.ghostMat.color.set(state.result.ok?'#7ee2ac':'#e36b5c');}
   this.fireGroup.position.set(FIRE_SITE.x,this.field.height(FIRE_SITE.x,FIRE_SITE.z),FIRE_SITE.z);
-  this.coals.visible=state.fire;this.glow.intensity=state.fire?35*(1+(this.reduced?0:Math.sin(time*6)*.10)):0;
+  this.glow.position.set(FIRE_SITE.x-origin.x,this.fireGroup.position.y+1,FIRE_SITE.z-origin.z);
+  this.coals.visible=state.fire;this.glow.intensity=state.fire&&this.root.visible?35*(1+(this.reduced?0:Math.sin(time*6)*.10)):0;
   this.smoke.forEach((s,i)=>{s.visible=state.fire;const age=(time*.15+i/8)%1;s.position.set(age*.9,1+age*3,.1+age*.35);s.scale.setScalar(.10+Math.sin(age*Math.PI)*.48);});
   this.flames.forEach((f,i)=>{f.visible=state.fire;const phase=(time*(this.reduced?.28:.8)+i*.137)%1;f.position.set(Math.sin(i*2.4)*.25*(1-phase),.3+phase*.7,Math.cos(i*2.4)*.25*(1-phase));f.scale.set(.12*(1-phase),.26*(1-phase),.12*(1-phase));});
  }
- dispose(){this.root.removeFromParent();for(const r of this.resources)r.dispose();}
+ dispose(){this.glow.removeFromParent();this.glow.dispose();this.root.removeFromParent();for(const r of this.resources)r.dispose();}
 }
 
 // Seamless hex quilting and restrained fibre grain; generated locally, no photo texture.

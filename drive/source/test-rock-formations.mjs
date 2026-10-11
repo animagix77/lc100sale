@@ -7,7 +7,18 @@ import {baseHeight} from './terrain.mjs';
 import {DrivePhysics,RAPIER} from './physics.mjs';
 import {BeachObstacles} from './obstacles.mjs';
 import {routeSample} from './expedition.mjs';
-const geometry=rockFormationGeometry(),position=geometry.attributes.position,index=geometry.index.array;
+const geometry=rockFormationGeometry(),position=geometry.attributes.position;
+assert(geometry.index.count/3<=272*1.2,'Fractured silhouettes stay inside the existing triangle budget');
+geometry.computeBoundingBox();assert(geometry.boundingBox.max.y<=1.201&&geometry.boundingBox.min.y<=-2.21,'Preserve existing peak height and buried footing');
+for(let i=0;i<position.count;i++)assert(Math.hypot(position.getX(i),position.getZ(i))<=2.201,'Silhouette changes cannot enlarge the route-clearance envelope');
+// Hard shading edges legitimately duplicate vertices. Verify the welded surface,
+// not shading-vertex connectivity, when testing manifold physical geometry.
+const canonical=new Map(),welded=new Uint32Array(position.count);
+for(let i=0;i<position.count;i++){const key=[position.getX(i),position.getY(i),position.getZ(i)].map(v=>v.toFixed(5)).join(',');if(!canonical.has(key))canonical.set(key,i);welded[i]=canonical.get(key);}
+const index=Uint32Array.from(geometry.index.array,i=>welded[i]),used=new Set(index);
+const normal=geometry.attributes.normal,duplicates=new Map();let hardEdges=0;
+for(let i=0;i<position.count;i++){const original=duplicates.get(welded[i]);if(original!==undefined&&normal.getX(i)*normal.getX(original)+normal.getY(i)*normal.getY(original)+normal.getZ(i)*normal.getZ(original)<.9)hardEdges++;else duplicates.set(welded[i],i);}
+assert(hardEdges>12,'Geological fracture edges retain distinct shading normals');
 const parent=Array.from({length:position.count},(_,i)=>i),root=i=>parent[i]===i?i:parent[i]=root(parent[i]);
 const edge=new Map(),a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),n=new THREE.Vector3();
 for(let i=0;i<index.length;i+=3){
@@ -19,8 +30,19 @@ for(let i=0;i<index.length;i+=3){
 for(const record of edge.values()){assert.equal(record.uses,2,'Every ledge is a closed manifold solid');assert.equal(record.winding,0,'Adjacent triangles agree on outward winding');}
 const volume=new Map(),bounds=new Map();
 for(let i=0;i<index.length;i+=3){const part=root(index[i]);a.fromBufferAttribute(position,index[i]);b.fromBufferAttribute(position,index[i+1]);c.fromBufferAttribute(position,index[i+2]);volume.set(part,(volume.get(part)??0)+a.dot(b.clone().cross(c))/6);}
-for(let i=0;i<position.count;i++){const part=root(i),box=bounds.get(part)??new THREE.Box3();box.expandByPoint(a.fromBufferAttribute(position,i));bounds.set(part,box);}
+for(const i of used){const part=root(i),box=bounds.get(part)??new THREE.Box3();box.expandByPoint(a.fromBufferAttribute(position,i));bounds.set(part,box);}
 assert(volume.size>=3,'A formation contains overlapping geological ledges');for(const value of volume.values())assert(value>.01,'Each closed component has positive volume and outward faces');
+// A closed convex component has no inward fold or self-intersecting fracture.
+// Pieces may interlock, but every vertex stays behind every outward face of its
+// own component. Measure tilted top area to catch a return to flat ring caps.
+const verticesByPart=new Map();for(const i of used){const part=root(i);if(!verticesByPart.has(part))verticesByPart.set(part,[]);verticesByPart.get(part).push(i)}
+let topArea=0,tiltedTopArea=0;const testVertex=new THREE.Vector3();
+for(let i=0;i<index.length;i+=3){
+ a.fromBufferAttribute(position,index[i]);b.fromBufferAttribute(position,index[i+1]);c.fromBufferAttribute(position,index[i+2]);n.crossVectors(b.clone().sub(a),c.clone().sub(a));const area=n.length()*.5;n.normalize();
+ for(const vertex of verticesByPart.get(root(index[i])))assert(n.dot(testVertex.fromBufferAttribute(position,vertex).sub(a))<.00002,'Each closed block remains convex, without folded or crossing faces');
+ if(n.y>.35&&(a.y+b.y+c.y)>0){topArea+=area;if(n.y<.96)tiltedTopArea+=area;}
+}
+assert(tiltedTopArea/topArea>.55,'Most exposed upper area belongs to canted fractures rather than horizontal pancake caps');
 const material=new THREE.MeshBasicMaterial({side:THREE.FrontSide}),mesh=new THREE.Mesh(geometry,material),ray=new THREE.Raycaster();mesh.updateMatrixWorld();
 for(const box of bounds.values()){
  const center=box.getCenter(new THREE.Vector3());ray.set(new THREE.Vector3(center.x,10,center.z),new THREE.Vector3(0,-1,0));const hit=ray.intersectObject(mesh,false)[0];
@@ -56,6 +78,7 @@ for(const mobile of [false,true]){
    }
   }
  }
+ assert([...view.rocks.geometry.attributes.rockHabitat.array].every(v=>Number.isFinite(v)&&v>=0&&v<=1),'Woodland weathering is bounded across all streamed instances');
  assert(near>20,'Natural formations reach the first ford scenery rather than only distant mountains');
  assert.equal(rays,12,'Exercise several nearby ledges, not a single lucky ray');console.log({mobile,formations:view.rocks.count,within60m:near,matchedPhysicsRays:rays});solid.dispose();physics.dispose();view.dispose();
 }

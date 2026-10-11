@@ -1,6 +1,6 @@
 // Judge Dean LLC — shared photographed ground surfaces, anchored across rebases.
 import * as THREE from 'three/webgpu';
-import {texture,uniform,positionWorld,positionView,normalView,normalWorldGeometry,vec2,vec3,mx_noise_float,float,mix,smoothstep,cameraPosition} from 'three/tsl';
+import {texture,uniform,positionWorld,positionView,normalView,normalWorldGeometry,positionGeometry,attribute,vec2,vec3,mx_noise_float,float,mix,smoothstep,cameraPosition} from 'three/tsl';
 export async function loadGroundTextures({mobile=false,loader=new THREE.TextureLoader()}={}){
  const names=['forest','gravel','stone'],suffix=mobile?'-512':'',entries=names.flatMap(name=>['color','surface'].map(kind=>({name,kind,path:`textures/terrain/${name}-${kind}${suffix}.jpg`})));
  const results=await Promise.allSettled(entries.map(async entry=>{
@@ -39,9 +39,23 @@ export function groundNormal(relief){
  const dx=positionView.dFdx(),dy=positionView.dFdy(),r1=dy.cross(normalView),r2=normalView.cross(dx),det=dx.dot(r1);
  return normalView.mul(det.abs()).sub(r1.mul(relief.dFdx()).add(r2.mul(relief.dFdy())).mul(det.sign())).normalize();
 }
-export function applyStoneSurface(material,maps,{scale=.65,strength=.025}={}){
+export function applyStoneSurface(material,maps,{scale=.65,strength=.025,weathered=false}={}){
  if(!maps)return;
  const stone=groundSurface(maps,'stone',{scale,triplanar:true}),near=float(1).sub(smoothstep(12,65,cameraPosition.distance(positionWorld)));
  // Retain per-instance weathering/biome tints, without multiplying old vertex paint.
- material.vertexColors=false;material.colorNode=stone.color.mul(2.15);material.roughnessNode=mix(float(.58),float(.96),stone.data.g);material.aoNode=mix(float(1),stone.data.b,.45);material.normalNode=groundNormal(stone.data.r.mul(strength).mul(near));material.needsUpdate=true;
+ material.vertexColors=false;material.colorNode=stone.color.mul(2.15);material.roughnessNode=mix(float(.58),float(.96),stone.data.g);material.aoNode=mix(float(1),stone.data.b,.45);
+ let relief=stone.data.r.mul(strength);
+ if(weathered){
+  const world=positionWorld.add(maps.origin),up=smoothstep(.25,.85,normalWorldGeometry.y),patch=mx_noise_float(world.mul(.9)).mul(.5).add(.5);
+  // Geometry carries the local biome: moss belongs on sheltered woodland ledges,
+  // never the barren canyon, snow or lava. Packed texture height breaks its edge.
+  const woodland=attribute('rockHabitat','float');
+  const moss=smoothstep(.38,.70,patch.add(stone.data.r.sub(.5).mul(.35))).mul(up).mul(woodland);
+  const footing=float(1).sub(smoothstep(-.25,.36,positionGeometry.y)).mul(woodland);
+  const mottled=mix(vec3(.17,.22,.10),vec3(.34,.37,.18),stone.data.r);
+  material.colorNode=mix(material.colorNode,mottled,moss.mul(.66)).mul(mix(float(1),float(.78),footing));
+  material.roughnessNode=material.roughnessNode.max(moss.mul(.2).add(.68));
+  relief=relief.add(patch.mul(.018).mul(moss));
+ }
+ material.normalNode=groundNormal(relief.mul(near));material.needsUpdate=true;
 }

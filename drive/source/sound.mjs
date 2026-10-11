@@ -77,19 +77,41 @@ function wetBank(ctx){
  const bank={};const fire=ctx.createBuffer(1,ctx.sampleRate*6,ctx.sampleRate);fire.getChannelData(0).set(firePCM(ctx.sampleRate));bank.fire=fire;for(const kind of ['rain','spray','river']){const buffer=ctx.createBuffer(2,Math.ceil(ctx.sampleRate*6),ctx.sampleRate);for(let channel=0;channel<2;channel++)buffer.getChannelData(channel).set(wetPCM(kind,ctx.sampleRate,9271+channel*731));bank[kind]=buffer}for(const kind of ['grass','skid']){const buffer=ctx.createBuffer(1,ctx.sampleRate*6,ctx.sampleRate);buffer.getChannelData(0).set(contactPCM(kind,ctx.sampleRate));bank[kind]=buffer}return bank;
 }
 export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocument){
- let ctx,master,compressor,buffers,loading,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash,waterWash,waterSpray,waterFilter,rainBed,rainFilter,grassBed,skidBed,fireBed,riverBed,riverFilter;
+ let ctx,master,compressor,buffers,loading,preparing,preparationFailed=false,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash,waterWash,waterSpray,waterFilter,rainBed,rainFilter,grassBed,skidBed,fireBed,riverBed,riverFilter;
  let nextGull=0,nextSplash=0,nextImpact=0,nextVolcanoImpact=0,impactVariant=0,lastWet=0;const sources=new Set(),controller=new AbortController();
  const label=()=>{button.textContent=on?'Sound on':'Sound off';button.setAttribute('aria-pressed',String(on));};
  const smooth=(param,value,seconds=.12)=>param.setTargetAtTime(value,ctx.currentTime,seconds);
  function gain(value){const n=ctx.createGain();n.gain.value=value;return n;}
  function loop(name,destination,volume=0){const source=ctx.createBufferSource(),g=gain(volume);source.buffer=buffers[name];source.loop=true;source.connect(g);g.connect(destination);source.start();sources.add(source);return {source,g};}
+ // Judge Dean LLC — fetch, decode and synthesize behind the loading screen.
+ // OfflineAudioContext prepares AudioBuffers without an audible context,
+ // playback or resume(). The later user gesture still owns the unlock.
+ function prepare({timeoutMs=10000}={}){
+  if(disposed)return Promise.resolve(null);if(preparing)return preparing;
+  preparationFailed=false;preparing=(async()=>{
+   const pending=new AbortController();let timer,decoder;
+   const abort=()=>pending.abort();controller.signal.addEventListener('abort',abort,{once:true});
+   try{
+    const stopped=new Promise(resolve=>{pending.signal.addEventListener('abort',()=>resolve(null),{once:true});timer=setTimeout(abort,Math.max(1,timeoutMs));});
+    const work=(async()=>{
+     decoder=new OfflineAudioContext(1,1,48000);
+     const names=['sand','coast','gull1','gull2','wave1','wave2'];
+     const entries=await Promise.all(names.map(async name=>{
+      const response=await fetch(`audio/${name}.m4a?v=steady-2`,{signal:pending.signal});if(!response.ok)throw new Error(name);
+      const bytes=await response.arrayBuffer();if(pending.signal.aborted)return null;
+      return [name,await decoder.decodeAudioData(bytes)];
+     }));
+     if(disposed||pending.signal.aborted)return null;
+     return Object.assign(Object.fromEntries(entries),impactBank(decoder),wetBank(decoder));
+    })().catch(()=>null);
+    const bank=await Promise.race([work,stopped]);preparationFailed=!bank;return bank;
+   }finally{clearTimeout(timer);pending.abort();controller.signal.removeEventListener('abort',abort);}
+  })();return preparing;
+ }
  async function setup(){
   ctx=new AudioContext();master=gain(0);compressor=ctx.createDynamicsCompressor();compressor.threshold.value=-8;compressor.knee.value=8;compressor.ratio.value=4;compressor.attack.value=.006;compressor.release.value=.18;master.connect(compressor);compressor.connect(ctx.destination);
   await ctx.resume();
-  const names=['sand','coast','gull1','gull2','wave1','wave2'];
-  buffers=Object.fromEntries(await Promise.all(names.map(async name=>{const response=await fetch(`audio/${name}.m4a?v=steady-2`,{signal:controller.signal});if(!response.ok)throw new Error(name);return [name,await ctx.decodeAudioData(await response.arrayBuffer())];})));
-  if(disposed)return;
-  Object.assign(buffers,impactBank(ctx),wetBank(ctx));
+  buffers=await prepare();if(disposed)return;if(!buffers)throw new Error('Sound preparation unavailable');
   engineFilter=ctx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=1000;engineFilter.Q.value=.5;engineFilter.connect(master);
   // Phase-aligned V8 harmonics follow actual automatic-transmission RPM.
   // The shift envelope unloads the tone briefly; no fabricated speed-based
@@ -130,12 +152,13 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
  }
  async function toggle(){
   if(disposed)return;on=!on;label();focus();apply();
-  if(on)await start();
+  if(on){if(preparationFailed&&!loading&&!buffers)preparing=null;await start();}
  }
  button.addEventListener('click',toggle);
  for(const type of ['pointerdown','click','keydown'])gestures.addEventListener(type,activate);
  label();
  return {
+  prepare,
   pause(value){paused=value;apply();},
   update(state){
    if(!buffers||!engine.length||!on||paused||disposed)return;

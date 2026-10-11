@@ -9,7 +9,7 @@ import {routeSample,riverMask} from './expedition.mjs';
 const remembered=(cache,key,create)=>{let value=cache.get(key);if(value!==undefined)return value;value=create();const fifo=cache.fifo??=[];if(cache.size>=4000){const at=cache.cursor??0;cache.delete(fifo[at]);fifo[at]=key;cache.cursor=(at+1)%4000}else fifo.push(key);cache.set(key,value);return value};
 const rand=(a,b)=>{const n=Math.sin(a*127.1+b*311.7)*43758.5453;return n-Math.floor(n)};
 function stagingMesh(mesh){
- return {count:0,sceneryBirth:mesh.geometry.attributes.sceneryBirth?.clone(),instanceMatrix:{count:mesh.instanceMatrix.count,array:new Float32Array(mesh.instanceMatrix.array.length)},instanceColor:{array:new Float32Array(mesh.instanceMatrix.count*3)},
+ return {count:0,sceneryBirth:mesh.geometry.attributes.sceneryBirth?.clone(),rockHabitat:mesh.geometry.attributes.rockHabitat?.clone(),instanceMatrix:{count:mesh.instanceMatrix.count,array:new Float32Array(mesh.instanceMatrix.array.length)},instanceColor:{array:new Float32Array(mesh.instanceMatrix.count*3)},
   setMatrixAt(i,m){m.toArray(this.instanceMatrix.array,i*16)},setColorAt(i,c){c.toArray(this.instanceColor.array,i*3)}};
 }
 export class MountainDetails{
@@ -17,7 +17,7 @@ export class MountainDetails{
   Object.assign(this,{scene,mobile,reduced});this.placementCaches={rocks:new Map(),scree:new Map()};this.clock=uniform(0);this.fadeAnchor=uniform(new THREE.Vector2());this.key='';this.samples=[];this.dummy=new THREE.Object3D();
   this.rocks=new THREE.InstancedMesh(rockFormationGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.91}),mobile?100:170);
   this.scree=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshStandardNodeMaterial({color:'#ffffff',roughness:1,flatShading:true}),mobile?550:1100);
-  for(const m of [this.rocks,this.scree]){m.count=0;m.frustumCulled=false;m.receiveShadow=true;m.setColorAt(0,new THREE.Color(1,1,1));scene.add(m)}this.rocks.castShadow=true;
+  for(const m of [this.rocks,this.scree]){m.count=0;m.frustumCulled=false;m.receiveShadow=true;m.setColorAt(0,new THREE.Color(1,1,1));scene.add(m)}this.rocks.castShadow=true;this.rocks.geometry.setAttribute('rockHabitat',new THREE.InstancedBufferAttribute(new Float32Array(this.rocks.instanceMatrix.count),1));
   sceneryFade(this.rocks,{anchor:this.fadeAnchor,clock:this.clock,near:68,far:102});sceneryFade(this.scree,{anchor:this.fadeAnchor,clock:this.clock,near:mobile?14:20,far:mobile?24:34,arrival:false});
  }
  _key(p,origin){return `${Math.floor(p.x/16)},${Math.floor(p.z/16)},${origin.x},${origin.z}`}
@@ -26,7 +26,7 @@ export class MountainDetails{
   const buildOrigin={...origin};this._pending={key,work,origin:buildOrigin,iterator:this._build.call(work,{...p},buildOrigin)};
  }
  _commit(){
-  const {work,key}=this._pending,old=this.key.split(',').map(Number),next=key.split(',').map(Number);for(const name of ['rocks','scree']){const mesh=this[name],staged=work[name];stageSceneryArrival(mesh,staged,this.reduced?-2:this.clock.value,{x:old[2]||0,z:old[3]||0},{x:next[2],z:next[3]},!this.key);if(staged.sceneryBirth){mesh.geometry.attributes.sceneryBirth.array.set(staged.sceneryBirth.array);mesh.geometry.attributes.sceneryBirth.needsUpdate=true;}mesh.count=staged.count;mesh.instanceMatrix.array.set(staged.instanceMatrix.array);mesh.instanceColor.array.set(staged.instanceColor.array);mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true}
+  const {work,key}=this._pending,old=this.key.split(',').map(Number),next=key.split(',').map(Number);for(const name of ['rocks','scree']){const mesh=this[name],staged=work[name];stageSceneryArrival(mesh,staged,this.reduced?-2:this.clock.value,{x:old[2]||0,z:old[3]||0},{x:next[2],z:next[3]},!this.key);if(staged.sceneryBirth){mesh.geometry.attributes.sceneryBirth.array.set(staged.sceneryBirth.array);mesh.geometry.attributes.sceneryBirth.needsUpdate=true;}if(staged.rockHabitat){mesh.geometry.attributes.rockHabitat.array.set(staged.rockHabitat.array);mesh.geometry.attributes.rockHabitat.needsUpdate=true;}mesh.count=staged.count;mesh.instanceMatrix.array.set(staged.instanceMatrix.array);mesh.instanceColor.array.set(staged.instanceColor.array);mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true}
   this.key=key;this.rocks.userData.detailKey=key;this.samples=work.samples;this._pending=null;
  }
  rebase(origin){
@@ -71,7 +71,7 @@ export class MountainDetails{
    if(ri%16===0)yield;
    const {x,z,h,surface,ix,iz,scale}=r;
    d.position.set(x-origin.x,h-.24,z-origin.z);d.rotation.set((rand(ix,iz+3)-.5)*.12,noise(x*.007,z*.007)*Math.PI+(rand(ix,iz+2)-.5)*.45,(rand(ix,iz+4)-.5)*.13);d.scale.set(scale,scale*(.62+rand(ix+4,iz)*.58),scale*(.72+rand(ix+5,iz)*.28));d.updateMatrix();this.rocks.setMatrixAt(ri,d.matrix);
-   c.set(surface.volcanic>.3?'#686269':surface.grass>.2?'#889185':'#9b9990').lerp(new THREE.Color('#c4ccd0'),surface.snow*.50).multiplyScalar(.85+rand(ix+6,iz)*.35);this.rocks.setColorAt(ri++,c);this.samples.push({x,z,scale,kind:'rock'});
+   c.set(surface.volcanic>.3?'#686269':surface.grass>.2?'#889185':'#9b9990').lerp(new THREE.Color('#c4ccd0'),surface.snow*.50).multiplyScalar(.85+rand(ix+6,iz)*.35);(this.rocks.rockHabitat??this.rocks.geometry.attributes.rockHabitat).setX(ri,surface.grass*(1-surface.snow)*(1-surface.volcanic)*(1-surface.canyonRock));this.rocks.setColorAt(ri++,c);this.samples.push({x,z,scale,kind:'rock'});
   }
   // Small stones make the shoulder read as broken ground. They are below tyre
   // obstacle scale; the larger outcrops share exact geometry with solid colliders.

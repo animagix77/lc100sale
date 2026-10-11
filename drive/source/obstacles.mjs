@@ -5,7 +5,7 @@ import {RAPIER} from './physics.mjs';
 // BVH construction across frames. Loading/recovery can still prepare all at once.
 export class BeachObstacles {
  constructor(physics,{radius=55,immediateRadius=24,budget=1,maxCreates=6}={}){this.p=physics;this.radius=radius;this.immediateRadius=Math.min(radius,immediateRadius);this.budget=budget;this.maxCreates=maxCreates;this.key='';this.colliders=[];this.handles=new Set();this.kinds=new Map();this.groups=new Map();this.pending=new Set();this.geometryCache=new WeakMap();this.matrix=new THREE.Matrix4();this.vertex=new THREE.Vector3();physics.obstacles=this;}
- refresh(life,{budgeted=false}={}){
+ refresh(life,{budgeted=false,lookahead=null}={}){
   const origin=this.p.origin||{x:0,z:0},position=this.p.position?.(),limited=Number.isFinite(this.radius)&&Number.isFinite(position?.x)&&Number.isFinite(position?.z);
   // The half-cell diagonal and full object radius cover cell corners, leaning
   // trees and long logs. The near guarantee is checked again on EVERY frame,
@@ -35,7 +35,7 @@ export class BeachObstacles {
       remaining.delete(entry);
       if(entry.collider&&(entry.localX!==e[12]||entry.y!==y||entry.localZ!==e[14]))entry.collider.setTranslation({x:e[12],y,z:e[14]});
       Object.assign(entry,{x,y,z,localX:e[12],localZ:e[14]});
-     }else entry={collider:null,x,y,z,localX:e[12],localZ:e[14],transform:new Float32Array(e),geometry,objectRadius,kind};
+     }else entry={collider:null,x,y,z,localX:e[12],localZ:e[14],transform:new Float32Array(e),geometry,objectRadius,kind,distance:0,priority:0};
      entries.push(entry);let bucket=buckets.get(shapeKey);if(!bucket)buckets.set(shapeKey,bucket=[]);bucket.push(entry);
     }
     for(const entry of remaining)this.remove(entry);
@@ -46,11 +46,15 @@ export class BeachObstacles {
   }
   if(this.pending.size){
    const candidates=[...this.pending];
-   const distance=entry=>limited?Math.hypot(entry.x-position.x,entry.z-position.z)-entry.objectRadius:0;
-   candidates.sort((a,b)=>distance(a)-distance(b));
+   const anticipating=limited&&Number.isFinite(lookahead?.x)&&Number.isFinite(lookahead?.z);
+   // Compute scores once, not repeatedly from sort comparisons. The forward
+   // corridor gets spare preparation time; the near guarantee uses the actual
+   // vehicle position regardless of the anticipated route or direction.
+   for(const entry of candidates){entry.distance=limited?Math.hypot(entry.x-position.x,entry.z-position.z)-entry.objectRadius:0;entry.priority=anticipating?Math.min(entry.distance,Math.hypot(entry.x-lookahead.x,entry.z-lookahead.z)-entry.objectRadius+8):entry.distance;}
+   candidates.sort((a,b)=>a.priority-b.priority);
    // The immediate zone is unconditional, including on a high-speed approach,
    // after rebasing and for geometry whose centre lies outside that zone.
-   for(const entry of candidates)if(!budgeted||!limited||distance(entry)<=this.immediateRadius){this.create(entry);changed=true;}
+   for(const entry of candidates)if(!budgeted||!limited||entry.distance<=this.immediateRadius){this.create(entry);changed=true;}
    const stop=performance.now()+this.budget;let installed=0;
    for(const entry of candidates){
     if(entry.collider)continue;

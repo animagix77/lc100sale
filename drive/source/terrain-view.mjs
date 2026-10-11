@@ -1,8 +1,9 @@
 import {groundSurface,groundNormal} from './ground-materials.mjs';
 import {canyonProfile} from './canyon.mjs';
 import * as THREE from 'three/webgpu';
-import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,cameraPosition} from 'three/tsl';
+import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,cameraPosition,normalWorldGeometry} from 'three/tsl';
 import {RAPIER} from './physics.mjs';
+import {terrainStreamPriority} from './stream-lookahead.mjs';
 import {baseHeight,shore,smooth,noise,surfaceAt,beachRuts} from './terrain.mjs';
 const SIZE=32,N=64;
 const meadow=new THREE.Color('#697c48'),snowColor=new THREE.Color('#dce7ef'),mudColor=new THREE.Color('#594b3b'),stone=new THREE.Color('#777f80');
@@ -36,11 +37,16 @@ export class TerrainView{
  const textureShade=mix(soilShade.mul(broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1))),float(1),compacted.mul(.65));
  const photographed=groundTextures?(()=>{
   const forest=groundSurface(groundTextures,'forest',{scale:.38}),gravel=groundSurface(groundTextures,'gravel',{scale:.55}),rock=groundSurface(groundTextures,'stone',{scale:.30,triplanar:true});
-  const noSnow=float(1).sub(surface.y),rockMask=detail.x.max(detail.z.mul(.65)).mul(noSnow).clamp(0,1),gravelMask=surface.x.mul(.85).add(detail.z).add(detail.y.mul(detail.w).mul(.65)).mul(noSnow).clamp(0,1),forestMask=detail.y.mul(noSnow).mul(float(1).sub(detail.x));
+  // Steep woodland shoulders expose bedrock while leaf litter gathers on flatter
+  // ground. Height-aware blends retain individual stones across material seams.
+  const noSnow=float(1).sub(surface.y),slopeRock=float(1).sub(smoothstep(.48,.82,normalWorldGeometry.y)).mul(detail.y).mul(float(1).sub(detail.w));
+  const rockMask=detail.x.max(detail.z.mul(.65)).max(slopeRock.mul(.85)).mul(noSnow).clamp(0,1),gravelMask=surface.x.mul(.85).add(detail.z).add(detail.y.mul(detail.w).mul(.65)).mul(noSnow).clamp(0,1),forestMask=detail.y.mul(noSnow).mul(float(1).sub(detail.x));
+  const blend=(weight,a,b)=>weight.add(b.sub(a).mul(weight).mul(weight.oneMinus()).mul(1.8)).clamp(0,1);
+  const gravelWeight=blend(gravelMask,forest.data.r,gravel.data.r),rockWeight=blend(rockMask,mix(forest.data.r,gravel.data.r,gravelWeight),rock.data.r);
   const coverage=forestMask.max(gravelMask).max(rockMask).mul(float(1).sub(surface.z.mul(.8))).clamp(0,1);
   const tint=mix(vec3(1),attribute('color','vec3').mul(3.5).clamp(.16,1.15),detail.x);
-  const albedo=mix(mix(forest.color,gravel.color,gravelMask),rock.color.mul(tint),rockMask);
-  const data=mix(mix(forest.data,gravel.data,gravelMask),rock.data,rockMask);
+  const albedo=mix(mix(forest.color,gravel.color,gravelWeight),rock.color.mul(tint),rockWeight);
+  const data=mix(mix(forest.data,gravel.data,gravelWeight),rock.data,rockWeight);
   const moisture=surface.x.mul(.50).add(detail.z.mul(.65)).add(damp.mul(.25)).clamp(0,1);
   return {coverage,albedo,data,moisture};
  })():null;
@@ -58,7 +64,9 @@ export class TerrainView{
  // Row-sized work units keep procedural terrain off the critical render frame.
  // Only the initial load and explicit teleports drain these synchronously.
  *geometryRows(tx,tz,n=N,size=SIZE,far=false){
-  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=new Float32Array(count),deformations=new Float32Array(count),oldRuts=new Float32Array(count),baseColors=new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
+  // The horizon never deforms. Avoid ~1.8MB of short-lived rut scratch buffers
+  // on every recenter; all rendered attributes remain identical.
+  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=far?null:new Float32Array(count),deformations=new Float32Array(count),oldRuts=far?null:new Float32Array(count),baseColors=far?null:new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
   // Near geometry used to evaluate the same procedural height five times per
   // vertex for slope tinting. Cache the padded half-metre grid once, yielding
   // each row, so collision-bearing tiles keep up with a 50-mph drive.
@@ -67,8 +75,8 @@ export class TerrainView{
   for(let j=0;j<=n;j++){
    for(let i=0;i<=n;i++){
     const k=j*(n+1)+i,k3=k*3,k4=k*4,x=tx+i*size/n,z=tz+j*size/n,base=gridHeights?gridHeights[(j+2)*stride+i+2]:baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
-    const worn=far?0:beachRuts(x,z);oldRuts[k]=worn;
-    ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;heights[k]=base;deformations[k]=deformation+worn;
+    const worn=far?0:beachRuts(x,z);if(oldRuts)oldRuts[k]=worn;
+    ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;if(heights)heights[k]=base;deformations[k]=deformation+worn;
     const d=x-shore(z);c.lerpColors(wet,dry,smooth(12,24,d));
     const sx=gridHeights?(gridHeights[(j+2)*stride+i+4]-gridHeights[(j+2)*stride+i])*.5:(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=gridHeights?(gridHeights[(j+4)*stride+i+2]-gridHeights[j*stride+i+2])*.5:(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
     c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
@@ -79,7 +87,7 @@ export class TerrainView{
     c.lerp(canyonStone,cliff*.96).lerp(canyonLayer,cliff*(.16+.25*smooth(-.3,.5,Math.sin(y*.6+noise(x*.06,z*.06)*3))));
     c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
     surfaces[k3]=surface.mud;surfaces[k3+1]=surface.snow;surfaces[k3+2]=surface.puddle;details[k4]=Math.max(surface.volcanic,cliff);details[k4+1]=surface.grass;details[k4+2]=surface.river;details[k4+3]=surface.trail;
-    c.multiplyScalar(rutShade(worn));baseColors[k3]=c.r;baseColors[k3+1]=c.g;baseColors[k3+2]=c.b;c.multiplyScalar(rutShade(deformation));colors[k3]=c.r;colors[k3+1]=c.g;colors[k3+2]=c.b;
+    c.multiplyScalar(rutShade(worn));if(baseColors){baseColors[k3]=c.r;baseColors[k3+1]=c.g;baseColors[k3+2]=c.b;}c.multiplyScalar(rutShade(deformation));colors[k3]=c.r;colors[k3+1]=c.g;colors[k3+2]=c.b;
     // Far shading uses face derivatives; an analytic normal avoids a whole-mesh
     // normal pass when the completed far buffer is swapped in.
     if(far){const inverse=1/Math.hypot(sx,1,sz);normals[k3]=-sx*inverse;normals[k3+1]=inverse;normals[k3+2]=-sz*inverse;}
@@ -138,7 +146,7 @@ export class TerrainView{
   for(const dx of [-4,4])for(const dz of [-4,4])if(!this.tiles.has(`${Math.floor((x+dx)/SIZE)},${Math.floor((z+dz)/SIZE)}`))ready=false;
   this.update(x,z,!ready);
  }
- update(x,z,force=false){
+ update(x,z,force=false,{lookahead=null}={}){
   this.focus={x,z};
   const cx=Math.floor(x/SIZE),cz=Math.floor(z/SIZE),key=`${cx},${cz}`,previous=this.center.split(',').map(Number),teleport=this.center&&(Math.abs(cx-previous[0])>2||Math.abs(cz-previous[1])>2);
   if(!this.center||force||teleport){
@@ -146,18 +154,22 @@ export class TerrainView{
    this.replaceFar(this.geometry((cx-18)*SIZE,(cz-18)*SIZE,296,1184,true),cx,cz);this.schedule(cx,cz);return;
   }
   if(key!==this.center){this.center=key;this.schedule(cx,cz);}
-  const priority=(tx,tz)=>Math.hypot((tx+.5)*SIZE-x,(tz+.5)*SIZE-z);
+  const priority=(tx,tz)=>terrainStreamPriority(tx,tz,x,z,lookahead);
   const stop=performance.now()+this.budget;let changed=false;
   // Promote one prebuilt tile at a time; even collider installation stays bounded.
   let cached=null;for(const k of this.needed){const t=this.cache.get(k);if(t&&!this.tiles.has(k)&&(!cached||priority(t.tx,t.tz)<priority(cached[1].tx,cached[1].tz)))cached=[k,t];}if(cached){this.activate(...cached);changed=true;}
   if(this.far.geometry.userData.grid&&!this.farJob&&(Math.abs(cx-this.farCenter.x)>=4||Math.abs(cz-this.farCenter.z)>=4))this.farJob={cx,cz,rows:this.geometryRows((cx-18)*SIZE,(cz-18)*SIZE,296,1184,true)};
+  // The selected job cannot change inside this frame: completing one tile
+  // already ends the slice. Score the queue once instead of rescanning it for
+  // every row of that tile.
+  let selected=null,selectedPriority=Infinity;for(const entry of this.pending){const job=entry[1],rank=priority(job.tx,job.tz);if(rank<selectedPriority){selected=entry;selectedPriority=rank;}}
+  const selectedDistance=selected?Math.hypot((selected[1].tx+.5)*SIZE-x,(selected[1].tz+.5)*SIZE-z):Infinity;
   let farAdvanced=false;
   while(performance.now()<stop){
-   let selected=null;for(const [k,job] of this.pending){if(!selected||priority(job.tx,job.tz)<priority(selected[1].tx,selected[1].tz))selected=[k,job];}
    // Once the driving neighbourhood is built, reserve one budgeted row for
    // the horizon. Waiting for the entire prefetch ring starved far terrain on
    // a continuous ascent, even though all nearby wheels already had ground.
-   if(this.farJob&&(!selected||!farAdvanced&&priority(selected[1].tx,selected[1].tz)>SIZE*1.5)){const result=this.farJob.rows.next();farAdvanced=true;if(result.done){const {cx,cz}=this.farJob;this.replaceFar(result.value,cx,cz);this.farJob=null;break;}}
+   if(this.farJob&&(!selected||!farAdvanced&&selectedDistance>SIZE*1.5)){const result=this.farJob.rows.next();farAdvanced=true;if(result.done){const {cx,cz}=this.farJob;this.replaceFar(result.value,cx,cz);this.farJob=null;break;}}
    else if(selected){const [k,job]=selected;job.rows??=this.geometryRows(job.tx*SIZE,job.tz*SIZE);const result=job.rows.next();if(result.done){this.pending.delete(k);this.cache.set(k,this.tile(job.tx,job.tz,result.value));break;}}
    else break;
   }

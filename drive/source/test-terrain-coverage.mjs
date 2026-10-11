@@ -4,6 +4,7 @@ import {DrivePhysics,RAPIER,wheelLayout} from './physics.mjs';
 import {SandField} from './terrain.mjs';
 import {TerrainView} from './terrain-view.mjs';
 import {LANDMARKS} from './expedition.mjs';
+import {streamLookahead} from './stream-lookahead.mjs';
 const field=new SandField(),p=await DrivePhysics.create(field),view=new TerrainView(new THREE.Scene(),p,field);
 const geometry=view.geometry.bind(view),infrastructureColliders=p.world.colliders.len();
 view.update(-14,0);view.geometry=()=>{throw new Error('Driving must not synchronously generate full visual tiles');};
@@ -21,8 +22,9 @@ function checkGround(x,z){
 // Previous tests streamed once per 120-Hz physics step and hid this starvation.
 for(let segment=0;segment<LANDMARKS.length-1;segment++){
  const a=LANDMARKS[segment],b=LANDMARKS[segment+1],frames=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/(22.35/20));
+ const velocity={x:(b.x-a.x)/frames*20,z:(b.z-a.z)/frames*20};
  for(let i=0;i<=frames;i++){
-  const x=a.x+(b.x-a.x)*i/frames,z=a.z+(b.z-a.z)*i/frames;view.update(x,z);
+  const x=a.x+(b.x-a.x)*i/frames,z=a.z+(b.z-a.z)*i/frames;view.update(x,z,false,{lookahead:streamLookahead({x,z},velocity)});
   if(Math.abs(x-p.origin.x)>512||Math.abs(z-p.origin.z)>512){p.rebase(Math.round((x-p.origin.x)/32)*32,Math.round((z-p.origin.z)/32)*32);view.rebase();}
   if(i%5===0)checkGround(x,z);
  }

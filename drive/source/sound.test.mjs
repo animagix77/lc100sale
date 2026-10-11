@@ -59,8 +59,9 @@ for(const threshold of [2.6,5]){const before=drivingMix({speed:threshold-.01,tyr
 assert.equal(drivingMix({speed:-3,tyres:[tyre]}).sand,drivingMix({speed:3,tyres:[tyre]}).sand);
 class Param{value=0;automation=[];setValueAtTime(v,time){this.value=v;this.automation.push({kind:'set',value:v,time})}linearRampToValueAtTime(v,time){this.value=v;this.automation.push({kind:'ramp',value:v,time})}setTargetAtTime(v,time,seconds){assert(Number.isFinite(v));this.value=v;this.automation.push({kind:'target',value:v,time,seconds})}}
 class Node{gain=new Param();frequency=new Param();Q=new Param();playbackRate=new Param();pan=new Param();threshold=new Param();knee=new Param();ratio=new Param();attack=new Param();release=new Param();connections=[];connect(node){this.connections.push(node);return node}disconnect(){this.disconnected=true}start(...args){this.started=true;this.startArgs=args}stop(time){this.stopped=true;this.stopTime=time}}
-let context,requests=0,contexts=0;const urls=[];
-globalThis.AudioContext=class{currentTime=0;sampleRate=48000;createBuffer(channels,length){const data=Array.from({length:channels},()=>new Float32Array(length));return {duration:length/this.sampleRate,numberOfChannels:channels,getChannelData:channel=>data[channel]}}destination=new Node();nodes=[];constructor(){context=this;contexts++}node(){const n=new Node();this.nodes.push(n);return n}createGain(){return this.node()}createDynamicsCompressor(){return this.node()}createBiquadFilter(){return this.node()}createOscillator(){return this.node()}createBufferSource(){return this.node()}createStereoPanner(){return this.node()}async resume(){}async decodeAudioData(data){return {duration:5,name:data.name}}async close(){this.closed=true}};
+let context,requests=0,contexts=0,resumes=0,offlineContexts=0,offlineBuffers=0;const urls=[];
+globalThis.AudioContext=class{currentTime=0;sampleRate=48000;createBuffer(channels,length){const data=Array.from({length:channels},()=>new Float32Array(length));return {duration:length/this.sampleRate,numberOfChannels:channels,getChannelData:channel=>data[channel]}}destination=new Node();nodes=[];constructor(){context=this;contexts++}node(){const n=new Node();this.nodes.push(n);return n}createGain(){return this.node()}createDynamicsCompressor(){return this.node()}createBiquadFilter(){return this.node()}createOscillator(){return this.node()}createBufferSource(){return this.node()}createStereoPanner(){return this.node()}async resume(){resumes++}async decodeAudioData(data){return {duration:5,name:data.name}}async close(){this.closed=true}};
+globalThis.OfflineAudioContext=class{sampleRate=48000;constructor(channels,length,rate){this.sampleRate=rate;offlineContexts++}createBuffer(...args){offlineBuffers++;return AudioContext.prototype.createBuffer.apply(this,args)}async decodeAudioData(data){return {duration:5,name:data.name}}};
 globalThis.fetch=async(url)=>{requests++;urls.push(url);return {ok:true,arrayBuffer:async()=>({name:url.match(/audio\/([^/]+)\.m4a/)[1]})}};
 class Events{
  handlers=new Map();
@@ -145,6 +146,41 @@ assert.equal(retry.button.textContent,'Retry sound');globalThis.fetch=realFetch;
 await retry.gestures.emit('keydown');assert.equal(retry.button.textContent,'Retry sound');
 await retry.button.click();assert.equal(retry.button.textContent,'Sound on');retrySound.dispose();
 console.log('Audio tests passed: default-on gesture unlock, concurrent activation, early/pending mute, pause, retry, cleanup, unchanged engine, continuous speed/depth water, entry splashes, live stereo rain, and bounded size/distance-aware volcanic landing thuds.');
+
+
+// Judge Dean LLC — preparation is silent, shared, bounded and complete before Start.
+{
+ const controlsBefore=controls(),preparedSound=createSound(controlsBefore.button,()=>{});
+ const beforeContexts=contexts,beforeResumes=resumes,beforeOffline=offlineContexts,beforeRequests=requests;
+ const [bank,sameBank]=await Promise.all([preparedSound.prepare(),preparedSound.prepare()]);
+ assert.equal(bank,sameBank,'Concurrent loading shares the exact prepared bank');assert.equal(offlineContexts,beforeOffline+1);assert.equal(requests,beforeRequests+6);
+ assert.equal(contexts,beforeContexts,'Preloading does not create an audible AudioContext');assert.equal(resumes,beforeResumes,'Preloading never attempts audio resume');
+ assert(bank.fire&&bank.river&&bank.volcano2&&bank.skid&&bank.wave2,'Recorded, contact, engine-environment banks are all ready');
+ await controlsBefore.gestures.emit('pointerdown');assert.equal(contexts,beforeContexts+1);assert.equal(requests,beforeRequests+6,'Gesture unlock never repeats downloads after preparation');
+ assert(context.nodes.some(n=>n.loop&&n.buffer===bank.river),'Playback consumes the prepared buffers');assert.equal(offlineContexts,beforeOffline+1,'No mid-drive PCM bank regeneration');preparedSound.dispose();
+}
+{
+ const beforeUnlock=controls(),silentSound=createSound(beforeUnlock.button,()=>{});
+ const beforeRequests=requests,beforeOffline=offlineContexts,beforeContexts=contexts;
+ const bank=await silentSound.prepare();await beforeUnlock.button.click();
+ assert.equal(beforeUnlock.button.textContent,'Sound off');assert.equal(contexts,beforeContexts,'Mute after preload still does not unlock playback');
+ await beforeUnlock.button.click();assert.equal(requests,beforeRequests+6,'Mute/unmute before first unlock retains successful downloads');
+ assert.equal(offlineContexts,beforeOffline+1,'Mute/unmute before first unlock retains synthesized PCM');assert(context.nodes.some(n=>n.loop&&n.buffer===bank.river),'First unmute plays the original prepared bank');silentSound.dispose();
+}
+{
+ const originalFetch=globalThis.fetch,loaders=[];let aborted=0;
+ globalThis.fetch=(_url,{signal})=>new Promise(resolve=>{loaders.push(resolve);signal.addEventListener('abort',()=>aborted++,{once:true});});
+ const slow=controls(),slowSound=createSound(slow.button,()=>{}),beforeContexts=contexts,beforeResumes=resumes,beforeBuffers=offlineBuffers;
+ const value=await slowSound.prepare({timeoutMs:10});assert.equal(value,null,'Optional sound preparation has a finite deadline');assert.equal(aborted,6,'Deadline aborts each pending request');assert.equal(contexts,beforeContexts);assert.equal(resumes,beforeResumes);
+ for(const resolve of loaders)resolve({ok:true,arrayBuffer:async()=>({name:'late'})});await new Promise(resolve=>setTimeout(resolve,0));assert.equal(offlineBuffers,beforeBuffers,'Late downloads cannot synthesize buffers during later gameplay');
+ globalThis.fetch=originalFetch;await slow.gestures.emit('keydown');assert.equal(slow.button.textContent,'Retry sound','Failed optional preparation waits for deliberate retry');await slow.button.click();assert.equal(slow.button.textContent,'Sound on');slowSound.dispose();
+}
+{
+ const originalFetch=globalThis.fetch;globalThis.fetch=()=>new Promise(()=>{});
+ const during=controls(),duringSound=createSound(during.button,()=>{}),pendingPrepare=duringSound.prepare({timeoutMs:5000});duringSound.dispose();assert.equal(await pendingPrepare,null,'Teardown resolves an in-flight preparation without waiting for its network timeout');globalThis.fetch=originalFetch;
+ assert.equal(await duringSound.prepare(),null,'Disposed sound cannot restart a preload');
+}
+console.log('Silent audio preparation tests passed: shared decoded/procedural banks, gesture-only resume, bounded timeout, late-result rejection, retry and teardown.');
 
 const grassy=Array.from({length:4},()=>({...tyre,grass:1}));
 assert(drivingMix({speed:3,tyres:grassy}).grass>.2);
