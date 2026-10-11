@@ -1,3 +1,11 @@
+## Menu music and entrances — October 10, 2026
+
+Judge Dean LLC. Driving pauses no longer suspend the radio. Pause, route/camp and map dialogs keep the current station playing at its existing position; vehicle effects and physics still pause. The radio owns page-visibility suspension and resumes the same station when the page returns, even with a menu open. Repeated visibility notifications do not replay or retune it; disposal removes the visibility listener. Power, volume and station controls retain their existing behavior.
+
+Pause, route/camp, map, radio, weather and tent-placement panels now enter with a 240ms opacity/10px upward ease; modal backdrops and the portrait Menu drawer fade in over 180ms. These CSS entrances animate compositor properties, leave controls immediately interactive and are disabled by reduced-motion preferences. Existing panel positioning and tip behavior are preserved.
+
+Radio, tuning, journey UI and keyboard suites pass, including visibility suspension/resumption and no-op repeat signals. Browser playback time advanced through pause, route and map dialogs without changing the media source; reopening the radio retained ON AIR. Checked normal and 390×844 phone-size layouts without captured warnings/errors. Evidence: `3d/lc100-cleanup/review/canyon-bridge/menu-flow-audio-checks.json`, `menu-flow-mobile.png`, `menu-flow-radio-mobile.png`. Production/review builds and authored whitespace/syntax checks pass. Cache marker `menu-flow-20261010-1`.
+
 ## Sun/cloud occlusion — October 10, 2026
 
 Judge Dean LLC. The sun disc no longer writes to the scene depth buffer, so distant transparent cloud banks can obscure it according to their alpha instead of leaving a solid circle in front. Clouds retain depth testing and terrain/trees still occlude the sky. No added passes, assets or instance counts.
