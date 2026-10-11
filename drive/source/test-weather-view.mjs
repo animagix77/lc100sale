@@ -26,6 +26,7 @@ for(const reduced of [false,true]){
  const stormFar=scene.fog.far;v.set({altitude:15,cloud:.2,wind:8,rain:0,snow:0,fog:false});v.update(1/60,camera,{x:0,y:0,z:0});assert(scene.fog.far-stormFar<2,'Weather clears gradually rather than popping');
  const meadow=LANDMARKS[5];apply(biomeWeather(meadow.x,meadow.z));assert(scene.fog.far<165&&scene.fog.near>12,'Dusk has a pronounced horizon veil with a clear steering zone');assert(light.intensity>hemi.intensity*1.1&&light.intensity<hemi.intensity*2.2,'Sky fill preserves readable shaded surfaces without flattening sunlit relief');assert(light.color.r>light.color.b&&hemi.color.b>hemi.color.r,'Meadow sunlight is warm against cool sky fill');
  for(const a of [-6.001,-5.999,13.999,14.001]){v.set({altitude:a,cloud:.2,wind:8,rain:0,snow:0,fog:false});if(a===-6.001||a===13.999)v.previousPalette=v.colors.top.clone();else assert(Math.max(...['r','g','b'].map(key=>Math.abs(v.colors.top[key]-v.previousPalette[key])))<.001,'Palette boundaries blend continuously');}
+ apply(biomeWeather(-195,-210));assert(scene.fog.far>380&&scene.fog.near>30,'Clear island weather reveals sandbars and the next island');assert.equal(v.state.rain,0);assert(biomeWeather(-421,-246).altitude<10,'The final island warms into sunset');
  apply({altitude:20,fog:true});assert(scene.fog.far<80&&scene.fog.near>8);
  v.dispose();assert(!scene.children.includes(v.precip));ocean.dispose();clouds.dispose();
 }

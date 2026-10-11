@@ -1,12 +1,14 @@
 import {waterExists,riverProfile,riverHeight,riverMouthBlend} from './expedition.mjs';
 import {shore,smooth,baseHeight} from './terrain.mjs';
+import {archipelagoRegion,islandWaveAttenuation,islandOceanBed} from './coastal-islands.mjs';
 // CPU counterpart to Ocean's displacement, for tire/water interaction positions.
 export function oceanHeight(x,z,time,scale=1){
  const d=x-shore(z),offshore=1-smooth(-25,2,d);
  const phase=d*.30-z*.025+Math.sin(z*.071)*1.2+Math.sin(z*.13)*.3-time*1.35;
  const swell=Math.sin(phase)*.36+Math.sin(d*.14+z*.046-time*.78)*.20;
  const cross=Math.sin(x*.41+z*.23-time*1.05)*.065;
- return -.18+((swell+cross)*offshore+Math.sin(time*.8-z*.026)*.075*(1-offshore))*scale;
+ const attenuation=archipelagoRegion(x,z)>0?islandWaveAttenuation(x,z,islandOceanBed(x,z,baseHeight)):1;
+ return -.18+((swell+cross)*offshore+Math.sin(time*.8-z*.026)*.075*(1-offshore))*scale*attenuation;
 }
 
 // Coastal tyre wakes must not excavate the foreshore. A smooth saturation
@@ -17,7 +19,7 @@ export function coastalWakeOffset(depth,wake){
  const d=Math.max(0,depth),limit=wake>=0?Math.min(COASTAL_WAKE_LIMITS.crest,d*COASTAL_WAKE_LIMITS.crestDepth):Math.min(COASTAL_WAKE_LIMITS.trough,d*COASTAL_WAKE_LIMITS.troughDepth);
  return limit>0?wake*limit/(limit+Math.abs(wake))*smooth(0,COASTAL_WAKE_LIMITS.edgeDepth,d):0;
 }
-export function coastalWaterHeight(x,z,time=0,scale=1,wake=0){const surface=oceanHeight(x,z,time,scale);return wake===0?surface:surface+coastalWakeOffset(surface-baseHeight(x,z),wake)}
+export function coastalWaterHeight(x,z,time=0,scale=1,wake=0){const surface=oceanHeight(x,z,time,scale);return wake===0?surface:surface+coastalWakeOffset(surface-(archipelagoRegion(x,z)>0?islandOceanBed(x,z,baseHeight):baseHeight(x,z)),wake)}
 
 // Shared gameplay counterpart of the river shader: wave energy tapers with
 // available depth, and troughs cannot pass through the shallow riverbed.
@@ -33,5 +35,5 @@ export function waterSurfaceHeight(x,z,time=0,scale=1,wake=0){
 export function surfaceProfile(mark,speed,ground,time,water=waterSurfaceHeight(mark.x,mark.z,time)){
  const activity=Math.abs(speed)+Math.max(0,mark.slip);
  const wet=waterExists(mark.x,mark.z)&&water>ground+.025;
- return {wet,water,activity,emit:activity>.35,dust:!wet&&mark.x-shore(mark.z)>10};
+ return {wet,water,activity,emit:activity>.35,dust:!wet&&(mark.x-shore(mark.z)>10||(ground>.05&&archipelagoRegion(mark.x,mark.z)>0))};
 }

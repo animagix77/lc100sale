@@ -1,22 +1,26 @@
-import {LANDMARKS,ROUTE_FORKS} from './expedition.mjs';
+import {LANDMARKS,ROUTE_FORKS,LEGACY_SHELF,CAMP,COASTAL_LANDMARKS,COASTAL_CAMP} from './expedition.mjs';
 export const GATE_HALF_WIDTH=8;
 export const WAYPOINT_COUNT=LANDMARKS.length-1;
 export function waypoint(index){const leg=Math.min(index+1,WAYPOINT_COUNT),p=LANDMARKS[leg],before=LANDMARKS[leg-1],after=LANDMARKS[Math.min(leg+1,WAYPOINT_COUNT)],dx=after.x-before.x,dz=after.z-before.z,length=Math.hypot(dx,dz);return {...p,index,leg,dx:dx/length,dz:dz/length}}
 export class WaypointRoute{
  constructor(){this.next=0;this.previous=null;this.passed=0;this.choices={};this.revision=0;}
- get count(){return WAYPOINT_COUNT}
+ get coastal(){return this.choices.dunes==='islands'}
+ get count(){return this.coastal?COASTAL_LANDMARKS.length-1:WAYPOINT_COUNT}
+ get camp(){return this.coastal?COASTAL_CAMP:CAMP}
+ get forks(){return this.coastal?ROUTE_FORKS.slice(0,1):ROUTE_FORKS}
  get complete(){return this.next>=this.count}
- get points(){return LANDMARKS.map((p,i)=>{for(const f of ROUTE_FORKS){const o=f.options.find(o=>o.id===this.choices[f.id]);if(o?.replacements[i])return {...o.replacements[i],index:i}}return p})}
- fork(){return ROUTE_FORKS.find(f=>this.next===f.at&&!this.choices[f.id])||null}
- choose(id,option){const f=ROUTE_FORKS.find(f=>f.id===id);if(!f||this.next>f.at||!f.options.some(o=>o.id===option))return false;this.choices[id]=option;this.revision++;this.resetTracking();return true}
+ get points(){if(this.coastal)return COASTAL_LANDMARKS;return LANDMARKS.map((p,i)=>{if(this.choices.dunes==='shelf'&&LEGACY_SHELF.replacements[i])return {...LEGACY_SHELF.replacements[i],index:i};for(const f of ROUTE_FORKS){const o=f.options.find(o=>o.id===this.choices[f.id]);if(o?.replacements[i])return {...o.replacements[i],index:i}}return p})}
+ fork(){return this.forks.find(f=>this.next===f.at&&!this.choices[f.id])||null}
+ choose(id,option){const f=this.forks.find(f=>f.id===id),legacy=id==='dunes'&&option==='shelf';if(!f||this.next>(legacy?2:f.at)||(!legacy&&!f.options.some(o=>o.id===option)))return false;this.choices[id]=option;if(this.coastal)delete this.choices.return;this.revision++;this.resetTracking();return true}
  snapshot(){return {version:2,next:this.next,choices:{...this.choices}}}
  restore(data){
   if(![1,2].includes(data?.version)||!Number.isInteger(data.next)||data.next<0)return false;
   // Version 1 predates the three canyon gates. Preserve the reached landmark,
   // route choices and completed camp saves; never reinterpret an old index.
-  if(data.next>(data.version===1?this.count-3:this.count))return false;
+  const coastal=data.choices?.dunes==='islands',count=coastal?COASTAL_LANDMARKS.length-1:WAYPOINT_COUNT;
+  if(coastal&&(data.version!==2||data.choices?.return)||data.next>(data.version===1?count-3:count))return false;
   const next=data.version===1&&data.next>=17?data.next+3:data.next;
-  for(const f of ROUTE_FORKS){if(data.choices?.[f.id]&&!f.options.some(o=>o.id===data.choices[f.id]))return false;if(next>f.at&&!data.choices?.[f.id])return false}
+  for(const f of coastal?ROUTE_FORKS.slice(0,1):ROUTE_FORKS){const choice=data.choices?.[f.id],legacy=f.id==='dunes'&&choice==='shelf';if(choice&&!legacy&&!f.options.some(o=>o.id===choice))return false;if(next>(f.id==='dunes'&&!coastal?2:f.at)&&!choice)return false}
   this.next=this.passed=next;this.choices={...data.choices};this.previous=null;this.revision++;return true;
  }
  resetTracking(position=null){this.previous=position?{...position}:null}
@@ -31,6 +35,9 @@ export class WaypointRoute{
   const x=a.x+dx*u,z=a.z+dz*u,y=a.y+(b.y-a.y)*u;
   if(Math.hypot(x-t.x,z-t.z)>(t.gateRadius??GATE_HALF_WIDTH+1)||y-groundHeight>3.5||y-groundHeight<-.5)return false;
   const fork=this.fork();if(fork)this.choices[fork.id]=fork.options[0].id;
+  // Old saves could stop at the former second-gate fork with no choice yet.
+  // Continue their mainland line without reinterpreting a reached checkpoint.
+  if(!this.choices.dunes&&this.next>=1)this.choices.dunes='saddle';
   this.next++;this.passed++;return true;
  }
  guidance(position,heading){const t=this.target(),dx=t.x-position.x,dz=t.z-position.z,desired=Math.atan2(-dx,-dz);return {distance:Math.hypot(dx,dz),angle:Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading))}}

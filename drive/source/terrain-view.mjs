@@ -16,13 +16,18 @@ function rutShade(offset){return offset<0?1-Math.min(.44,-offset*1.6):1+Math.min
 export class TerrainView{
  constructor(scene,physics,field,{groundTextures=null}={}){this.groundTextures=groundTextures;this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.rutQueue=[];this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;this.focus={x:0,z:0};this.safetyGround=null;
  const world=positionWorld.xz.add(this.origin),z=world.y;
- const coast=float(-36).add(sin(z.mul(.006)).mul(8)).add(sin(z.mul(.019)).mul(3)),d=world.x.sub(coast);
+ const coast=float(-36).add(sin(z.mul(.006)).mul(8)).add(sin(z.mul(.019)).mul(3)),islandCoast=attribute('islandCoast','vec2'),d=mix(world.x.sub(coast),islandCoast.y.mul(25),islandCoast.x);
  // Same wash phase as the surf. Persistent damp sand remains after the water retreats.
  const front=sin(this.clock.mul(.8).sub(z.mul(.026)).add(sin(z.mul(.16)).mul(.22))).mul(4.8).add(1).add(sin(z.mul(.46).add(this.clock.mul(.35))).mul(.42));
  const fresh=float(1).sub(smoothstep(front.add(7),front.add(11),d));
  const damp=float(1).sub(smoothstep(12,22,d));
  const detail=attribute('terrainDetail','vec4'),surface=attribute('surface','vec3'),compacted=smoothstep(.025,.16,attribute('deformation','float').negate());
  const close=float(1).sub(smoothstep(55,140,cameraPosition.distance(positionWorld)));
+ const islandSand=islandCoast.x.mul(float(1).sub(detail.x.max(detail.y).clamp(0,1)));
+ // Granular wet sand darkens but does not become a polished sheet. The old
+ // mainland dampness curve made the island banks/seabed ~0.28 roughness and
+ // stretched a single specular highlight across long, low-detail shore faces.
+ const islandSandRoughness=mix(float(.78),float(.96),islandCoast.y).add(float(1).sub(close).mul(.03)).min(.99);
  const broad=mx_noise_float(vec3(world.x.mul(.12),positionWorld.y.mul(.18),world.y.mul(.12)));
  const grain=mx_noise_float(vec3(world.x.mul(2.8),positionWorld.y.mul(1.3),world.y.mul(2.8)));
  const layers=sin(positionWorld.y.mul(.85).add(broad.mul(8))).mul(.5).add(.5);
@@ -66,7 +71,7 @@ export class TerrainView{
    const dryRoughness=data.g.mul(.42).add(.55),wetRoughness=mix(float(.16),float(.32),raised);
    mat.roughnessNode=mix(mat.roughnessNode,mix(dryRoughness,wetRoughness,wetness).mul(mix(float(1),float(.84),worn)).clamp(.12,1),coverage);
    mat.aoNode=mix(float(1),data.b.mul(mix(float(.84),float(1),raised)),coverage.mul(.60));
-  }if(!flat){
+  }mat.roughnessNode=mat.roughnessNode.max(islandSandRoughness.mul(islandSand));if(!flat){
    let relief=grain.mul(.022).add(clumps.mul(.012).add(grit.mul(.0025).mul(fineFade)).mul(soil)).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z)).mul(mix(float(1),float(.25),compacted));
    if(photographed){
     const {data,coverage,rockWeight,worn}=photographed;
@@ -82,7 +87,7 @@ export class TerrainView{
  *geometryRows(tx,tz,n=N,size=SIZE,far=false){
   // The horizon never deforms. Avoid ~1.8MB of short-lived rut scratch buffers
   // on every recenter; all rendered attributes remain identical.
-  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=far?null:new Float32Array(count),deformations=new Float32Array(count),oldRuts=far?null:new Float32Array(count),baseColors=far?null:new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
+  const count=(n+1)**2,ps=new Float32Array(count*3),colors=new Float32Array(count*3),idx=new Uint32Array(n*n*6),heights=far?null:new Float32Array(count),deformations=new Float32Array(count),oldRuts=far?null:new Float32Array(count),baseColors=far?null:new Float32Array(count*3),surfaces=new Float32Array(count*3),details=new Float32Array(count*4),islandCoasts=new Float32Array(count*2),normals=far?new Float32Array(count*3):null,offset={...this.p.origin},c=new THREE.Color();
   // Near geometry used to evaluate the same procedural height five times per
   // vertex for slope tinting. Cache the padded half-metre grid once, yielding
   // each row, so collision-bearing tiles keep up with a 50-mph drive.
@@ -93,13 +98,14 @@ export class TerrainView{
     const k=j*(n+1)+i,k3=k*3,k4=k*4,x=tx+i*size/n,z=tz+j*size/n,base=gridHeights?gridHeights[(j+2)*stride+i+2]:baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
     const worn=far?0:beachRuts(x,z);if(oldRuts)oldRuts[k]=worn;
     ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;if(heights)heights[k]=base;deformations[k]=deformation+worn;
-    const d=x-shore(z);c.lerpColors(wet,dry,smooth(12,24,d));
+    const surface=surfaceAt(x,z),island=surface.island??0,beachDry=surface.beachDry??0,d=(x-shore(z))*(1-island)+25*beachDry*island;c.lerpColors(wet,dry,smooth(12,24,d));
+    islandCoasts[k*2]=island;islandCoasts[k*2+1]=beachDry;
     const sx=gridHeights?(gridHeights[(j+2)*stride+i+4]-gridHeights[(j+2)*stride+i])*.5:(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=gridHeights?(gridHeights[(j+4)*stride+i+2]-gridHeights[j*stride+i+2])*.5:(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
     c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);
-    c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));const surface=surfaceAt(x,z);c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6).lerp(basalt,surface.volcanic*.97).lerp(trailStone,surface.volcanic*surface.trail*.45);// Brown alluvial soil and exposed gravel continue up both banks; no green carpet in the ford.
+    c.lerp(crest,Math.min(.14,Math.max(0,y)*.008));c.lerp(meadow,surface.grass*.92).lerp(mudColor,surface.mud*.95).lerp(snowColor,surface.snow*.99).lerp(stone,surface.river*.60).lerp(wet,surface.puddle*.6).lerp(basalt,surface.volcanic*.97).lerp(trailStone,surface.volcanic*surface.trail*.45);// Brown alluvial soil and exposed gravel continue up both banks; no green carpet in the ford.
     c.lerp(mudColor,surface.grass*surface.trail*.30);
     c.lerp(riverSoil,surface.riverApproach*(1-surface.river)*.88).lerp(riverGravel,surface.riverApproach*(.14+.22*noise(x*1.3,z*1.3)));
-    const gorge=canyonProfile(x,z),cliff=Math.max(surface.canyonRock*.62,gorge.length*gorge.influence*smooth(.45,1.5,Math.hypot(sx,sz)));
+    const gorge=canyonProfile(x,z),cliff=Math.max(surface.coastalRock??0,surface.canyonRock*.62,gorge.length*gorge.influence*smooth(.45,1.5,Math.hypot(sx,sz)));
     c.lerp(canyonStone,cliff*.96).lerp(canyonLayer,cliff*(.16+.25*smooth(-.3,.5,Math.sin(y*.6+noise(x*.06,z*.06)*3))));
     c.multiplyScalar(.97+noise(x*.28,z*.28)*.06);
     surfaces[k3]=surface.mud;surfaces[k3+1]=surface.snow;surfaces[k3+2]=surface.puddle;details[k4]=Math.max(surface.volcanic,cliff);details[k4+1]=surface.grass;details[k4+2]=surface.river;details[k4+3]=surface.trail;
@@ -111,7 +117,7 @@ export class TerrainView{
    }
    yield;
   }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(ps,3));g.setAttribute('color',new THREE.BufferAttribute(colors,3));g.setAttribute('surface',new THREE.BufferAttribute(surfaces,3));g.setAttribute('terrainDetail',new THREE.BufferAttribute(details,4));g.setAttribute('deformation',new THREE.BufferAttribute(deformations,1));g.setIndex(new THREE.BufferAttribute(idx,1));
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(ps,3));g.setAttribute('color',new THREE.BufferAttribute(colors,3));g.setAttribute('surface',new THREE.BufferAttribute(surfaces,3));g.setAttribute('terrainDetail',new THREE.BufferAttribute(details,4));g.setAttribute('islandCoast',new THREE.BufferAttribute(islandCoasts,2));g.setAttribute('deformation',new THREE.BufferAttribute(deformations,1));g.setIndex(new THREE.BufferAttribute(idx,1));
   if(far)g.setAttribute('normal',new THREE.BufferAttribute(normals,3));else{g.computeVertexNormals();g.userData.baseHeights=heights;g.userData.baseColors=baseColors;g.userData.oldRuts=oldRuts;}
   g.userData.origin=offset;g.userData.grid={tx,tz,n,size};g.computeBoundingSphere();return g;
  }

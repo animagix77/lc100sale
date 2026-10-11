@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {LANDMARKS} from './expedition.mjs';
+import {COASTAL_LANDMARKS,ISLANDS,SANDBARS,COASTAL_CAMP} from './coastal-islands.mjs';
 import {WaypointRoute,WAYPOINT_COUNT} from './waypoints.mjs';
 import {ExpeditionMap,createMapViewport,projectMapPoint,clampMapMarker,mapHeadingVector,getMapProgress,layoutOverviewGates} from './expedition-map.mjs';
 
@@ -105,3 +106,45 @@ assert(roundCanvas.calls.some(([name])=>name==='clip'),'Round overview clips sce
 assert.equal(roundCanvas.calls.filter(([name])=>name==='fillText').length,1,'Tiny map avoids cluttered gate and region labels');
 assert(fullCanvas.calls.filter(([name,text])=>name==='fillText'&&/^\d+$/.test(text)).length===WAYPOINT_COUNT,'Expanded map retains all numbered gates');
 console.log('Portrait map: full-route circular fit, off-route bearing, restrained labels and detailed expanded map passed.');
+
+// The islands are a complete, shorter expedition. The map must neither keep
+// the mainland's count nor fit its remote volcano into the coastal viewport.
+const islandRoute=new WaypointRoute();assert(islandRoute.choose('dunes','islands'));
+assert.equal(islandRoute.count,COASTAL_LANDMARKS.length-1);
+const islandNames=[...ISLANDS.map(p=>p.name.toUpperCase()),'OLD BARGE'];
+const mapExtents=[...COASTAL_LANDMARKS,...ISLANDS.flatMap(p=>[{x:p.x-p.rx,z:p.z-p.rz},{x:p.x+p.rx,z:p.z+p.rz}]),...SANDBARS.flatMap(b=>b.points)];
+for(const [width,height] of [[350,642],[320,410],[640,500],[760,220]]){
+ const full=fakeCanvas(width,height),mini=fakeCanvas(220,180),map=new ExpeditionMap(mini,{overviewCanvas:full,compact:()=>false});
+ const opts={overview:true,coastal:true,points:islandRoute.points},viewport=createMapViewport(position,target,width,height,opts);
+ assert.deepEqual(createMapViewport(remote,position,width,height,opts),viewport,'Island overview remains fixed during exploration');
+ for(const point of mapExtents){const p=projectMapPoint(point,viewport);assert(p.x>18&&p.x<width-18&&p.y>18&&p.y<height-18,'Route, island shores and all sandbars fit the coastal overview');}
+ const coastalStart=projectMapPoint(COASTAL_LANDMARKS[0],viewport),coastalEnd=projectMapPoint(COASTAL_CAMP,viewport);
+ if(width===350)assert(Math.abs(coastalStart.x-coastalEnd.x)>width*.65,'Phone overview gives the selected coastal itinerary useful screen space');
+ for(let completed=0;completed<=islandRoute.count;completed++){
+  islandRoute.next=islandRoute.passed=completed;full.calls.length=mini.calls.length=0;
+  const checkpoint=islandRoute.checkpoint();assert(map.draw(checkpoint,0,islandRoute,{overview:true,force:true}));
+  const progress=getMapProgress(islandRoute);assert.equal(progress.completed,completed);assert.equal(progress.nextLeg,Math.min(completed+1,islandRoute.count));
+  const numbers=full.calls.filter(([name,text])=>name==='fillText'&&/^\d+$/.test(text)),labels=full.calls.filter(([name,text])=>name==='fillText'&&islandNames.includes(text));
+  assert.equal(numbers.length,islandRoute.count,'Every coastal gate appears exactly once, including the camp at completion');assert.equal(new Set(numbers.map(p=>p[1])).size,islandRoute.count);
+  assert.equal(labels.length,islandNames.length,'Island and wreck names replace mountain regions');
+  assert(!full.calls.some(([name,text])=>name==='fillText'&&['MUD','SNOW','VOLCANIC RIDGE','CANYON'].includes(text)),'Bypassed regions do not clutter the selected itinerary');
+  assert(!full.calls.some(([name,pattern])=>name==='setLineDash'&&pattern?.length),'Coastal map does not imply a later mountain fork');
+  for(const canvas of [mini,full])for(const call of canvas.calls)for(const value of call.slice(1))if(typeof value==='number')assert(Number.isFinite(value),'No shorter-route lookup passes undefined/NaN coordinates to the canvas');
+  for(let i=0;i<numbers.length;i++)for(let j=i+1;j<numbers.length;j++){
+   const [,a,ax,ay]=numbers[i],[,b,bx,by]=numbers[j],radiusA=Number(a)===progress.nextLeg?14:9.5,radiusB=Number(b)===progress.nextLeg?14:9.5;
+   assert(Math.hypot(ax-bx,ay-by)>radiusA+radiusB,`${width}px coastal: gate ${a} clears gate ${b}`);
+  }
+  for(const [,number,x,y] of numbers)for(const [,name,lx,ly] of labels){
+   const halfWidth=name.length*3+4,nearX=Math.max(lx-halfWidth,Math.min(lx+halfWidth,x)),nearY=Math.max(ly-8,Math.min(ly+8,y));
+   assert(Math.hypot(x-nearX,y-nearY)>(Number(number)===progress.nextLeg?14:9.5),`${width}px coastal: gate ${number} clears ${name}`);
+  }
+ }
+}
+for(const size of [96,108,120]){
+ const opts={compact:true,coastal:true,points:islandRoute.points},viewport=createMapViewport(position,target,size,size,opts);
+ for(const point of mapExtents){const p=projectMapPoint(point,viewport);assert(Math.hypot(p.x-size/2,p.y-size/2)<=size/2-15,'Islands and sandbars fit inside the round mobile map');}
+ const canvas=fakeCanvas(size,size),map=new ExpeditionMap(canvas,{compact:()=>true});
+ assert(map.draw(COASTAL_CAMP,0,islandRoute,{force:true}));assert.equal(canvas.calls.filter(([name])=>name==='fillText').length,1,'Round coastal map keeps only north text');
+}
+assert.equal(islandRoute.target().name,COASTAL_CAMP.name);assert.equal(getMapProgress(islandRoute).nextLeg,islandRoute.count,'Completed island trip never advances to a nonexistent mainland gate');
+console.log('Coastal map: route-specific bounds/counts, three islands, exposed sandbars, wreck, uncluttered region labels, all checkpoints and completed camp passed in phone/tablet/desktop layouts.');

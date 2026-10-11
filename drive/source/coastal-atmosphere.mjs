@@ -46,7 +46,7 @@ export class CoastalAtmosphere{
   let mistVisible=false;
   for(let i=0;i<this.mistCount;i++){
    const cell=this.mistCells[i],distance=Math.hypot(cell.x-p.x,cell.z-p.z),edge=smooth(12,25,distance)*(1-smooth(56,78,distance));
-   const alpha=cell.habitat*edge*(.35+wet*.17+(weather.fog?.14:0))*(night?.88:1);
+   const alpha=cell.habitat*edge*(.35+wet*.17+(weather.fog?.14:0))*(night?.88:1)*(1-(weather.archipelago||0)*.72);
    this.mistAlpha.setX(i,alpha);if(alpha>.001)mistVisible=true;
    d.position.set(cell.x-origin.x,cell.y,cell.z-origin.z);d.quaternion.copy(camera.quaternion);d.scale.set(cell.width,cell.height,1);d.updateMatrix();this.inlandMist.setMatrixAt(i,d.matrix);
   }

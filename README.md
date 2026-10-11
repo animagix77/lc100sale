@@ -24,6 +24,16 @@ The local poll expects its separate backend at `127.0.0.1:8767`; it is not inclu
 
 Follow [the LC100 design system](drive/DESIGN-SYSTEM.md) for shared colors, control states, spacing, motion and accessibility. The game and sale page use the authored `drive/ui-icons.svg` family; do not use emoji, system icons, icon fonts or Unicode pictograms as controls. Prefer clear labels, and keep “Skip intro” text only.
 
+## Expedition routes
+
+The current development build starts with two itineraries. **Mountain expedition** keeps the rocky fords, snow, volcano and suspension bridge, then returns to Sunset camp. **Coastal islands** follows ten beach checkpoints through three palm islands, exposed low-tide sandbars and a grounded salvage barge, finishing at Island sunset camp. Its crossings remain open while exploring; there is no tide countdown.
+
+Island scenery and bathymetry are prepared during loading. Rendered and physical ground share the same height field; water reads the same shallow shelves through a static bathymetry texture, independently of distant water mesh detail. Palms, rocks, driftwood and the barge feed the budgeted collision streamer. This remains a game simulation with raycast tyres and terrain deformation, not a calibrated vehicle or tidal model.
+
+Existing saved Coastal shelf detours keep their original mainland itinerary. The persistence key and version-1 canyon migration are unchanged; new island saves use the separate `islands` route choice. Map bounds, progress, recovery checkpoints, shelter placement, fire and camp camera follow the selected itinerary. The owner is building the LC100 in Blender; the existing truck asset remains unchanged.
+
+`npm test` includes a complete real-physics coastal drive in 4HI with the center differential unlocked, alongside the existing mountain drive in 4LO. The local `.review-dirt/` tools are isolated from player saves and excluded from publishing. This coastal feature has not been deployed yet.
+
 ## Photos and vehicle tour
 
 - `assets/gallery/` contains presentation edits and corresponding source photos, including camping images and unretouched mechanic photos. The current lightbox shows an image, title and caption; it has no original-versus-edited comparison toggle. Source photos remain the reference for condition; camping accessories in historical photos are excluded unless explicitly listed.

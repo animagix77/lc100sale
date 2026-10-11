@@ -28,3 +28,6 @@ export function beachRecoveryPose(position,heightAt){
  const x=shore(z)+19,start={x,z,name:'Dry sand'},target={x:shore(z-40)+19,z:z-40};
  return checkpointPose({checkpoint:()=>start,target:()=>target},heightAt);
 }
+// A flooded island expedition returns to its own last dry flag, not the
+// mainland shoreline. Preserve the original beach rescue for other drives.
+export function expeditionRecoveryPose(position,heightAt,route){return route?.coastal?checkpointPose(route,heightAt):beachRecoveryPose(position,heightAt)}

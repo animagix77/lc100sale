@@ -11,10 +11,10 @@ export class BeachObstacles {
   // trees and long logs. The near guarantee is checked again on EVERY frame,
   // even while the scenery cell is unchanged or an outer queue is unfinished.
   const cx=limited?Math.floor(position.x/8):0,cz=limited?Math.floor(position.z/8):0,centerX=cx*8+4,centerZ=cz*8+4,rangeKey=limited?cx+','+cz:'all';
-  const key=life.key+'|'+(life.ridgeRocks?.userData.detailKey||'')+'|'+(life.ridgeScree?.userData.detailKey||'')+'|'+(life.lavaRocks?.userData.detailKey||'')+'|'+(life.canyonRocks?.uuid||'')+'|'+origin.x+','+origin.z+'|'+rangeKey;let changed=false;
+  const key=life.key+'|'+(life.ridgeRocks?.userData.detailKey||'')+'|'+(life.ridgeScree?.userData.detailKey||'')+'|'+(life.lavaRocks?.userData.detailKey||'')+'|'+(life.canyonRocks?.uuid||'')+'|'+(life.extraObstacles||[]).map(m=>m.uuid+':'+(m.userData.detailKey||'')).join('|')+'|'+origin.x+','+origin.z+'|'+rangeKey;let changed=false;
   if(this.key!==key){
    this.key=key;changed=true;const active=new Set();
-   for(const mesh of [life.logs,life.rocks,life.trunks,life.ridgeRocks,life.ridgeScree,life.lavaRocks,life.canyonRocks].filter(Boolean)){
+   for(const mesh of [life.logs,life.rocks,life.trunks,life.ridgeRocks,life.ridgeScree,life.lavaRocks,life.canyonRocks,...(life.extraObstacles||[])].filter(Boolean)){
     active.add(mesh);const sourceKey=mesh.userData.detailKey||life.key,groupKey=sourceKey+'|'+origin.x+','+origin.z+'|'+rangeKey;
     let group=this.groups.get(mesh);if(group?.key===groupKey)continue;
     const g=mesh.geometry,a=g.attributes.position,indexVersion=g.index?.version||0;
@@ -23,7 +23,7 @@ export class BeachObstacles {
      g.computeBoundingSphere();
      geometry={radius:g.boundingSphere.radius+g.boundingSphere.center.length(),position:a,version:a.version,index:g.index,indexVersion,indices:g.index?new Uint32Array(g.index.array):Uint32Array.from({length:a.count},(_,i)=>i)};this.geometryCache.set(g,geometry);
     }
-    const previous=group?.geometry===geometry?group.buckets:new Map(),remaining=new Set(group?.entries||[]),entries=[],buckets=new Map(),kind=mesh===life.logs||mesh===life.trunks?'wood':'rock';
+    const previous=group?.geometry===geometry?group.buckets:new Map(),remaining=new Set(group?.entries||[]),entries=[],buckets=new Map(),kind=mesh.userData.obstacleKind||(mesh===life.logs||mesh===life.trunks?'wood':'rock');
     for(let i=0;i<mesh.count;i++){
      mesh.getMatrixAt(i,this.matrix);if(mesh.userData.worldCoordinates){this.matrix.elements[12]-=origin.x;this.matrix.elements[14]-=origin.z;}const e=this.matrix.elements,x=e[12]+origin.x,y=e[13],z=e[14]+origin.z,scale=Math.max(Math.hypot(e[0],e[1],e[2]),Math.hypot(e[4],e[5],e[6]),Math.hypot(e[8],e[9],e[10])),objectRadius=geometry.radius*scale;
      if(limited){const reach=this.radius+Math.SQRT2*4+objectRadius;if((x-centerX)**2+(z-centerZ)**2>reach*reach)continue}

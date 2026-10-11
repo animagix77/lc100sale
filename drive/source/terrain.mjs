@@ -2,6 +2,7 @@ import {puddleCut,puddleDampness} from './mud-puddles.mjs';
 import {lavaCrossingProfile} from './lava-crossing.mjs';
 import {canyonHeight,canyonFirmness,canyonRockMask,canyonRiverProfile} from './canyon.mjs';
 import {routeSample,riverDistance,riverWidth,riverProfile,riverApproach,volcanoRelief,riverGreenery,VOLCANO,CAMP} from './expedition.mjs';
+import {islandProfile,islandTerrainHeight} from './coastal-islands.mjs';
 // Deterministic infinite coastline. World coordinates remain stable as render tiles recycle.
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
@@ -98,8 +99,13 @@ function undisturbedHeight(x,z){
  return original+(target-original)*profile.influence;
 }
 // The same shallow basin is sampled by render geometry, tyres and colliders.
-export function baseHeight(x,z){const h=canyonHeight(x,z,undisturbedHeight(x,z)-puddleCut(x,z)+beachRuts(x,z)),pad=1-smooth(15,27,Math.hypot(x-CAMP.x,z-CAMP.z));return h+(CAMP.height-h)*pad;}
+export function baseHeight(x,z){const h=canyonHeight(x,z,undisturbedHeight(x,z)-puddleCut(x,z)+beachRuts(x,z)),pad=1-smooth(15,27,Math.hypot(x-CAMP.x,z-CAMP.z));return islandTerrainHeight(x,z,h+(CAMP.height-h)*pad);}
 export function surfaceAt(x,z){
+ const island=islandProfile(x,z);
+ if(island.influence>0){
+  const {grass,rock,trail,beachDry}=island,soft=(.22+.31*(1-trail))*(1-rock)*(.55+.45*island.land);
+  return {island:island.influence,beachDry,coastalRock:rock,canyonRock:0,canyonRiver:0,riverApproach:0,biome:grass>.22?'dunes':'beach',snow:0,mud:0,grass,trail,volcanic:0,river:0,puddle:0,soft,grip:1-rock*.04};
+ }
  const d=x-shore(z),r=routeSample(x,z),inland=smooth(25,70,d)*(1-smooth(110,210,r.distance));
  const w=r.weights,profile=riverProfile(x,z),river=profile.wet,approach=riverApproach(x,z,r,profile);
  const rock=canyonRockMask(x,z),firm=Math.max(canyonFirmness(x,z),rock),snow=w.snow*inland*(1-firm),mud=Math.max(w.mud*inland,approach*.72*(1-river))*(1-firm);
@@ -150,7 +156,7 @@ export class SandField{
  stampSand(x,z,load,travel,slip,heading,soft){
   // Firm beach still yields to a 2.5-tonne truck. Deformation is independent
   // of drivetrain softness, so readable ruts do not add artificial drag.
-  const exposed=smooth(4,15,x-shore(z)),spin=smooth(.35,2,slip),energy=clamp(travel/.17,.1,2.5),pressure=clamp(load,.25,1.7);
+  const island=islandProfile(x,z),exposed=Math.max(smooth(4,15,x-shore(z)),island.beachDry*island.influence),spin=smooth(.35,2,slip),energy=clamp(travel/.17,.1,2.5),pressure=clamp(load,.25,1.7);
   const cut=(.036+.030*soft)*exposed*pressure*energy*(1+soft*Math.min(3,slip)*.5);
   const cap=(.14+.14*soft+(.04+.52*soft)*spin)*(.35+.65*exposed),rimCap=(.085+.075*soft+.055*spin)*exposed;
   const ix=Math.round(x*2),iz=Math.round(z*2),cs=Math.cos(heading),sn=Math.sin(heading),shoulders=[],sideWeights=[0,0];let removed=0;

@@ -35,6 +35,9 @@ export class WeatherView{
   // Local lava vapor provides the near haze; retain the mountain's distant relief.
   const volcanic=clamp(state.volcanic||0,0,1);this.fogFar+=volcanic*210;this.fogNear+=volcanic*18;
   const canyon=clamp(state.canyon||0,0,1);this.fogFar+=canyon*390;this.fogNear+=canyon*18;
+  // Sea air keeps the next island and its exposed crossing legible. The
+  // existing weather haze still closes in if a manual storm is selected.
+  const archipelago=clamp(state.archipelago||0,0,1);this.fogFar+=archipelago*260*(1-weatherVeil);this.fogNear+=archipelago*16*(1-weatherVeil);
   // Broad sky illumination lifts shaded rock without flattening its normals.
   this.lightTarget=(2.65-c*1.55-weatherVeil*.20)*(1-night)+.68*night;
   // Directional HDR sky now supplies the material fill; keep a softer diffuse floor.

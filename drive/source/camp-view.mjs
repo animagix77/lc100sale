@@ -2,7 +2,7 @@
 import * as THREE from 'three/webgpu';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {CAMP} from './expedition.mjs';
-import {FIRE_SITE} from './camp.mjs';
+import {campFireSite} from './camp.mjs';
 export class CampView{
  constructor(scene,field,{reduced=false}={}){
   this.scene=scene;this.field=field;this.reduced=reduced;this.root=new THREE.Group();scene.add(this.root);this.tent=new THREE.Group();this.preview=new THREE.Group();this.root.add(this.tent,this.preview);this.resources=[];
@@ -96,11 +96,13 @@ export class CampView{
   this.tent.visible=this.preview.visible=this.boundary.visible=false;
  }
  update(state,origin,time){
+  const site=state.site||CAMP,fire=campFireSite(site);
+  if(this.site!==site){this.site=site;const a=this.boundary.geometry.attributes.position;for(let i=0;i<a.count;i++){const x=site.x+Math.sin(i/(a.count-1)*Math.PI*2)*(site.radius-3),z=site.z+Math.cos(i/(a.count-1)*Math.PI*2)*(site.radius-3);a.setXYZ(i,x,this.field.height(x,z)+.04,z)}a.needsUpdate=true;this.boundary.geometry.computeBoundingSphere();}
   this.root.position.set(-origin.x,0,-origin.z);
   this.tent.visible=!!state.tent;if(state.tent){this.tent.position.set(state.tent.x,state.tent.y,state.tent.z);this.tent.rotation.y=state.tent.yaw;}
   this.preview.visible=this.boundary.visible=state.placing;if(state.candidate){this.preview.position.set(state.candidate.x,this.field.height(state.candidate.x,state.candidate.z)+.05,state.candidate.z);this.preview.rotation.y=state.candidate.yaw;this.ghostMat.color.set(state.result.ok?'#7ee2ac':'#e36b5c');}
-  this.fireGroup.position.set(FIRE_SITE.x,this.field.height(FIRE_SITE.x,FIRE_SITE.z),FIRE_SITE.z);
-  this.glow.position.set(FIRE_SITE.x-origin.x,this.fireGroup.position.y+1,FIRE_SITE.z-origin.z);
+  this.fireGroup.position.set(fire.x,this.field.height(fire.x,fire.z),fire.z);
+  this.glow.position.set(fire.x-origin.x,this.fireGroup.position.y+1,fire.z-origin.z);
   this.coals.visible=state.fire;this.glow.intensity=state.fire&&this.root.visible?35*(1+(this.reduced?0:Math.sin(time*6)*.10)):0;
   this.smoke.forEach((s,i)=>{s.visible=state.fire;const age=(time*.15+i/8)%1;s.position.set(age*.9,1+age*3,.1+age*.35);s.scale.setScalar(.10+Math.sin(age*Math.PI)*.48);});
   this.flames.forEach((f,i)=>{f.visible=state.fire;const phase=(time*(this.reduced?.28:.8)+i*.137)%1;f.position.set(Math.sin(i*2.4)*.25*(1-phase),.3+phase*.7,Math.cos(i*2.4)*.25*(1-phase));f.scale.set(.12*(1-phase),.26*(1-phase),.12*(1-phase));});

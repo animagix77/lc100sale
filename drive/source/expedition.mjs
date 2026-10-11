@@ -1,3 +1,5 @@
+import {COASTAL_LANDMARKS,COASTAL_CAMP,islandProfile} from './coastal-islands.mjs';
+export {COASTAL_LANDMARKS,COASTAL_CAMP};
 // One continuous world. These landmarks guide the route; terrain and weather are spatial,
 // so exploring off the flags or approaching a region from behind still works.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -12,17 +14,19 @@ export const LANDMARKS=[
  [447,-300,24,'mud','Mud & manners'],[339,-147,13,'mud','Last puddle'],[255,-67,8,'grass','Homeward meadow'],
  [163,11,5,'grass','Back to grass'],[145,38,5,'grass','Sunset camp']
 ].map(([x,z,height,biome,name],index)=>({x,z,height,biome,name,index,...(name==='Canyon bridge'?{gateRadius:1.2}:{})}));
-// Judge Dean LLC — two choices reconnect at shared gates. Every corridor exists in the world.
-export const CAMP={x:145,z:38,height:5,radius:18};
+// Judge Dean LLC — two distinct expeditions share the opening shoreline.
+// The old shelf detour stays in the world and in saved mainland expeditions.
+export const CAMP={x:145,z:38,height:5,radius:18,name:'Sunset camp'};
+export const LEGACY_SHELF={id:'shelf',name:'Coastal shelf',description:'Original coastal detour, continuing into the mountains.',replacements:{3:{x:77,z:-127,height:9,biome:'dunes',name:'Coastal shelf'}}};
 export const ROUTE_FORKS=[
- {id:'dunes',at:2,title:'Across the dunes',options:[
-  {id:'saddle',name:'Dune climb',description:'Direct, soft sand. Use steady throttle and 4LO.',replacements:{}},
-  {id:'shelf',name:'Coastal shelf',description:'Longer, firmer graded shelf around the soft climb.',replacements:{3:{x:77,z:-127,height:9,biome:'dunes',name:'Coastal shelf'}}}]},
+ {id:'dunes',at:1,title:'Choose your expedition',description:'Two different journeys from the same beach. Choose before leaving the shoreline; each ends at its own campsite.',options:[
+  {id:'saddle',name:'Mountain expedition',description:'Dunes, rocky fords, snow, the volcano and the canyon bridge. A longer, technical drive.',replacements:{}},
+  {id:'islands',name:'Coastal islands',description:'Scenic beaches, low-tide sandbars, palm islands and an abandoned barge. Finish at an island camp; no mountain or volcano section.',replacements:{}}]},
  {id:'return',at:21,title:'The last valley',options:[
   {id:'mud',name:'Mud trail',description:'Direct muddy descent. Keep momentum through the ruts.',replacements:{}},
   {id:'bank',name:'Fern bank',description:'A longer firm trail around the deepest mud.',replacements:{22:{x:511,z:-246,height:19,biome:'grass',name:'Fern bank'}}}]}
 ];
-export const BRANCH_PATHS=ROUTE_FORKS.map(f=>{const o=f.options[1],indices=Object.keys(o.replacements).map(Number);return [LANDMARKS[indices[0]-1],...indices.map(i=>({...o.replacements[i],index:i})),LANDMARKS[indices.at(-1)+1]]});
+export const BRANCH_PATHS=[LEGACY_SHELF,ROUTE_FORKS[1].options[1]].map(o=>{const indices=Object.keys(o.replacements).map(Number);return [LANDMARKS[indices[0]-1],...indices.map(i=>({...o.replacements[i],index:i})),LANDMARKS[indices.at(-1)+1]]});
 export const BIOMES={beach:{name:'BEACH',color:'#c99768'},dunes:{name:'DUNES',color:'#dbac79'},grass:{name:'TALL GRASS',color:'#829261'},river:{name:'ROCKY RIVER',color:'#7cb1b5'},snow:{name:'DEEP SNOW',color:'#dce6ed'},mud:{name:'MUD TRAILS',color:'#806250'},volcanic:{name:'VOLCANIC RIDGE',color:'#ec794b'}};
 const mainSegments=LANDMARKS.slice(0,-1).map((a,i)=>{const b=LANDMARKS[i+1],dx=b.x-a.x,dz=b.z-a.z,length=Math.hypot(dx,dz);return {a,b,dx,dz,length,length2:length*length}});
 const branchSegments=BRANCH_PATHS.flatMap(path=>path.slice(0,-1).map((a,i)=>{const b=path[i+1],dx=b.x-a.x,dz=b.z-a.z,length=Math.hypot(dx,dz);return {a,b,dx,dz,length,length2:length*length,branch:true}}));
@@ -70,6 +74,7 @@ export function riverMask(x,z){return riverProfile(x,z).wet}
 export function riverRippleScale(x,z){return smooth(0,.25,Math.max(0,riverProfile(x,z).depth))}
 export function riverHeight(x,z,time=0){return riverLevel(x)+(Math.sin(x*.9+z*1.8-time*2.2)*.012+Math.sin(x*2.3+time*3.1)*.006)*riverRippleScale(x,z)}
 export function biomeWeather(x,z){const b=routeSample(x,z),w=b.weights;
+ if(x<-25&&islandProfile(x,z).influence>0)return {mode:'expedition',live:false,label:'COASTAL ISLANDS',archipelago:1,canyon:0,volcanic:0,altitude:24-16*smooth(-305,-420,x),cloud:.18,wind:11,rain:0,snow:0,fog:false,storm:false};
  const canyon=(1-smooth(75,145,Math.abs(x-665)))*(1-smooth(65,120,Math.abs(z+470)));
  return {mode:'expedition',live:false,label:canyon>.6?'CANYON CROSSING':BIOMES[b.biome].name,canyon,volcanic:w.volcanic,altitude:8+canyon*12+w.river*14-w.grass*4+w.snow*8+w.mud*3-w.volcanic*16,cloud:.20+w.river*.18-w.grass*.05+w.snow*.65+w.mud*.74+w.volcanic*.30,wind:10+w.snow*15+w.mud*10+w.volcanic*12,rain:w.mud*.85,snow:w.snow*.88,fog:false,storm:false};
 }

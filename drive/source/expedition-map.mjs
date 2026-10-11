@@ -1,5 +1,6 @@
 import {LANDMARKS,BRANCH_PATHS,ROUTE_FORKS,riverZ,VOLCANO} from './expedition.mjs';
 import {lavaCrossingPoint} from './lava-crossing.mjs';
+import {ISLANDS,SANDBARS,BARGE_SITE,COASTAL_CAMP} from './coastal-islands.mjs';
 
 const GATES=LANDMARKS.length-1,TAU=Math.PI*2;
 // Match the two molten reaches, leaving the solid causeway beneath the trail.
@@ -13,8 +14,18 @@ const REGIONS=[
 ];
 
 // Coordinates stay in world space, including after the physics origin rebases.
-export function createMapViewport(position,target,width,height,{overview=false,compact=false}={}){
+export function createMapViewport(position,target,width,height,{overview=false,compact=false,points=LANDMARKS,coastal=false}={}){
  width=Math.max(1,width);height=Math.max(1,height);
+ if(coastal&&(overview||compact)){
+  // Fit the chosen expedition and its shores. Mainland volcano bounds would
+  // otherwise reduce the islands to unreadable dots on a phone's round map.
+  const extent=[...points,...ISLANDS.flatMap(p=>[{x:p.x-p.rx*1.08,z:p.z-p.rz*1.08},{x:p.x+p.rx*1.08,z:p.z+p.rz*1.08}]),...SANDBARS.flatMap(b=>b.points)];
+  const minX=Math.min(...extent.map(p=>p.x))-20,maxX=Math.max(...extent.map(p=>p.x))+20,minZ=Math.min(...extent.map(p=>p.z))-20,maxZ=Math.max(...extent.map(p=>p.z))+20;
+  const centerX=(minX+maxX)/2,centerZ=(minZ+maxZ)/2;
+  if(compact){const radius=Math.max(...extent.map(p=>Math.hypot(p.x-centerX,p.z-centerZ)));return {width,height,centerX,centerZ,round:true,scale:Math.max(1,Math.min(width,height)/2-16)/radius};}
+  const padding=Math.min(27,Math.max(18,width*.055),Math.max(18,height*.055));
+  return {width,height,rotation:0,centerX,centerZ,scale:Math.min((width-padding*2)/(maxX-minX),(height-padding*2)/(maxZ-minZ))};
+ }
  if(compact){
   // Fit the entire expedition inside the circular map, not its square bounds.
   // A stable world overview does not jump around when the truck leaves the trail.
@@ -56,8 +67,8 @@ export function clampMapMarker(point,viewport,padding=22){
 export const mapHeadingVector=(heading,{rotation=0}={})=>({x:Math.sin(rotation-heading),y:-Math.cos(rotation-heading)});
 
 export function getMapProgress(route){
- const passed=Math.max(0,Math.floor(Number(route?.passed)||0));
- return {passed,completed:Math.min(passed,GATES),lap:1,nextLeg:Math.min(passed+1,GATES)};
+ const passed=Math.max(0,Math.floor(Number(route?.passed)||0)),count=Number.isInteger(route?.count)?route.count:GATES;
+ return {passed,completed:Math.min(passed,count),lap:1,nextLeg:Math.min(passed+1,count)};
 }
 
 function path(ctx,points,viewport){
@@ -99,7 +110,34 @@ function decorations(ctx,viewport,overview){
  ctx.restore();
 }
 
-function landscape(ctx,viewport,overview,compact=false){
+function islandOutline(island,factor=1){
+ return Array.from({length:49},(_,i)=>{const a=i/48*TAU,r=1+Math.sin(a*3+island.x*.02)*.045+Math.sin(a*5+island.z*.02)*.025;return {x:island.x+Math.cos(a)*island.rx*factor*r,z:island.z+Math.sin(a)*island.rz*factor*r};});
+}
+function coastalLandscape(ctx,viewport,compact){
+ const {width,height,scale,centerX,centerZ}=viewport;
+ ctx.fillStyle=compact?'#19495588':'#194955';ctx.fillRect(0,0,width,height);ctx.lineCap='round';ctx.lineJoin='round';
+ const halfX=width/(2*scale),halfZ=height/(2*scale),topZ=centerZ-halfZ,bottomZ=centerZ+halfZ,coast=[];
+ for(let i=0;i<=40;i++){const z=topZ+(bottomZ-topZ)*i/40;coast.push({x:shore(z),z});}
+ path(ctx,[{x:centerX+halfX,z:topZ},...coast,{x:centerX+halfX,z:bottomZ}],viewport);ctx.closePath();ctx.fillStyle='#6d7050';ctx.fill();
+ path(ctx,coast,viewport);ctx.strokeStyle='#c8b888';ctx.lineWidth=Math.max(2,scale*13);ctx.stroke();
+ for(const bar of SANDBARS){
+  path(ctx,bar.points,viewport);ctx.strokeStyle='#4f8d8e';ctx.lineWidth=Math.max(3,scale*(bar.width+10));ctx.stroke();
+  ctx.strokeStyle='#b9b28c';ctx.lineWidth=Math.max(2,scale*bar.width);ctx.stroke();
+ }
+ for(const island of ISLANDS){
+  path(ctx,islandOutline(island,1.1),viewport);ctx.closePath();ctx.fillStyle='#4c8a86';ctx.fill();
+  path(ctx,islandOutline(island),viewport);ctx.closePath();ctx.fillStyle='#c6b383';ctx.fill();
+  path(ctx,islandOutline(island,.62),viewport);ctx.closePath();ctx.fillStyle='#6a8353';ctx.fill();
+ }
+ // Authored geometric markers stay legible without platform-specific icons.
+ const wreck=projectMapPoint(BARGE_SITE,viewport),camp=projectMapPoint(COASTAL_CAMP,viewport);
+ ctx.save();ctx.translate(wreck.x,wreck.y);ctx.rotate(-BARGE_SITE.yaw);ctx.fillStyle='#684b3c';ctx.strokeStyle='#cfac82';ctx.lineWidth=1;
+ const beam=Math.max(2,Math.min(5,BARGE_SITE.width*scale/2)),length=Math.max(4,Math.min(11,BARGE_SITE.length*scale/2));
+ ctx.beginPath();ctx.moveTo(-beam,-length);ctx.lineTo(beam,-length);ctx.lineTo(beam,length*.7);ctx.lineTo(0,length);ctx.lineTo(-beam,length*.7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+ if(!compact){ctx.beginPath();ctx.moveTo(camp.x-5,camp.y+4);ctx.lineTo(camp.x,camp.y-5);ctx.lineTo(camp.x+5,camp.y+4);ctx.closePath();ctx.fillStyle='#ddc899';ctx.fill();}
+}
+function landscape(ctx,viewport,overview,compact=false,coastal=false){
+ if(coastal){coastalLandscape(ctx,viewport,compact);return;}
  const {width,height,scale,centerX,centerZ}=viewport;
  ctx.fillStyle=compact?'#213c3266':'#213c32';ctx.fillRect(0,0,width,height);
  ctx.lineCap='round';ctx.lineJoin='round';
@@ -127,17 +165,19 @@ function landscape(ctx,viewport,overview,compact=false){
  }
 }
 
-function routeLine(ctx,viewport,progress,points=LANDMARKS){
- for(const branch of [...BRANCH_PATHS,...ROUTE_FORKS.map(f=>LANDMARKS.slice(f.at,Math.max(...Object.keys(f.options[1].replacements).map(Number))+2))]){path(ctx,branch,viewport);ctx.setLineDash([4,5]);ctx.lineWidth=2;ctx.strokeStyle="#a1b8a0";ctx.stroke();ctx.setLineDash([])}
+function routeLine(ctx,viewport,progress,points=LANDMARKS,{coastal=false,forks=ROUTE_FORKS}={}){
+ const alternatives=coastal?[]:[...BRANCH_PATHS,...forks.flatMap(f=>{const indices=Object.keys(f.options[1]?.replacements||{}).map(Number);return indices.length?[LANDMARKS.slice(f.at,Math.max(...indices)+2)]:[];})];
+ for(const branch of alternatives){path(ctx,branch,viewport);ctx.setLineDash([4,5]);ctx.lineWidth=2;ctx.strokeStyle="#a1b8a0";ctx.stroke();ctx.setLineDash([])}
  path(ctx,points,viewport);ctx.lineWidth=7;ctx.strokeStyle='#102922';ctx.stroke();ctx.lineWidth=3;ctx.strokeStyle='#cfbd94';ctx.stroke();
  if(progress.completed){path(ctx,points.slice(0,progress.completed+1),viewport);ctx.strokeStyle='#82c7a0';ctx.lineWidth=3.5;ctx.stroke()}
  if(progress.completed>=points.length-1)return;path(ctx,[points[progress.completed],points[progress.completed+1]],viewport);ctx.strokeStyle='#ffcf88';ctx.lineWidth=4;ctx.stroke();
 }
 
-function regionLabels(ctx,viewport){
+function regionLabels(ctx,viewport,points=LANDMARKS,coastal=false){
  ctx.font=`700 ${viewport.width<380?10:11}px system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
- const bounds=[],gates=LANDMARKS.slice(1).map(p=>projectMapPoint(p,viewport));
- for(const [name,x,z] of REGIONS){
+ const regions=coastal?[...ISLANDS.map(p=>[p.name.toUpperCase(),p.x,p.z]),['OLD BARGE',BARGE_SITE.x,BARGE_SITE.z]]:REGIONS;
+ const bounds=[],gates=points.slice(1).map(p=>projectMapPoint(p,viewport));
+ for(const [name,x,z] of regions){
   const p=projectMapPoint({x,z},viewport),width=ctx.measureText(name).width+8,offsets=[[0,0]];
   for(const distance of [16,28,42,60,82,110])for(const [dx,dy] of [[1,0],[-1,0],[0,-1],[0,1],[.707,-.707],[-.707,.707],[.707,.707],[-.707,-.707]])offsets.push([dx*distance,dy*distance]);
   const candidates=offsets.map(([dx,dy])=>({x:clamp(p.x+dx-width/2,8,viewport.width-width-8),y:clamp(p.y+dy-8,8,viewport.height-24),width,height:16}));
@@ -200,10 +240,10 @@ export class ExpeditionMap{
   for(const [canvas,full] of [[this.canvas,false],...(overview?[[this.overviewCanvas,true]]:[])]){
    const surface=this.prepare(canvas);if(!surface)continue;
    const compact=!full&&this.compact();
-   const {ctx,width,height}=surface,viewport=createMapViewport(position,target,width,height,{overview:full,compact});
+   const points=route.points||LANDMARKS,coastal=!!route.coastal,{ctx,width,height}=surface,viewport=createMapViewport(position,target,width,height,{overview:full,compact,points,coastal});
    ctx.save();ctx.clearRect(0,0,width,height);
    if(compact){ctx.beginPath();ctx.arc(width/2,height/2,Math.min(width,height)/2,0,TAU);ctx.clip()}
-   landscape(ctx,viewport,full,compact);
+   landscape(ctx,viewport,full,compact,coastal);
    if(compact){
     path(ctx,route.points||LANDMARKS,viewport);ctx.lineWidth=2;ctx.strokeStyle='#e6d2a8';ctx.stroke();
     if(progress.completed){path(ctx,(route.points||LANDMARKS).slice(0,progress.completed+1),viewport);ctx.strokeStyle='#85ddb1';ctx.stroke()}
@@ -213,12 +253,12 @@ export class ExpeditionMap{
     ctx.font='700 9px system-ui,sans-serif';ctx.fillStyle='#fff1d2';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N',width/2,9);
     ctx.restore();rendered=true;continue;
    }
-   routeLine(ctx,viewport,progress,route.points||LANDMARKS);
+   routeLine(ctx,viewport,progress,points,{coastal,forks:route.forks||ROUTE_FORKS});
    const goal=clampMapMarker(projectMapPoint(target,viewport),viewport,24),player=clampMapMarker(projectMapPoint(position,viewport),viewport,17);
-   if(full){const regions=regionLabels(ctx,viewport);overviewGates(ctx,viewport,progress,goal,regions,player,route.points||LANDMARKS)}
+   if(full){const regions=regionLabels(ctx,viewport,points,coastal);overviewGates(ctx,viewport,progress,goal,regions,player,points)}
    else{
     ctx.strokeStyle='#efd099';ctx.globalAlpha=.6;ctx.lineWidth=1.5;ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.lineTo(goal.x,goal.y);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
-    for(let i=1;i<LANDMARKS.length;i++){if(i===progress.nextLeg)continue;const p=projectMapPoint((route.points||LANDMARKS)[i],viewport);circle(ctx,p.x,p.y,2.5,i<=progress.completed?'#a4d9b5':'#e1d2b2')}
+    for(let i=1;i<points.length;i++){if(i===progress.nextLeg)continue;const p=projectMapPoint(points[i],viewport);circle(ctx,p.x,p.y,2.5,i<=progress.completed?'#a4d9b5':'#e1d2b2')}
    }
    decorations(ctx,viewport,full);targetMarker(ctx,goal,target.leg||progress.nextLeg,{overview:full});
    circle(ctx,player.x,player.y,12,'#10292199');arrow(ctx,player.x,player.y,Number.isFinite(heading)?heading:0,full?10:9,viewport);
