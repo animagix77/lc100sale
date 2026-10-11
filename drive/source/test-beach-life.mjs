@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {BeachLife} from './beach-life.mjs';
 import {shore} from './terrain.mjs';
+import {routeSample,CAMP} from './expedition.mjs';
+import {inRoadsideClearing} from './roadside-spots.mjs';
+import {rockFormationMask} from './rock-placement.mjs';
 import {oceanHeight} from './ocean-height.mjs';
 for(const mobile of [false,true]){
  const scene=new THREE.Scene(),life=new BeachLife(scene,{mobile}),p={x:shore(0)+22,z:0},origin={x:0,z:0};life.update(p,0,origin);
@@ -53,3 +56,62 @@ const stable=streamed.key;streamed.stream({x:447,z:-658},zero,0);assert(streamed
 const worldMatrix=streamed.grass.instanceMatrix.array.slice();streamed.refresh(destination,{x:512,z:-512});for(let i=0;i<streamed.grass.count;i++){assert(Math.abs(streamed.grass.instanceMatrix.array[i*16+12]+512-worldMatrix[i*16+12])<.001);assert(Math.abs(streamed.grass.instanceMatrix.array[i*16+14]-512-worldMatrix[i*16+14])<.001)}
 assert.equal(streamed._pending,null,'Rebasing existing scenery does not rebuild its generation queue');streamed.dispose();reference.dispose();
 console.log('Budgeted scenery streaming: atomic visibility, unchanged placement, cancellation, and cheap origin shift passed.');
+
+// Judge Dean LLC — mixed silhouettes and exposed bedrock across both detail tiers.
+for(const mobile of [false,true]){
+ const life=new BeachLife(new THREE.Scene(),{mobile}),names=['grass','logs','wrack','rocks','trunks','crowns','shrubs'];
+ for(const name of names){const m=life[name];assert(m.instanceColor?.count===m.instanceMatrix.count,'Every instance layout exists before shader compilation');assert([...m.instanceColor.array].every(v=>v===1),'Unpainted debris starts white, never black');}
+ life.refresh({x:248,z:-336},{x:0,z:0});const trunk=life.trunks.instanceMatrix.array,crown=life.crowns.instanceMatrix.array;
+ let short=0,tall=0,broad=0,narrow=0;
+ for(let i=0;i<life.trunks.count;i++){
+  const at=i*16,h=trunk[at+5],width=Math.hypot(crown[at],crown[at+2]);
+  if(h<.95)short++;if(h>1.65)tall++;if(width/h>1.1)broad++;if(width/h<.65)narrow++;
+  assert.equal(crown[at+5],h,'Canopy height follows the actual trunk');
+  assert.equal(crown[at+12],trunk[at+12]);assert.equal(crown[at+14],trunk[at+14]);
+ }
+ assert(short>15&&tall>8&&broad>20&&narrow>8,'The woodland contains saplings, tall standards and both broad and narrow crowns');
+ for(const name of ['grass','shrubs','trunks']){const mesh=life[name],a=mesh.instanceMatrix.array;for(let i=0;i<mesh.count;i++)assert(rockFormationMask(a[i*16+12],a[i*16+14])<=(name==='trunks'?.021:.401),'Plants grow beside exposed formations, never through their centers');}
+ assert.equal(life.trunks.instanceMatrix.count,mobile?180:300);assert.equal(life.shrubs.instanceMatrix.count,mobile?360:600);assert.equal(life.grass.instanceMatrix.count,mobile?14000:22000);
+ console.log({mobile,trees:life.trunks.count,saplings:short,tallStandards:tall,broadCrowns:broad,narrowCrowns:narrow});life.dispose();
+}
+// Rebase halfway through each generation phase, while the visible cell differs
+// from the pending cell. No synchronous generation or discarded work is allowed.
+for(const pauseAt of [12,160,420]){
+ const scene=new THREE.Scene(),life=new BeachLife(scene,{mobile:true}),fresh=new BeachLife(new THREE.Scene(),{mobile:true}),p={x:248,z:-336},zero={x:0,z:0},origin={x:512,z:-512};
+ life.refresh({x:190,z:-278},zero);let pending;
+ for(let i=0;i<pauseAt;i++){life.stream(p,zero,0);if(!life._pending)break;pending=life._pending;}
+ assert(pending&&life._pending===pending,'Fixture remains in a partial build');
+ const before=life.grass.instanceMatrix.array.slice(),oldCell=life.key.split(',').slice(0,2).join(',');
+ const originalBuild=life._build;life._build=()=>{throw Error('A rebase must not start generation')};life.rebase(origin);life._build=originalBuild;
+ assert.equal(life._pending,pending,'The exact iterator survives the origin shift');assert.equal(life.key.split(',').slice(0,2).join(','),oldCell,'Rebase never pretends the pending cell is complete');
+ for(let i=0;i<life.grass.count;i++){assert(Math.abs(life.grass.instanceMatrix.array[i*16+12]+512-before[i*16+12])<.001);assert(Math.abs(life.grass.instanceMatrix.array[i*16+14]-512-before[i*16+14])<.001);}
+ let slices=0;while(life._pending){life.stream(p,origin,0);assert(++slices<3000);}
+ fresh.refresh(p,origin);
+ for(const name of ['grass','logs','wrack','rocks','trunks','crowns','shrubs']){
+  const actual=life[name],expected=fresh[name];assert.equal(actual.count,expected.count);
+  for(let i=0;i<actual.count*16;i++)assert(Math.abs(actual.instanceMatrix.array[i]-expected.instanceMatrix.array[i])<.0001,'Rebased partial transforms equal fresh world-space generation');
+ }
+ life.dispose();fresh.dispose();
+}
+console.log('Vegetation fidelity: mixed silhouettes, bedrock clearings, fixed detail budgets, initialized shader layouts and uninterrupted partial-build rebases passed.');
+// GPU updates cover the visible population instead of resending full reserves.
+const uploadLife=new BeachLife(new THREE.Scene(),{mobile:true}),uploadAt={x:248,z:-336},uploadOrigin={x:0,z:0};uploadLife.refresh(uploadAt,uploadOrigin);
+for(const name of ['grass','trunks','crowns','shrubs']){
+ const mesh=uploadLife[name];assert.deepEqual(mesh.instanceMatrix.updateRanges,[{start:0,count:mesh.count*16}]);
+ assert.deepEqual(mesh.instanceColor.updateRanges,[{start:0,count:mesh.count*3}]);
+}
+assert(uploadLife.grass.count<uploadLife.grass.instanceMatrix.count/2,'Fixture exercises a substantial unused reserve');
+uploadLife.update(uploadAt,1,uploadOrigin,{wind:8},0,false);
+assert.deepEqual(uploadLife.bendAttribute.updateRanges,[{start:0,count:uploadLife.grass.count*3}],'First animation preserves the live-only crushing upload');
+uploadLife.dispose();console.log('Vegetation uploads: live instance ranges and crushing animation preserve bounded GPU transfer sizes.');
+
+// The woodland continues through the damp foothills without blocking the drive.
+for(const mobile of [false,true]){
+ const life=new BeachLife(new THREE.Scene(),{mobile}),at={x:273,z:-405};life.refresh(at,{x:0,z:0});let nearby=0;
+ for(const name of ['trunks','shrubs']){const mesh=life[name],a=mesh.instanceMatrix.array;
+  for(let i=0;i<mesh.count;i++){const x=a[i*16+12],z=a[i*16+14];assert(routeSample(x,z).distance>(name==='trunks'?8:7),'Solid trunks and full fern crowns keep the trail corridor open');assert(!inRoadsideClearing(x,z,3),'Rest areas remain clear');assert(Math.hypot(x-CAMP.x,z-CAMP.z)>CAMP.radius+3,'Camp retains room for the truck and shelter');if(name==='trunks'&&Math.hypot(x-at.x,z-at.z)<50)nearby++;}
+ }
+ assert(nearby>45,'Foothill forest should reach the driving view, not only the distant riverbank');
+ assert(life.trunks.count<=life.trunks.instanceMatrix.count&&life.shrubs.count<=life.shrubs.instanceMatrix.count);life.dispose();
+}
+console.log('Foothill vegetation: nearby woodland, unchanged instance caps, open trails, rest stops and camp clearings passed.');

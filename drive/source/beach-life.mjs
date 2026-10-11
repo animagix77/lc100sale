@@ -1,4 +1,5 @@
 import {groundNormal} from './ground-materials.mjs';
+import {rockFormationMask} from './rock-placement.mjs';
 import {riverStoneGeometry} from './river-stone-geometry.mjs';
 import {woodlandLeafCards} from './woodland-leaf-cards.mjs';
 import {canyonRockMask} from './canyon.mjs';
@@ -17,6 +18,8 @@ import {oceanHeight} from './ocean-height.mjs';
 const remembered=(cache,key,create,limit)=>{let value=cache.get(key);if(value!==undefined)return value;value=create();const fifo=cache.fifo??=[];if(cache.size>=limit){const at=cache.cursor??0;cache.delete(fifo[at]);fifo[at]=key;cache.cursor=(at+1)%limit}else fifo.push(key);cache.set(key,value);return value};
 const inRoadsideClearing=(x,z,pad=0)=>roadsideClearing(x,z,pad)||Math.hypot(x-CAMP.x,z-CAMP.z)<CAMP.radius+pad;
 const rand=(a,b=0)=>{const v=Math.sin(a*127.1+b*311.7)*43758.5453;return v-Math.floor(v)};
+// Shared immutable tints avoid thousands of short-lived Color objects per cell.
+const plantTint=Object.fromEntries(['#718e4b','#819366','#b1b774','#c4ba87','#c3c0b3','#ffffff','#b7c594','#8ea58a','#c1ceae','#e0d9ac','#96b186','#d1ce9a','#395e3d','#647749','#94a664','#b4aa70'].map(hex=>[hex,new THREE.Color(hex)]));
 const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attributes.position.count*3);for(let i=0;i<a.length;i+=3){a[i]=c.r;a[i+1]=c.g;a[i+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g};
 const combine=gs=>{const clean=gs.map(g=>{const a=g.index?g.toNonIndexed():g;for(const k of Object.keys(a.attributes))if(!['position','normal','color'].includes(k))a.deleteAttribute(k);return a});const out=mergeGeometries(clean);for(const g of new Set([...gs,...clean]))g.dispose();return out};
 function beam(a,b,r,hex,segments=6,openEnded=false){const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*.72,r,p.distanceTo(q),segments,1,openEnded);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,hex)}
@@ -89,16 +92,19 @@ function stagingMesh(mesh){
   setColorAt(i,c){if(!this.instanceColor)this.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(mesh.instanceMatrix.count*3),3);c.toArray(this.instanceColor.array,i*3)}};
 }
 function commitMesh(mesh,staged){
- mesh.count=staged.count;mesh.instanceMatrix.array.set(staged.instanceMatrix.array);mesh.instanceMatrix.needsUpdate=true;
- if(staged.instanceColor){if(!mesh.instanceColor)mesh.setColorAt(0,new THREE.Color());mesh.instanceColor.array.set(staged.instanceColor.array);mesh.instanceColor.needsUpdate=true}
- for(const [name,a] of Object.entries(staged.geometry.attributes)){mesh.geometry.attributes[name].array.set(a.array);mesh.geometry.attributes[name].needsUpdate=true}
+ // Upload only live instances. The distant reserve used to be copied and sent
+ // again even when a cell held just a few hundred plants.
+ const commit=(target,source,size)=>{const length=staged.count*size;if(!length)return;target.array.set(source.array.subarray(0,length));target.clearUpdateRanges();target.addUpdateRange(0,length);target.needsUpdate=true};
+ mesh.count=staged.count;commit(mesh.instanceMatrix,staged.instanceMatrix,16);
+ if(staged.instanceColor)commit(mesh.instanceColor,staged.instanceColor,3);
+ for(const [name,a] of Object.entries(staged.geometry.attributes))commit(mesh.geometry.attributes[name],a,a.itemSize);
  syncSceneryFade(mesh);
 }
 const SCENERY_MESHES=['grass','logs','wrack','rocks','trunks','crowns','shrubs'];
 export class BeachLife{
  constructor(scene,{mobile=false,reduced=false}={}){
   this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.placementCaches={grass:new Map(),woodland:new Map(),debris:new Map()};this.time=uniform(0);this.fadeAnchor=uniform(new THREE.Vector2());this.windStrength=uniform(.4);this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,rocks:0,boats:5};
-  const make=(geometry,material,count)=>{this.geometries.push(geometry);this.materials.push(material);const m=new THREE.InstancedMesh(geometry,material,count);m.frustumCulled=false;m.count=0;scene.add(m);return m};
+  const make=(geometry,material,count)=>{this.geometries.push(geometry);this.materials.push(material);const m=new THREE.InstancedMesh(geometry,material,count);m.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(count*3).fill(1),3);m.frustumCulled=false;m.count=0;scene.add(m);return m};
   const geometry=grassGeometry(),grassMat=new THREE.MeshStandardNodeMaterial({color:'#ffffff',vertexColors:true,side:THREE.DoubleSide,roughness:1});
   const phase=attribute('windPhase','float'),height=attribute('position','vec3').y;
   const wind=sin(this.time.mul(1.15).sub(phase)).mul(.25).add(sin(this.time.mul(.48).sub(phase.mul(.43))).mul(.18)).add(sin(this.time.mul(2.7).add(phase.mul(2.1))).mul(.045));
@@ -150,16 +156,25 @@ export class BeachLife{
   if(!this._staging){for(const name of SCENERY_MESHES)work[name]=stagingMesh(this[name]);work.bendAttribute=work.grass.geometry.attributes.grassBend;work.stats={};this._staging=work}
   const pool=work.grassData===this.grassData?this._previousGrass:work.grassData;
   work.grassData=pool??[];work.grassPool=work.grassData;work.grassBuckets=new Map();
-  this._pending={key,work,iterator:this._build.call(work,{...p},{...origin},key)};
+  const buildOrigin={...origin};this._pending={key,work,origin:buildOrigin,iterator:this._build.call(work,{...p},buildOrigin,key)};
  }
  _commit(){
   const {work,key}=this._pending,old=this.key.split(',').map(Number),next=key.split(',').map(Number);for(const name of SCENERY_MESHES){stageSceneryArrival(this[name],work[name],this.reduced?-2:this.time.value,{x:old[2]||0,z:old[3]||0},{x:next[2],z:next[3]},!this.key);commitMesh(this[name],work[name]);}
   this._previousGrass=this.grassData;this.grassData=work.grassData;this.grassBuckets=work.grassBuckets;this.samples=work.samples;Object.assign(this.stats,work.stats);this.key=key;this._pending=null;this._bendFullUpload=true;
  }
+ // Judge Dean LLC — rebasing never drains/restarts a staged vegetation build.
+ // The active and partially-written buffers move together; future generator
+ // slices read the updated shared origin, preserving a single coordinate frame.
+ rebase(origin){
+  if(!this.key)return false;const old=this.key.split(',').map(Number),dx=origin.x-old[2],dz=origin.z-old[3];if(!dx&&!dz)return false;
+  const shift=(mesh,count)=>{const a=mesh.instanceMatrix.array;for(let i=0;i<count;i++){a[i*16+12]-=dx;a[i*16+14]-=dz}mesh.instanceMatrix.needsUpdate=true};
+  for(const name of SCENERY_MESHES)shift(this[name],this[name].count);
+  this.key=`${old[0]},${old[1]},${origin.x},${origin.z}`;
+  if(this._pending){const pending=this._pending,cell=pending.key.split(',');for(const name of SCENERY_MESHES)shift(pending.work[name],pending.work[name].instanceMatrix.count);Object.assign(pending.origin,origin);pending.key=`${cell[0]},${cell[1]},${origin.x},${origin.z}`;}
+  this.fadeAnchor.value.x-=dx;this.fadeAnchor.value.y-=dz;return true;
+ }
  _rebase(key){
-  if(!this.key)return false;const a=this.key.split(',').map(Number),b=key.split(',').map(Number);if(a[0]!==b[0]||a[1]!==b[1])return false;
-  const dx=b[2]-a[2],dz=b[3]-a[3];for(const name of SCENERY_MESHES){const m=this[name],v=m.instanceMatrix.array;for(let i=0;i<m.count;i++){v[i*16+12]-=dx;v[i*16+14]-=dz}m.instanceMatrix.needsUpdate=true}
-  this.key=key;this._pending=null;return true;
+  if(!this.key)return false;const target=key.split(',').map(Number);this.rebase({x:target[2],z:target[3]});return this.key===key;
  }
  refresh(p,origin){
   const key=this._key(p,origin);if(key===this.key){this._pending=null;return}
@@ -189,9 +204,9 @@ export class BeachLife{
     if(i%32===0)yield;
     const x=tx*64+rand(seed,i*3)*64,z=tz*64+rand(seed,i*3+1)*64,coast=x-shore(z),patch=noise(x*.085,z*.085);
     if(Math.hypot(x-centerX,z-centerZ)>76)continue;
-    const place=remembered(this.placementCaches.grass,`b${tx},${tz},${i}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z),meadow=surface.grass>.22;if(meadow||coast<29||surface.riverApproach>.18||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.95)return null;return {meadow,y:baseHeight(x,z)}},40000);
+    const place=remembered(this.placementCaches.grass,`b${tx},${tz},${i}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z),meadow=surface.grass>.22;if(meadow||coast<29||surface.riverApproach>.18||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.95)return null;if(rockFormationMask(x,z)>.4)return null;return {meadow,y:baseHeight(x,z)}},40000);
     if(!place||gi>=Math.floor(this.grass.instanceMatrix.count*.30))continue;const {meadow}=place;
-    d.position.set(x-origin.x,place.y-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=meadow?1.05+rand(seed,i+700)*.65:.5+rand(seed,i+700)*.85;d.scale.set(meadow?1.5:scale,scale*(meadow?1.15:1),meadow?1.5:scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.set(meadow?'#718e4b':'#819366').lerp(new THREE.Color(meadow?'#b1b774':'#c4ba87'),rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
+    d.position.set(x-origin.x,place.y-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=meadow?1.05+rand(seed,i+700)*.65:.5+rand(seed,i+700)*.85;d.scale.set(meadow?1.5:scale,scale*(meadow?1.15:1),meadow?1.5:scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.copy(plantTint[meadow?'#718e4b':'#819366']).lerp(plantTint[meadow?'#b1b774':'#c4ba87'],rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
    }
    for(let i=0;i<24;i++){
     if(i%8===0)yield;
@@ -205,35 +220,50 @@ export class BeachLife{
      return {log,rock,h,normal,scale:surface.river>.2&&routeDistance<7?.55+rand(seed,i+2100)*.5:log?.55+rand(seed,i+2000)*1.15:.7+rand(seed,i+2100)*1.7};
     },2400);
     if(!place)continue;const {log,rock,h,normal,scale}=place,mesh=log?this.logs:rock?this.rocks:this.wrack,index=log?li:rock?ri:wi;if(index>=mesh.instanceMatrix.count||(rock&&ri>=100))continue;
-    d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':rock?'rock':'wrack',x,z});if(log)li++;else if(rock){this.rocks.setColorAt(ri,new THREE.Color(1,1,1));ri++;}else wi++;
+    d.position.set(x-origin.x,h-.015,z-origin.z);d.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);d.rotateY(rand(seed,i+1900)*6.28);d.scale.setScalar(scale);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);this.samples.push({kind:log?'log':rock?'rock':'wrack',x,z});if(log)li++;else if(rock){this.rocks.setColorAt(ri,plantTint['#ffffff']);ri++;}else wi++;
 
    }
   }
-  // A riparian woodland with a clear driving corridor and physical trunks.
-  const woodland=[];
-  for(let iz=Math.floor((centerZ-132)/6);iz<=Math.ceil((centerZ+132)/6);iz++)for(let ix=Math.floor((centerX-132)/6);ix<=Math.ceil((centerX+132)/6);ix++){
+  // Mixed-age groves cluster on damp, sheltered banks. Fixed pools prioritize
+  // the nearby trees; openings and the full driving corridor stay readable.
+  const woodland=[],woodSpacing=5.5;
+  for(let iz=Math.floor((centerZ-132)/woodSpacing);iz<=Math.ceil((centerZ+132)/woodSpacing);iz++)for(let ix=Math.floor((centerX-132)/woodSpacing);ix<=Math.ceil((centerX+132)/woodSpacing);ix++){
    if((ix&7)===0)yield;
-   const x=ix*6+rand(ix,iz)*4,z=iz*6+rand(iz,ix)*4,distance=Math.hypot(x-centerX,z-centerZ);if(distance>132)continue;
+   const x=(ix+rand(ix,iz)*.85)*woodSpacing,z=(iz+rand(iz,ix)*.85)*woodSpacing,distance=Math.hypot(x-centerX,z-centerZ);if(distance>132)continue;
    const place=remembered(this.placementCaches.woodland,`${ix},${iz}`,()=>{
-    if(inRoadsideClearing(x,z,3))return null;const green=riverGreenery(x,z);if(green<.18||riverMask(x,z)>.04)return null;
+    if(inRoadsideClearing(x,z,3)||canyonRockMask(x,z)>.08)return null;const soil=surfaceAt(x,z),height=baseHeight(x,z),foothill=smooth(205,255,x)*smooth(300,380,-z)*(1-smooth(50,76,height))*(soil.grass*.85+soil.mud*.72),green=Math.max(riverGreenery(x,z),foothill);if(green<.18||riverMask(x,z)>.04)return null;
     const slope=Math.hypot(baseHeight(x+1,z)-baseHeight(x-1,z),baseHeight(x,z+1)-baseHeight(x,z-1));if(slope>1.8)return null;
-    const fernX=x+1.9,fernZ=z-1.5,fern=routeSample(fernX,fernZ).distance>7&&riverApproach(fernX,fernZ)<.18&&riverMask(fernX,fernZ)<.04;
-    return {ix,iz,x,z,green,y:baseHeight(x,z),routeDistance:routeSample(x,z).distance,fern,fernY:fern?baseHeight(fernX,fernZ):0};
+    const fernX=x+1.9,fernZ=z-1.5,fern=!inRoadsideClearing(fernX,fernZ,3)&&routeSample(fernX,fernZ).distance>7&&riverApproach(fernX,fernZ)<.18&&riverMask(fernX,fernZ)<.04&&canyonRockMask(fernX,fernZ)<=.08&&rockFormationMask(fernX,fernZ)<=.4;
+    return {ix,iz,x,z,green,tree:rockFormationMask(x,z)<=.02,grove:smooth(.22,.72,noise(x*.034,z*.034)),y:baseHeight(x,z),routeDistance:routeSample(x,z).distance,fern,fernY:fern?baseHeight(fernX,fernZ):0};
    },4000);
    if(place)woodland.push({...place,distance});
 
   }
   woodland.sort((a,b)=>a.distance-b.distance);
   let woodlandBatch=0;
-  for(const {ix,iz,x,z,green,y,routeDistance,fern,fernY} of woodland){
+  for(const {ix,iz,x,z,green,tree,grove,y,routeDistance,fern,fernY} of woodland){
    if(woodlandBatch++%16===0)yield;
-   if(routeDistance>8&&ti<this.trunks.instanceMatrix.count&&rand(ix+11,iz)<green*.82){
-    const scale=.85+rand(ix,iz+19)*.7;d.position.set(x-origin.x,y-.05,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);d.scale.set(scale,scale,scale);d.updateMatrix();
-    this.trunks.setMatrixAt(ti,d.matrix);d.scale.set(scale*(.88+rand(ix+8,iz)*.25),scale,scale*(.88+rand(ix+9,iz)*.25));d.updateMatrix();this.crowns.setMatrixAt(ti,d.matrix);ti++;
+   if(tree&&routeDistance>8&&ti<this.trunks.instanceMatrix.count&&rand(ix+11,iz)<green*(.48+grove*.52)){
+    // Young compact trees, tall narrow standards and spreading mature crowns.
+    // Crown and trunk share their vertical scale and root so they stay attached.
+    const age=rand(ix+25,iz),young=age<.22,tall=age>.74;
+    const height=young?.55+rand(ix,iz+19)*.40:tall?1.40+rand(ix,iz+19)*.65:.95+rand(ix,iz+19)*.55;
+    const girth=young?.48+rand(ix+2,iz)*.28:.85+rand(ix+2,iz)*.50;
+    d.position.set(x-origin.x,y-.05,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);d.scale.set(girth,height,girth);d.updateMatrix();this.trunks.setMatrixAt(ti,d.matrix);
+    c.copy(plantTint['#c3c0b3']).lerp(plantTint['#ffffff'],rand(ix+3,iz));this.trunks.setColorAt(ti,c);
+    const crown=young?.64+rand(ix+8,iz)*.35:tall?.85+rand(ix+8,iz)*.35:1.15+rand(ix+8,iz)*.55;
+    d.scale.set(crown*(.85+rand(ix+9,iz)*.30),height,crown*(.85+rand(ix+10,iz)*.30));d.updateMatrix();this.crowns.setMatrixAt(ti,d.matrix);
+    c.copy(plantTint[young?'#b7c594':'#8ea58a']).lerp(plantTint[tall?'#c1ceae':'#e0d9ac'],rand(ix+17,iz));this.crowns.setColorAt(ti,c);ti++;
    }
    const fernX=x+1.9,fernZ=z-1.5;
-   // Test the actual fern position, not its offset seed cell, and leave room for its fronds.
-   if(fern&&si<this.shrubs.instanceMatrix.count){d.position.set(fernX-origin.x,fernY,fernZ-origin.z);d.rotation.set(0,rand(ix,iz)*6.28,0);d.scale.set(1.1+rand(ix+2,iz),.65+rand(ix+3,iz),1.1+rand(ix+4,iz));d.updateMatrix();this.shrubs.setMatrixAt(si,d.matrix);c.set('#bdcfac').lerp(new THREE.Color('#f2e7b8'),rand(ix+6,iz));this.shrubs.setColorAt(si,c);this.shrubs.geometry.attributes.fernPhase.setX(si,x*.2+z*.11);this.shrubs.geometry.attributes.fernYaw.setX(si,d.rotation.y);si++;}
+   // Broad low fern patches alternate with upright young fronds. Limit spread
+   // by actual route distance so foliage never covers either river approach.
+   if(fern&&si<this.shrubs.instanceMatrix.count){
+    const broad=grove>.48,spread=broad?1.50+rand(ix+2,iz)*.8:.85+rand(ix+2,iz)*.55;
+    const clearance=Math.max(.8,(routeSample(fernX,fernZ).distance-4.9)/1.2),width=Math.min(spread,clearance);
+    d.position.set(fernX-origin.x,fernY,fernZ-origin.z);d.rotation.set(0,rand(ix,iz)*6.28,0);d.scale.set(width,broad?.55+rand(ix+3,iz)*.5:1.0+rand(ix+3,iz)*.65,width*(.8+rand(ix+4,iz)*.3));d.updateMatrix();this.shrubs.setMatrixAt(si,d.matrix);
+    c.copy(plantTint['#96b186']).lerp(plantTint['#d1ce9a'],grove*.5+rand(ix+6,iz)*.35);this.shrubs.setColorAt(si,c);this.shrubs.geometry.attributes.fernPhase.setX(si,x*.2+z*.11);this.shrubs.geometry.attributes.fernYaw.setX(si,d.rotation.y);si++;
+   }
   }
   for(const [mesh,count] of [[this.trunks,ti],[this.crowns,ti],[this.shrubs,si]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}this.shrubs.geometry.attributes.fernPhase.needsUpdate=true;this.shrubs.geometry.attributes.fernYaw.needsUpdate=true;if(this.shrubs.instanceColor)this.shrubs.instanceColor.needsUpdate=true;
   // The same stable, world-space rock bed supplies rendering and rigid collision.
@@ -248,9 +278,13 @@ export class BeachLife{
    if((ix&15)===0)yield;
    const x=(ix+rand(ix,iz)*.7)*spacing,z=(iz+rand(iz,ix)*.7)*spacing;
    if(Math.hypot(x-centerX,z-centerZ)>76||gi>=this.grass.instanceMatrix.count)continue;
-   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:routeSample(x,z).distance<4.5}},40000);if(!place)continue;
-   d.position.set(x-origin.x,place.y-.035,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);const {riparian,trail}=place;d.scale.set(1.7,riparian?(trail?.32:.72)+rand(ix,iz+2)*.3:1.45+rand(ix,iz+2)*.65,1.7);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);
-   c.set(riparian?'#426c43':'#71874b').lerp(new THREE.Color(riparian?'#87a85e':'#b2b570'),rand(ix,iz+4));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);
+   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;if(rockFormationMask(x,z)>.4)return null;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:routeSample(x,z).distance<4.5,patch:smooth(.20,.75,noise(x*.063,z*.063))}},40000);if(!place)continue;
+   d.position.set(x-origin.x,place.y-.035,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);const {riparian,trail,patch}=place;
+   // Dense broad tussocks in damp patches, short scattered grasses between them.
+   // Vary footprint and height independently instead of a uniform grass carpet.
+   const spread=(trail?1.1:1.2+patch*1.0)*(.85+rand(ix+9,iz)*.3),height=riparian?(trail?.23:.40+patch*.62)+rand(ix,iz+2)*.26:.68+patch*1.13+rand(ix,iz+2)*.38;
+   d.scale.set(spread,height,spread*(.85+rand(ix+10,iz)*.3));d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);
+   c.copy(plantTint[riparian?'#395e3d':'#647749']).lerp(plantTint[riparian?'#94a664':'#b4aa70'],patch*.35+rand(ix,iz+4)*.5);this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);
    this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
   }
   for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.rocks.instanceColor)this.rocks.instanceColor.needsUpdate=true;if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;this.grass.geometry.attributes.grassYaw.needsUpdate=true;this.bendAttribute.needsUpdate=true;
@@ -266,7 +300,7 @@ export class BeachLife{
   // Distant crushed grass recovers over minutes; a rotating pass avoids walking
   // 14,000 instances and uploading the whole buffer for every animation frame.
   const sweep=Math.min(this.grassData.length,256);for(let n=0;n<sweep;n++){this._bendCursor=((this._bendCursor??-1)+1)%this.grassData.length;indices.add(this._bendCursor)}
-  let dirty=false;this.bendAttribute.clearUpdateRanges();
+  let dirty=false;this.bendAttribute.clearUpdateRanges();if(this._bendFullUpload&&this.grass.count)this.bendAttribute.addUpdateRange(0,this.grass.count*3);
   for(const i of indices){
    const g=this.grassData[i],track=this.tracks.sample(g.x,g.z,time),bx=(track.dx*g.c-track.dz*g.s)*1.12,bz=(track.dx*g.s+track.dz*g.c)*1.12;
    const blend=g.fresh?1:Math.hypot(g.x-p.x,g.z-p.z)>12?1:k;g.fresh=false;

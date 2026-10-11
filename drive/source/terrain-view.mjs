@@ -13,7 +13,7 @@ const wet=new THREE.Color('#655f51'),dry=new THREE.Color('#b8a07c'),shadeColor=n
 // Rut walls catch the sunset; compressed troughs stay visibly darker than untouched sand.
 function rutShade(offset){return offset<0?1-Math.min(.44,-offset*1.6):1+Math.min(.13,offset*.85)}
 export class TerrainView{
- constructor(scene,physics,field,{groundTextures=null}={}){this.groundTextures=groundTextures;this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;this.focus={x:0,z:0};this.safetyGround=null;
+ constructor(scene,physics,field,{groundTextures=null}={}){this.groundTextures=groundTextures;this.scene=scene;this.p=physics;this.field=field;this.tiles=new Map();this.center='';this.tick=0;this.rutQueue=[];this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.cache=new Map();this.pending=new Map();this.needed=new Set();this.farJob=null;this.farHidden=new Set();this.renderOrigin={...physics.origin};this.budget=3;this.focus={x:0,z:0};this.safetyGround=null;
  const world=positionWorld.xz.add(this.origin),z=world.y;
  const coast=float(-36).add(sin(z.mul(.006)).mul(8)).add(sin(z.mul(.019)).mul(3)),d=world.x.sub(coast);
  // Same wash phase as the surf. Persistent damp sand remains after the water retreats.
@@ -163,7 +163,7 @@ export class TerrainView{
   }
   const size=this.tiles.size;this.settle();if(changed||size!==this.tiles.size)this.syncFarHole();this.ensureGround(x,z);
  }
- clearTiles(){if(this.safetyGround){this.p.world.removeCollider(this.safetyGround.collider,false);this.safetyGround=null;}for(const t of this.tiles.values()){this.scene.remove(t.mesh);t.mesh.geometry.dispose();this.p.world.removeCollider(t.collider,false);}for(const t of this.cache.values())t.mesh.geometry.dispose();this.tiles.clear();this.cache.clear();for(const j of this.pending.values())j.rows?.return();this.pending.clear();this.farJob?.rows.return();this.farJob=null;}
+ clearTiles(){this.rutQueue.length=0;this.tick=0;if(this.safetyGround){this.p.world.removeCollider(this.safetyGround.collider,false);this.safetyGround=null;}for(const t of this.tiles.values()){this.scene.remove(t.mesh);t.mesh.geometry.dispose();this.p.world.removeCollider(t.collider,false);}for(const t of this.cache.values())t.mesh.geometry.dispose();this.tiles.clear();this.cache.clear();for(const j of this.pending.values())j.rows?.return();this.pending.clear();this.farJob?.rows.return();this.farJob=null;}
  animate(time){this.groundTextures?.origin.value.set(this.p.origin.x,0,this.p.origin.z);this.clock.value=time;this.origin.value.set(this.p.origin.x,this.p.origin.z);}
  applyRuts(t){
   const g=t.mesh.geometry,a=g.attributes.position,c=g.attributes.color,{baseHeights,baseColors}=g.userData;let changed=false;
@@ -173,7 +173,23 @@ export class TerrainView{
   }
   if(changed){a.needsUpdate=true;c.needsUpdate=true;g.attributes.deformation.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}return changed;
  }
- refresh(){this.tick++;if(this.safetyGround&&this.field.dirty.size)this.ensureGround(this.focus.x,this.focus.z,true);for(const key of this.field.dirty){const t=this.tiles.get(key);if(t&&this.applyRuts(t))this.collider(t);}this.field.dirty.clear();}
+ refresh({budgeted=false}={}){
+  // Keep the existing eight-frame rut cadence, but distribute a batch across
+  // frames instead of rebuilding up to four 8k-triangle colliders together at
+  // tile corners. A tile's visible ruts and its solid surface always change in
+  // the same call. Explicit refreshes (tests/recovery) can still drain at once.
+  const begin=!budgeted||this.tick++%8===0;
+  if(begin){
+   if(this.safetyGround&&this.field.dirty.size)this.ensureGround(this.focus.x,this.focus.z,true);
+   const queued=new Set(this.rutQueue);for(const key of this.field.dirty)if(!queued.has(key))this.rutQueue.push(key);
+   this.field.dirty.clear();
+  }
+  while(this.rutQueue.length){
+   const key=this.rutQueue.shift(),t=this.tiles.get(key);
+   this.field.dirty.delete(key); // applyRuts reads the latest field, including new stamps since enqueueing.
+   if(t){if(this.applyRuts(t))this.collider(t);if(budgeted)break;}
+  }
+ }
  dispose(){this.clearTiles();if(this.far){this.scene.remove(this.far);this.far.geometry.dispose();this.far=null;}this.material.dispose();this.farMaterial.dispose();this.farHidden.clear();this.needed.clear();}
  rebase(){
   const dx=this.renderOrigin.x-this.p.origin.x,dz=this.renderOrigin.z-this.p.origin.z;
