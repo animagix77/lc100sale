@@ -4,7 +4,7 @@ import * as THREE from 'three/webgpu';
 import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,cameraPosition,normalWorldGeometry} from 'three/tsl';
 import {RAPIER} from './physics.mjs';
 import {terrainStreamPriority} from './stream-lookahead.mjs';
-import {baseHeight,shore,smooth,noise,surfaceAt,beachRuts} from './terrain.mjs';
+import {baseHeight,shore,smooth,noise,surfaceAt} from './terrain.mjs';
 const SIZE=32,N=64;
 const meadow=new THREE.Color('#697c48'),snowColor=new THREE.Color('#dce7ef'),mudColor=new THREE.Color('#594b3b'),stone=new THREE.Color('#777f80');
 const canyonStone=new THREE.Color('#827a70'),canyonLayer=new THREE.Color('#565d5b');
@@ -96,9 +96,9 @@ export class TerrainView{
   for(let j=0;j<=n;j++){
    for(let i=0;i<=n;i++){
     const k=j*(n+1)+i,k3=k*3,k4=k*4,x=tx+i*size/n,z=tz+j*size/n,base=gridHeights?gridHeights[(j+2)*stride+i+2]:baseHeight(x,z),deformation=far?0:this.field.gridOffset(Math.round(x*2),Math.round(z*2)),y=base+deformation;
-    const worn=far?0:beachRuts(x,z);if(oldRuts)oldRuts[k]=worn;
+    const surface=surfaceAt(x,z),worn=far?0:(surface.wornRut||0);if(oldRuts)oldRuts[k]=worn;
     ps[k3]=x-offset.x;ps[k3+1]=y;ps[k3+2]=z-offset.z;if(heights)heights[k]=base;deformations[k]=deformation+worn;
-    const surface=surfaceAt(x,z),island=surface.island??0,beachDry=surface.beachDry??0,d=(x-shore(z))*(1-island)+25*beachDry*island;c.lerpColors(wet,dry,smooth(12,24,d));
+    const island=surface.island??0,beachDry=surface.beachDry??0,d=(x-shore(z))*(1-island)+25*beachDry*island;c.lerpColors(wet,dry,smooth(12,24,d));
     islandCoasts[k*2]=island;islandCoasts[k*2+1]=beachDry;
     const sx=gridHeights?(gridHeights[(j+2)*stride+i+4]-gridHeights[(j+2)*stride+i])*.5:(baseHeight(x+1,z)-baseHeight(x-1,z))*.5,sz=gridHeights?(gridHeights[(j+4)*stride+i+2]-gridHeights[j*stride+i+2])*.5:(baseHeight(x,z+1)-baseHeight(x,z-1))*.5;
     c.lerp(shadeColor,smooth(-.2,.6,sx*.75+sz*.65)*.65);

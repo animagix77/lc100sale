@@ -7,6 +7,11 @@ export class WeatherView{
  constructor({scene,skyMat,sun,hemi,light,ocean,clouds,mobile=false,reduced=false}){
   Object.assign(this,{scene,sun,hemi,light,ocean,clouds,reduced});this.state={altitude:8,cloud:.2,wind:8,rain:0,snow:0,fog:false};this.time=0;
   this.top=uniform(new THREE.Color('#49355e'));this.horizon=uniform(new THREE.Color('#f2ad79'));this.low=uniform(new THREE.Color('#ed8a75'));const y=positionLocal.y.div(1200);skyMat.colorNode=mix(mix(this.low,this.horizon,smoothstep(-.03,.025,y)),this.top,smoothstep(.015,.30,y));
+  // A bounded sky aureole adds coastal sunset glare behind the cloud geometry.
+  // It uses the existing sky pass and smoothly fades out in other weather.
+  this.haloDirection=uniform(new THREE.Vector3(-430,86,-650).normalize());this.haloStrength=uniform(0);this.haloColor=uniform(new THREE.Color('#ffc17a'));
+  const solarAngle=positionLocal.normalize().dot(this.haloDirection).max(0);
+  skyMat.colorNode=skyMat.colorNode.add(this.haloColor.mul(solarAngle.pow(520).mul(1.25).add(solarAngle.pow(36).mul(.13))).mul(this.haloStrength));
   this.colors={top:new THREE.Color(),horizon:new THREE.Color(),low:new THREE.Color(),light:new THREE.Color(),cloud:new THREE.Color(),water:new THREE.Color(),fill:new THREE.Color(),ground:new THREE.Color()};this.tmp=new THREE.Color();this.stormShade=new THREE.Color();this.direction=new THREE.Vector3();
   this.count=mobile?700:1500;this.positions=new Float32Array(this.count*6);this.seeds=Array.from({length:this.count},()=>[Math.random(),Math.random(),Math.random()]);
   this.rainOffsets=new Float32Array(this.count*3);this.snowOffsets=new Float32Array(this.count*3);
@@ -38,10 +43,16 @@ export class WeatherView{
   // Sea air keeps the next island and its exposed crossing legible. The
   // existing weather haze still closes in if a manual storm is selected.
   const archipelago=clamp(state.archipelago||0,0,1);this.fogFar+=archipelago*260*(1-weatherVeil);this.fogNear+=archipelago*16*(1-weatherVeil);
+  // Warm low coastal sun against cool shaded sand/water, with peach haze and
+  // mauve upper sky. Storm and manual daylight states retain their own palette.
+  const golden=archipelago*(1-day)*(1-night)*(1-weatherVeil)*(1-c*.45);
+  this.coastalSun=golden;
+  for(const [key,color] of [['top','#635480'],['horizon','#f79966'],['low','#bb7488'],['light','#ffa85e'],['fill','#86a9d0'],['ground','#625257'],['cloud','#ffb482']])this.colors[key].lerp(this.tmp.set(color),golden);
+
   // Broad sky illumination lifts shaded rock without flattening its normals.
-  this.lightTarget=(2.65-c*1.55-weatherVeil*.20)*(1-night)+.68*night;
+  this.lightTarget=(2.65-c*1.55-weatherVeil*.20)*(1-night)+.68*night+golden*.60;
   // Directional HDR sky now supplies the material fill; keep a softer diffuse floor.
-  this.hemiTarget=(1.22+c*.32)*(1-night)+1.08*night;
+  this.hemiTarget=(1.22+c*.32)*(1-night)+1.08*night-golden*.22;
   this.shadowTarget=(.78-c*.43-weatherVeil*.08)*(1-night)+.48*night;
   // PCF radius is in texels: scale with map resolution for equal world softness.
   this.shadowRadiusTarget=(6+c*4+weatherVeil*2)*(this.light.shadow.mapSize.x/2048);
@@ -57,8 +68,9 @@ export class WeatherView{
   this.light.shadow.radius+=(this.shadowRadiusTarget-this.light.shadow.radius)*k;
   this.scene.environmentIntensity+=(this.environmentTarget-this.scene.environmentIntensity)*k;
   const y=Math.max(-70,Math.sin(s.altitude*Math.PI/180)*620)*(1-this.nightMix)+200*this.nightMix;this.direction.set(-430,y,-650);
-  this.sun.position.copy(camera.position).add(this.direction);this.sun.material.color.lerp(this.colors.light,k);this.sun.visible=s.cloud<.88&&!s.fog;this.sun.scale.setScalar(1-this.nightMix*.4);
-  this.light.position.set(p.x+this.direction.x*.10,p.y+Math.max(20,y*.12),p.z+this.direction.z*.10);this.light.target.position.set(p.x,p.y,p.z);
+  this.haloDirection.value.copy(this.direction).normalize();this.haloStrength.value+=(this.coastalSun-this.haloStrength.value)*k;
+  this.sun.position.copy(camera.position).add(this.direction);this.sun.material.color.lerp(this.tmp.copy(this.colors.light).multiplyScalar(1+this.coastalSun*1.8),k);this.sun.visible=s.cloud<.88&&!s.fog;this.sun.scale.setScalar(1-this.nightMix*.4);
+  this.light.position.set(p.x+this.direction.x*.10,p.y+Math.max(20-14*this.haloStrength.value,y*.12),p.z+this.direction.z*.10);this.light.target.position.set(p.x,p.y,p.z);
   this.clouds.mesh.material.color.lerp(this.colors.cloud,k);this.cloudCover??=s.cloud;this.cloudCover+=(s.cloud-this.cloudCover)*k;this.clouds.setCover(this.cloudCover);this.clouds.wind=1+s.wind/15;
   this.ocean.skyTop.value.copy(this.top.value);this.ocean.skyHorizon.value.copy(this.horizon.value);this.ocean.sunColor.value.copy(this.colors.light).multiplyScalar((1-s.cloud)*this.day);
   this.ocean.sunDirection.value.copy(this.direction).normalize();this.ocean.brightness.value+=(this.brightness-this.ocean.brightness.value)*k;this.ocean.waveScale.value+=((.8+Math.min(s.wind,60)/60*.7)-this.ocean.waveScale.value)*k;

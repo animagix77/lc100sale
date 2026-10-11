@@ -35,8 +35,9 @@ for(let angle=0;angle<Math.PI*2;angle+=.25)for(const radius of [0,8,17]){
  const x=COASTAL_CAMP.x+Math.cos(angle)*radius,z=COASTAL_CAMP.z+Math.sin(angle)*radius;
  assert(Math.abs(baseHeight(x,z)-COASTAL_CAMP.height)<1e-6,'The entire usable camp clearing is level');
 }
-for(let i=0;i<24;i++)field.stamp(-60,-186,1,.17,.5,0);
-assert(field.depthAt(-60,-186)>.1,'Island sand still deforms beneath the wheels');
+for(let i=0;i<24;i++)field.stamp(-60,-186,1,.17,2,0);
+assert(field.depthAt(-60,-186)>.04&&field.depthAt(-60,-186)<.08,'Pre-compacted traffic lines deform modestly instead of digging suspension-unloading holes');
+const looseField=new SandField();for(let i=0;i<24;i++)looseField.stamp(-147,-204,1,.17,2,0);assert(looseField.deepest<-.1,'Untouched off-route sand still excavates visibly');
 assert(field.gridOffset(-119,-372)>0||field.gridOffset(-121,-372)>0,'Excavated island sand is pushed into a shoulder');
 assert(surfaceProfile({x:-60,z:-186,slip:0},4,baseHeight(-60,-186),1).dust,'Dry sandbars emit sand, not ocean spray');
 

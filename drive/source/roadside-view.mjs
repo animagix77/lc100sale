@@ -1,31 +1,33 @@
 import * as THREE from 'three/webgpu';
 import {uniform,attribute,positionWorld,float,smoothstep} from 'three/tsl';
 import {ROADSIDE_SPOTS,roadsideActors} from './roadside-spots.mjs';
-import {vehicleGeometry,personGeometry,combine} from './roadside-models.mjs';
+import {vehicleGeometry,personGeometry,combine,boggedSandGeometry} from './roadside-models.mjs';
 import {baseHeight} from './terrain.mjs';
 import {sceneryFade} from './scenery-fade.mjs';
 export class RoadsideStories{
  constructor(scene,{mobile=false,reduced=false}={}){
-  Object.assign(this,{scene,mobile,reduced});this.anchor=uniform(new THREE.Vector2());this.clock=uniform(0);this.seen=new Set();this.dummy=new THREE.Object3D();this.meshes=[];this.smokeSources=[];
+  Object.assign(this,{scene,mobile,reduced});this.anchor=uniform(new THREE.Vector2());this.clock=uniform(0);this.seen=new Set();this.dummy=new THREE.Object3D();this.meshes=[];this.sandMeshes=[];this.smokeSources=[];
   for(const spot of ROADSIDE_SPOTS){
    const parts=[],g=vehicleGeometry(spot),up=new THREE.Vector3(-spot.hx,1,-spot.hz).normalize();
-   if(spot.tipped){g.rotateZ(Math.PI*.54);g.computeBoundingBox();g.translate(0,-g.boundingBox.min.y-.10,0)}else g.translate(0,-(spot.buried||0),0);
+   if(spot.tipped){g.rotateZ(Math.PI*.54);g.computeBoundingBox();g.translate(0,-g.boundingBox.min.y-.10,0)}else {if(spot.lean)g.rotateZ(spot.lean);g.translate(0,-(spot.buried||0),0);}
    const yaw=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),spot.yaw),slope=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),up);g.applyQuaternion(slope.multiply(yaw));g.translate(spot.x,spot.h,spot.z);parts.push(g);
    for(const actor of roadsideActors(spot)){const person=personGeometry(actor.options);person.rotateY(spot.yaw+actor.angle);person.translate(actor.x,baseHeight(actor.x,actor.z),actor.z);parts.push(person)}
    const mat=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.72,flatShading:true}),mesh=new THREE.Mesh(combine(parts),mat);mesh.name='roadside-'+spot.id;mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.story=spot;mesh.frustumCulled=true;sceneryFade(mesh,{anchor:this.anchor,clock:this.clock,near:80,far:130,arrival:false});scene.add(mesh);this.meshes.push(mesh);
+   if(spot.coastal){const sand=new THREE.Mesh(boggedSandGeometry(spot,baseHeight),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}));sand.name='roadside-sand-'+spot.id;sand.receiveShadow=true;sand.userData.story=spot;sceneryFade(sand,{anchor:this.anchor,clock:this.clock,near:80,far:130,arrival:false});scene.add(sand);this.sandMeshes.push(sand);}
    if(spot.steam){const v=new THREE.Vector3(0,1.25,-1.8).applyQuaternion(slope).add(new THREE.Vector3(spot.x,spot.h,spot.z));this.smokeSources.push(v)}
   }
   const count=mobile?8:12,geometry=new THREE.IcosahedronGeometry(1,1);geometry.setAttribute('puffOpacity',new THREE.InstancedBufferAttribute(new Float32Array(count),1));
   const material=new THREE.MeshBasicNodeMaterial({color:'#d0c7b5',transparent:true,depthWrite:false});
   material.opacityNode=attribute('puffOpacity','float').mul(float(1).sub(smoothstep(55,95,positionWorld.xz.distance(this.anchor))));
   this.smoke=new THREE.InstancedMesh(geometry,material,count);this.smoke.count=0;this.smoke.frustumCulled=false;this.smoke.name='roadside-radiator-steam';scene.add(this.smoke);
-  this.stats={visible:0,steam:0,triangles:this.meshes.reduce((n,m)=>n+m.geometry.attributes.position.count/3,0)};
+  this.stats={visible:0,steam:0,triangles:[...this.meshes,...this.sandMeshes].reduce((n,m)=>n+(m.geometry.index?.count||m.geometry.attributes.position.count)/3,0)};
  }
  update(p,origin,time,allowQuip=true){
   this.anchor.value.set(p.x-origin.x,p.z-origin.z);let visible=0,joke=null;
   for(const mesh of this.meshes){const s=mesh.userData.story,dist=Math.hypot(s.x-p.x,s.z-p.z);mesh.position.set(-origin.x,0,-origin.z);mesh.visible=dist<142;if(mesh.visible)visible++;
    if(allowQuip&&!joke&&dist<23&&!this.seen.has(s.id)){this.seen.add(s.id);joke=s.quip;}
   }
+  for(const mesh of this.sandMeshes){const s=mesh.userData.story;mesh.position.set(-origin.x,0,-origin.z);mesh.visible=Math.hypot(s.x-p.x,s.z-p.z)<142;}
   let n=0;const source=this.smokeSources[0];
   if(source&&Math.hypot(source.x-p.x,source.z-p.z)<100){
    for(let i=0;i<this.smoke.instanceMatrix.count;i++){
@@ -35,5 +37,5 @@ export class RoadsideStories{
   }
   this.smoke.count=n;this.smoke.visible=n>0;this.smoke.instanceMatrix.needsUpdate=true;this.smoke.geometry.attributes.puffOpacity.needsUpdate=true;Object.assign(this.stats,{visible,steam:n});return joke;
  }
- dispose(){for(const m of [...this.meshes,this.smoke]){m.removeFromParent();m.geometry.dispose();m.material.dispose();m.dispose?.()}this.meshes.length=0;this.smokeSources.length=0;this.seen.clear()}
+ dispose(){for(const m of [...this.meshes,...this.sandMeshes,this.smoke]){m.removeFromParent();m.geometry.dispose();m.material.dispose();m.dispose?.()}this.meshes.length=0;this.sandMeshes.length=0;this.smokeSources.length=0;this.seen.clear()}
 }

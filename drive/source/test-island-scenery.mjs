@@ -3,12 +3,21 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {IslandScenery,islandBargeGeometry,islandPalmCrownGeometry} from './island-scenery.mjs';
 import {baseHeight} from './terrain.mjs';
+import {inRoadsideClearing} from './roadside-spots.mjs';
 import {ISLANDS,COASTAL_CAMP,BARGE_SITE,islandProfile,coastalRouteDistance} from './coastal-islands.mjs';
 
 const scene=new THREE.Scene(),scenery=new IslandScenery(scene,{mobile:true}),matrix=new THREE.Matrix4(),vertex=new THREE.Vector3();
 assert(scenery.stats.palms>=90&&scenery.stats.palms<=108,'All three islands retain substantial palm groves within the mobile budget');
 assert(scenery.stats.shrubs>=250&&scenery.stats.grass>=600,'Shoreline understory mixes broadleaf shrubs and dune sedges');
 for(const island of ISLANDS)assert(scenery.placements.filter(p=>p.kind==='palm'&&Math.hypot(p.x-island.x,p.z-island.z)<65).length>=18,`${island.name} has its own planted grove`);
+const shorelineRocks=scenery.placements.filter(p=>p.kind==='rock'),wrack=scenery.placements.filter(p=>p.kind==='wrack');
+assert.equal(wrack.length,150,'A fixed mobile budget fills the broken tide-line accents');
+for(const island of ISLANDS)assert(wrack.filter(p=>Math.hypot(p.x-island.x,p.z-island.z)<75).length>=20,`${island.name} has washed-up shoreline detail`);
+assert(shorelineRocks.filter(p=>p.sx<1).length>20,'Small satellite stones break up the larger reef shoulders');
+assert(shorelineRocks.filter(p=>p.sx>2.2).length>10,'Larger buried shoulders give the beach a distinct silhouette');
+assert(shorelineRocks.filter(p=>p.y<.4).length>10,'Dark partly submerged rocks connect the shore to the shallow water');
+for(const p of wrack){assert(baseHeight(p.x,p.z)>=.18&&baseHeight(p.x,p.z)<=.82,'Wrack belongs to the tide line, not inland dunes');assert(coastalRouteDistance(p.x,p.z)>6.1,'Washed-up sticks do not obstruct old tyre trails');}
+for(const p of scenery.placements)assert(!inRoadsideClearing(p.x,p.z),'Scenery leaves the stranded vehicles and their occupants clear');
 assert.equal(scenery.obstacleMeshes.length,4);assert.equal(scenery.stats.wrecks,1);
 const trunks=scenery.placements.filter(p=>p.kind==='palm');
 assert(Math.max(...trunks.map(p=>p.sy))-Math.min(...trunks.map(p=>p.sy))>.50,'Mature and young palm crowns have genuinely varied heights');
@@ -41,12 +50,13 @@ for(const mesh of scenery.meshes){
    vertex.fromBufferAttribute(g.attributes.position,j).applyMatrix4(matrix);solidVertices++;
    const distance=coastalRouteDistance(vertex.x,vertex.z);minimumRouteClearance=Math.min(minimumRouteClearance,distance);
    assert(distance>6.7,`${mesh.name} cannot project into the clear driving lane (${distance})`);
+   assert(!inRoadsideClearing(vertex.x,vertex.z),'Exact solid geometry leaves roadside vehicles clear');
    assert(Math.hypot(vertex.x-COASTAL_CAMP.x,vertex.z-COASTAL_CAMP.z)>COASTAL_CAMP.radius+6,'Tent selection and truck arrival retain an open dry clearing');
   }
  }
 }
 assert(triangles<365000,`Mobile island geometry remains bounded (${triangles} triangles)`);
-assert(scenery.meshes.length<=9,'Shared instancing keeps the whole archipelago to eight draw groups');
+assert(scenery.meshes.length<=9,'Shared instancing keeps the whole archipelago to nine draw groups, including tide-line detail');
 for(const p of scenery.placements){
  if(p.kind==='wreck')continue;
  const ground=baseHeight(p.x,p.z);
@@ -83,4 +93,4 @@ assert(barge.hull.attributes.position.count<500,'The exact collision hull exclud
 barge.hull.dispose();barge.detail.dispose();material.dispose();
 
 const owned=scenery.geometries.length,removed=[];for(const g of scenery.geometries)g.addEventListener('dispose',()=>removed.push(g));scenery.dispose();assert.equal(removed.length,owned);assert.equal(scene.children.length,0);
-console.log('Island scenery: grounded varied groves, bare headlands, lane/camp clearance, detailed open wreck, immutable rebasing and mobile resource limits passed.',{triangles,solidVertices,minimumRouteClearance});
+console.log('Island scenery: grounded varied groves, reef clusters, wrack tide lines, bare headlands, lane/camp/roadside clearance, detailed open wreck, immutable rebasing and mobile resource limits passed.',{triangles,solidVertices,minimumRouteClearance});

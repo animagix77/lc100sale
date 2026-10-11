@@ -3,6 +3,7 @@ import * as THREE from 'three/webgpu';
 import {attribute,uniform,positionLocal,positionWorld,vec3,sin,float,smoothstep,texture,uv,vec2,mix,cameraPosition,mx_noise_float} from 'three/tsl';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {baseHeight} from './terrain.mjs';
+import {inRoadsideClearing} from './roadside-spots.mjs';
 import {ISLANDS,COASTAL_CAMP,BARGE_SITE,islandProfile,coastalRouteDistance} from './coastal-islands.mjs';
 import {applyStoneSurface,groundNormal} from './ground-materials.mjs';
 
@@ -97,7 +98,7 @@ function islandGrassGeometry(mobile){
  const parts=[];
  for(let i=0;i<(mobile?8:11);i++){
   const a=i*2.399,dx=Math.cos(a),dz=Math.sin(a),root=.03+rand(i,8)*.12,h=.30+rand(i,9)*.43,reach=.17+rand(i,10)*.32;
-  parts.push(strip([[dx*root,0,dz*root],[dx*(root+reach*.25),h*.6,dz*(root+reach*.25)],[dx*(root+reach*.67),h,dz*(root+reach*.67)],[dx*(root+reach),h*.83,dz*(root+reach)]],[.018,.029,.020,.001],i%4===0?'#b8ac73':'#879559',{fold:.32,flex:.05}));
+  parts.push(strip([[dx*root,0,dz*root],[dx*(root+reach*.25),h*.6,dz*(root+reach*.25)],[dx*(root+reach*.67),h,dz*(root+reach*.67)],[dx*(root+reach),h*.83,dz*(root+reach)]],[.018,.029,.020,.001],['#b6a06a','#a9955e','#8a945a','#c5b67d'][i%4],{fold:.32,flex:.05}));
  }
  return combine(parts,{flex:true});
 }
@@ -115,6 +116,22 @@ function islandLogGeometry(){
   beam([-.65,.19,.10],[-1.25,.65,.90],.08,'#8d826d'),beam([-.35,.21,.10],[.4,.46,.75],.08,'#a3967a'),
   beam([.55,.18,-.02],[.82,.22,-.55],.07,'#b9ae93'),beam([1.25,.15,-.11],[1.85,.36,.42],.05,'#9c917a')
  ]);
+}
+
+// A tide line is a broken band of washed-up seagrass, salt-bleached sticks
+// and small shell fragments, not a uniform ring of identical beach boulders.
+function islandWrackGeometry(){
+ const parts=[];
+ for(let i=0;i<7;i++){
+  const x=(rand(i,71)-.5)*1.4,z=(rand(i,72)-.5)*.48,angle=rand(i,73)*1.2-.6;
+  const dx=Math.cos(angle),dz=Math.sin(angle),length=.24+rand(i,74)*.55;
+  parts.push(strip([[x,0,z],[x+dx*length*.48,.03,z+dz*length*.48],[x+dx*length,.008,z+dz*length]],[.015,.038,.007],i%3?'#686347':'#8f7e54',{fold:.2}));
+ }
+ parts.push(beam([-.66,.025,.17],[.82,.04,-.08],.024,'#b4a38a',4));
+ for(let i=0;i<2;i++){
+  const shell=paint(new THREE.IcosahedronGeometry(.034,0),i%2?'#c3b99d':'#d6cbb3');shell.scale(1,.27,1.4);shell.translate((rand(i,75)-.5)*1.5,.009,(rand(i,76)-.5)*.65);parts.push(shell);
+ }
+ return combine(parts);
 }
 
 const hullStations=[[-12.5,2.5],[-10.2,4.6],[-5.5,5],[5.5,5],[10.2,4.65],[12.5,3.7]];
@@ -178,6 +195,7 @@ export function islandBargeGeometry(){
 }
 
 function placementClear(x,z,radius,{soft=false}={}){
+ if(inRoadsideClearing(x,z,radius))return false;
  if(Math.hypot(x-COASTAL_CAMP.x,z-COASTAL_CAMP.z)<COASTAL_CAMP.radius+8+radius)return false;
  if(coastalRouteDistance(x,z)<(soft?4.6:9)+radius)return false;
  // No trunk, shrub, log or rock may intersect the steel wreck's full footprint.
@@ -188,7 +206,7 @@ function placementClear(x,z,radius,{soft=false}={}){
 export class IslandScenery{
  constructor(scene,{mobile=false,reduced=false}={}){
   Object.assign(this,{scene,mobile,reduced});this.group=new THREE.Group();this.group.name='Coastal island scenery';scene.add(this.group);
-  this.clock=uniform(0);this.wind=uniform(.5);this.anchor=uniform(new THREE.Vector2());this.origin=uniform(new THREE.Vector3());this.geometries=[];this.materials=[];this.meshes=[];this.placements=[];this.stats={palms:0,shrubs:0,grass:0,rocks:0,logs:0,wrecks:1};this.dummy=new THREE.Object3D();
+  this.clock=uniform(0);this.wind=uniform(.5);this.anchor=uniform(new THREE.Vector2());this.origin=uniform(new THREE.Vector3());this.geometries=[];this.materials=[];this.meshes=[];this.placements=[];this.stats={palms:0,shrubs:0,grass:0,rocks:0,logs:0,wrack:0,wrecks:1};this.dummy=new THREE.Object3D();
   const standard=options=>{const m=new THREE.MeshStandardNodeMaterial(options);this.materials.push(m);return m};
   const make=(name,geometry,material,capacity,{solid=false,kind='rock'}={})=>{
    this.geometries.push(geometry);const mesh=new THREE.InstancedMesh(geometry,material,capacity);mesh.name=name;mesh.count=0;mesh.castShadow=solid;mesh.receiveShadow=true;mesh.userData.detailKey='coastal-islands-v1:'+name;mesh.userData.worldCoordinates=true;mesh.userData.obstacleKind=kind;this.group.add(mesh);this.meshes.push(mesh);return mesh;
@@ -209,7 +227,9 @@ export class IslandScenery{
   const grass=islandGrassGeometry(mobile);grass.setAttribute('islandPhase',new THREE.InstancedBufferAttribute(new Float32Array(grassCapacity),1));
   this.grass=make('Island dune sedges',grass,foliage(grass,42,77),grassCapacity);
   this.rocks=make('Island limestone outcrops',islandRockGeometry(),standard({vertexColors:true,roughness:.90}),mobile?94:136,{solid:true});
+  this.rocks.material.roughnessNode=mix(float(.38),float(.90),smoothstep(.12,.92,positionWorld.y));
   this.logs=make('Island driftwood',islandLogGeometry(),standard({vertexColors:true,roughness:1}),mobile?28:42,{solid:true,kind:'wood'});
+  this.wrack=make('Broken tidal wrack lines',islandWrackGeometry(),standard({vertexColors:true,roughness:.86,side:THREE.DoubleSide}),mobile?150:240);
   const barge=islandBargeGeometry(),steel=standard({vertexColors:true,roughness:.92,metalness:.20,side:THREE.DoubleSide});
   const steelWorld=positionWorld.add(this.origin),salt=mx_noise_float(steelWorld.mul(vec3(4.2,1.8,4.2))).mul(.5).add(.5),pitting=mx_noise_float(steelWorld.mul(25)).mul(.5).add(.5);
   steel.colorNode=mix(vec3(.74,.69,.60),vec3(1.13,1.08,.94),salt);steel.roughnessNode=salt.mul(.13).add(.84);
@@ -246,17 +266,31 @@ export class IslandScenery{
   }
   const palms=this.placements.filter(p=>p.kind==='palm');
   for(let attempt=0;attempt<3400&&(this.rocks.count<this.rocks.instanceMatrix.count||this.logs.count<this.logs.instanceMatrix.count);attempt++){
-   const island=ISLANDS[attempt%ISLANDS.length],seed=attempt+41000,angle=rand(seed,1)*Math.PI*2,radius=.62+rand(seed,2)*.48;
-   const x=island.x+Math.cos(angle)*island.rx*radius,z=island.z+Math.sin(angle)*island.rz*radius,y=baseHeight(x,z),profile=islandProfile(x,z),log=attempt%5===0;
-   const scale=log?.65+rand(seed,4)*.50:1.35+rand(seed,4)*2.10,sz=log?scale:scale*(.75+rand(seed,6)*.60),footprint=log?scale*2.2:Math.max(scale*1.18,sz*.90);
-   if(y<.12||profile.land<.14||!placementClear(x,z,log?scale*2.1:scale*1.1))continue;
+   // Three to five stones share a reef shoulder, with open stretches between.
+   // Several size classes and partly submerged skirts break the island outline.
+   const cluster=Math.floor(attempt/5),island=ISLANDS[cluster%ISLANDS.length],seed=attempt+41000,anchor=cluster+42000,angle=rand(anchor,1)*Math.PI*2,radius=.72+rand(anchor,2)*.34;
+   const satellite=attempt%5,spread=satellite===0?0:1.2+rand(seed,9)*3.7,bearing=rand(seed,10)*Math.PI*2;
+   const x=island.x+Math.cos(angle)*island.rx*radius+Math.cos(bearing)*spread,z=island.z+Math.sin(angle)*island.rz*radius+Math.sin(bearing)*spread,y=baseHeight(x,z),profile=islandProfile(x,z),log=attempt%11===0;
+   const scale=log?.65+rand(seed,4)*.50:satellite===0?2.2+rand(seed,4)*1.4:.48+rand(seed,4)*1.12,sz=log?scale:scale*(.75+rand(seed,6)*.60),footprint=log?scale*2.2:Math.max(scale*1.18,sz*.90);
+   if(y<-.16||profile.influence<.9||!placementClear(x,z,log?scale*2.1:scale*1.1))continue;
    if(palms.some(p=>Math.hypot(p.x-x,p.z-z)<footprint+.90))continue;
-   if(log){if(y>2.7)continue;this._add(this.logs,{x,z,y:y-.045,yaw:rand(seed,3)*Math.PI*2,sx:scale,kind:'log'});}
+   if(log){if(y<.32||y>1.3)continue;this._add(this.logs,{x,z,y:y-.045,yaw:-angle+(rand(seed,3)-.5)*.7,sx:scale,kind:'log'});}
    else{
-    // Buried, flat shoulders make outcrops grow out of the beach, rather than
-    // balancing uniform pebbles on top. Lower rocks are darkened by the tide.
-    const sy=scale*(.60+rand(seed,5)*.62);this._add(this.rocks,{x,z,y:y-.23*sy,yaw:rand(seed,3)*Math.PI*2,sx:scale,sy,sz,kind:'rock',tint:y<.8?'#7e8979':rand(seed,7)>.5?'#c5b89e':'#afad96'});
+    const sy=scale*(.48+rand(seed,5)*.58);this._add(this.rocks,{x,z,y:y-.23*sy,yaw:angle+(rand(seed,3)-.5)*.65,sx:scale,sy,sz,kind:'rock',tint:y<.6?'#747f73':rand(seed,7)>.5?'#c5b89e':'#afad96'});
    }
+  }
+  // The stranded ribbon follows actual height contours. Small gaps and paired
+  // deposits read as successive tides without covering the traversable sand.
+  for(let attempt=0;attempt<7000&&this.wrack.count<this.wrack.instanceMatrix.count;attempt++){
+   const island=ISLANDS[attempt%ISLANDS.length],seed=attempt+51000,angle=rand(seed,1)*Math.PI*2,radius=.72+rand(seed,2)*.42;
+   const x=island.x+Math.cos(angle)*island.rx*radius,z=island.z+Math.sin(angle)*island.rz*radius,y=baseHeight(x,z),profile=islandProfile(x,z);
+   if(y<.18||y>.82||profile.rock>.20||!placementClear(x,z,1.5,{soft:true}))continue;
+   if(Math.sin(angle*7+island.x*.05)<-.4)continue;
+   const dx=baseHeight(x+.4,z)-baseHeight(x-.4,z),dz=baseHeight(x,z+.4)-baseHeight(x,z-.4);
+   if(Math.hypot(dx,dz)>.26)continue;
+   if(this.placements.some(p=>p.kind==='rock'&&Math.hypot(x-p.x,z-p.z)<Math.max(p.sx,p.sz)*1.2+1.1))continue;
+   const scale=.65+rand(seed,4)*.85;
+   this._add(this.wrack,{x,z,y:y-.005,yaw:-Math.atan2(dz,dx)+Math.PI*.5+(rand(seed,5)-.5)*.45,sx:scale,sy:1,sz:.75+rand(seed,6)*.50,kind:'wrack',tint:y<.43?'#b5b5a0':'#e6d5b2'});
   }
   // Populate soil around established outcrops, rather than letting dense tufts
   // grow through rock surfaces. The small exposed sand collar anchors each rock.
@@ -271,14 +305,17 @@ export class IslandScenery{
    const scale=shrub?.65+rand(seed,8)*.90:.62+rand(seed,8)*.73;
    this._add(mesh,{x,z,y:y-.035,yaw:rand(seed,5)*Math.PI*2,sx:scale,sy:scale*(.74+rand(seed,6)*.46),kind:shrub?'shrub':'grass',tint:rand(seed,7)>.72?'#c4b783':'#eff0cf'});
   }
-  Object.assign(this.stats,{palms:this.trunks.count,shrubs:this.shrubs.count,grass:this.grass.count,rocks:this.rocks.count,logs:this.logs.count});
+  Object.assign(this.stats,{palms:this.trunks.count,shrubs:this.shrubs.count,grass:this.grass.count,rocks:this.rocks.count,logs:this.logs.count,wrack:this.wrack.count});
  }
  _placeWreck(){
   const {x,z,yaw}=BARGE_SITE,y=baseHeight(x,z)-.38,pose={x,z,y,yaw,tilt:.045,bank:.055};
   this._add(this.wreckCollision,{...pose,kind:'wreck'});this._add(this.wreckDetail,pose);this.wreckPose=pose;
  }
  setGroundTextures(maps){
-  applyStoneSurface(this.rocks.material,maps,{scale:.42,strength:.035});
+  if(maps){
+   applyStoneSurface(this.rocks.material,maps,{scale:.42,strength:.035});
+   this.rocks.material.roughnessNode=mix(float(.38),this.rocks.material.roughnessNode,smoothstep(.12,.92,positionWorld.y));
+  }
   if(!maps?.bark)return;
   const m=this.trunks.material,coords=uv().mul(vec2(.9,1.6)),albedo=texture(maps.bark.color,coords).rgb,data=texture(maps.bark.surface,coords).rgb;
   m.colorNode=albedo.mul(1.48);m.roughnessNode=data.g.mul(.16).add(.82);m.aoNode=mix(float(1),data.b,.25);

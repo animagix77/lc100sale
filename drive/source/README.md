@@ -1,3 +1,13 @@
+## Coastal island refinement — October 11, 2026
+
+Judge Dean LLC. The scenic coastal route now has a graded, compacted driving lane from the mainland through all three island crossings. The former approach inherited steep dunes and submerged dips; the sampled first three legs now peak at 6.46% grade and retain at least 37.6 cm of water clearance in the regression samples. Shared geometry and shading add shallow, weathered paired tyre tracks plus older parallel shoulder passes. Fresh tracks deepen the compacted lane only slightly, preserving repeat-pass comfort; untracked shoulders retain deeper soft-sand deformation.
+
+Irregular island contours, grouped reef rocks, damp stone edges, shoreline driftwood and patchy tide-line wrack replace the uniform beach perimeter. Three generic coastal vehicles sit bogged beside the route with buried tyres, leaned bodies and local churned-sand detail. Their detail remains within existing protected roadside footprints; the central driving corridor stays clear. Mobile island scenery remains within its existing 365,000-triangle ceiling (363,792 triangles), with one added static instanced wrack group. No scenery is generated during driving.
+
+Low coastal sunlight now begins at the first island and drops toward the final camp, with amber highlights, mauve sky, cool fill and a sky-pass solar aureole behind clouds. Weather transitions ease the light angle as well as color. Storm/day/night settings retain their own behavior. The LC100 asset and persistence keys are unchanged.
+
+Validation includes all ten coastal checkpoints in unlocked 4HI, all 26 mountain checkpoints, fresh/repeated 6–8 m/s coastal drives and held-S braking from 8/12 m/s. The new comfort regression retains physical wheel contacts, streamed collision and mutable sand; no in-run recovery or roadside reposition may conceal a failure. These are gameplay physics checks, not engineering calibration or physical-device certification. Local evidence and browser frame measurements are recorded in PROJECT-HANDOFF.md.
+
 ## Braking stability on descents — October 11, 2026
 
 Judge Dean LLC. Service braking now owns Rapier's brake-impulse channel. Previously the angular tyre solver kept supplying a nonzero engine-force reaction while braking; Rapier selected that force instead of its brake, allowing high suspension-load spikes to amplify braking torque on corrugations. A 50 mph, 25-degree, 12 cm corrugated descent reproduced a rollover with 4.59m of extra body lift in the prior build.

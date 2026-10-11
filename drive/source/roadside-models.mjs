@@ -4,11 +4,11 @@ const C={rubber:'#262a2a',glass:'#203a43',metal:'#bfc5b8',dark:'#414c48',skin:'#
 const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attributes.position.count*3);for(let i=0;i<a.length;i+=3){a[i]=c.r;a[i+1]=c.g;a[i+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g};
 export function combine(parts){const gs=parts.map(g=>{const a=g.index?g.toNonIndexed():g;for(const k of Object.keys(a.attributes))if(!['position','normal','color'].includes(k))a.deleteAttribute(k);return a});const out=mergeGeometries(gs);for(const g of new Set([...parts,...gs]))g.dispose();out.computeBoundingSphere();return out}
 const box=(x,y,z,w,h,d,c)=>paint(new THREE.BoxGeometry(w,h,d).translate(x,y,z),c);
-const pebble=(x,y,z,rx,ry,rz,c)=>paint(new THREE.IcosahedronGeometry(1,1).scale(rx,ry,rz).translate(x,y,z),c);
+const pebble=(x,y,z,rx,ry,rz,c,detail=1)=>paint(new THREE.IcosahedronGeometry(1,detail).scale(rx,ry,rz).translate(x,y,z),c);
 function beam(a,b,r,c){const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*.85,r,p.distanceTo(q),6);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,c)}
 function panel(points,width,c){const s=new THREE.Shape();points.forEach(([z,y],i)=>i?s.lineTo(z,y):s.moveTo(z,y));s.closePath();const g=new THREE.ExtrudeGeometry(s,{depth:width,bevelEnabled:true,bevelSize:.045,bevelThickness:.045,bevelSegments:1,steps:1,curveSegments:1});g.translate(0,0,-width/2);g.rotateY(-Math.PI/2);return paint(g,c)}
 function wheel(x,y,z,r=.45){const parts=[],t=paint(new THREE.CylinderGeometry(r,r,.32,12),C.rubber);t.rotateZ(Math.PI/2);t.translate(x,y,z);parts.push(t);for(const side of [-1,1]){const hub=paint(new THREE.CylinderGeometry(r*.52,r*.52,.025,8),C.metal);hub.rotateZ(Math.PI/2);hub.translate(x+side*.17,y,z);parts.push(hub);const cap=paint(new THREE.CylinderGeometry(.075,.075,.045,8),C.dark);cap.rotateZ(Math.PI/2);cap.translate(x+side*.19,y,z);parts.push(cap)}for(let i=0;i<14;i++){const a=i*Math.PI/7,g=box(0,0,0,.37,.10,.14,C.rubber);g.rotateX(a);g.translate(x,y+Math.cos(a)*r,z+Math.sin(a)*r);parts.push(g)}return combine(parts)}
-export function vehicleGeometry({kind='suv',color='#c8aa70',hood=false,door=false,snow=false}={}){
+export function vehicleGeometry({kind='suv',color='#c8aa70',hood=false,door=false,snow=false,coastal=false}={}){
  const g=[],pickup=kind==='pickup',boxy=kind==='boxy',length=pickup?5.1:boxy?4.05:4.7,front=-length/2,rear=length/2;
  g.push(panel([[front,.62],[front+.12,1.03],[front+.9,1.15],[rear-.15,1.15],[rear,1.0],[rear,.55],[front+.1,.55]],1.85,color));
  g.push(box(0,.49,0,1.5,.18,length-.3,C.dark),box(0,.71,front-.07,2,.22,.20,C.dark),box(0,.68,rear+.04,2,.18,.18,C.dark));
@@ -38,7 +38,33 @@ export function vehicleGeometry({kind='suv',color='#c8aa70',hood=false,door=fals
  if(boxy){for(let i=-3;i<=3;i++)g.push(box(i*.115,.95,front-.08,.045,.24,.035,'#a6b1a6'));for(const side of [-1,1]){const lamp=paint(new THREE.CylinderGeometry(.16,.16,.04,10),'#f4dfac');lamp.rotateX(Math.PI/2);lamp.translate(side*.69,1.02,front-.075);g.push(lamp)}const spare=wheel(0,0,0,.42);spare.rotateY(Math.PI/2);spare.translate(0,1.35,rear+.20);g.push(spare);}else for(const side of [-1,1])g.push(box(side*.67,1.02,front-.07,.37,.22,.08,'#e8ddbe'));
  for(const side of [-1,1]){g.push(box(side*.76,.98,rear+.01,.20,.30,.08,'#b95c49'));for(const z of [front+.84,rear-.77]){g.push(wheel(side*.98,.46,z));g.push(box(side*.96,1.00,z,.18,.12,1.05,color));}}
  if(snow){g.push(box(0,roofY+.08,(roofFront+roofRear)/2,1.70,.12,roofRear-roofFront,'#d9e3dc'),box(0,1.27,hoodZ,1.56,.09,.82,'#d9e3dc'))}
+ if(coastal)for(const side of [-1,1])for(let i=0;i<9;i++){
+  // Dried sand on the sills gives the buried lower body a weathered edge.
+  const z=front+.30+i*(length-.60)/8;
+  g.push(pebble(side*.942,.65+Math.sin(i*2.7)*.07,z,.026,.055+(i%3)*.025,.15,'#bba078',0));
+ }
  return combine(g);
+}
+// Judge Dean LLC — shallow churn, rounded spoil shoulders and short failed
+// approach tracks. Built once and conformed to terrain, not floating decals.
+export function boggedSandGeometry(spot,heightAt){
+ const positions=[],colors=[],indices=[],cs=Math.cos(spot.yaw),sn=Math.sin(spot.yaw),sand=new THREE.Color('#bba17a'),trough=new THREE.Color('#8c7453'),lip=new THREE.Color('#d0b98e');
+ const rows=28,cols=8;
+ for(const side of [-1,1]){
+  const first=positions.length/3;
+  for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){
+   const along=j/rows,z=-2.6+along*7.2,across=(i/cols-.5)*1.12;
+   const taper=.04+.96*Math.sin(Math.PI*along)**.35,wiggle=Math.sin(z*2.1+side)*.035;
+   const x=side*.98+across*taper+wiggle,wx=spot.x+x*cs+z*sn,wz=spot.z-x*sn+z*cs;
+   const rim=Math.exp(-Math.pow((Math.abs(across)-.37)/.13,2)),dig=Math.exp(-Math.pow((z-1.5)/.62,2))+Math.exp(-Math.pow((z+1.65)/.58,2));
+   const raised=(rim*(.055+dig*.12)+Math.max(0,Math.sin(z*12+side))*.009)*taper;
+   positions.push(wx,heightAt(wx,wz)+.013+raised,wz);
+   const tone=sand.clone().lerp(trough,Math.exp(-Math.pow(across/.22,2))*.76*taper).lerp(lip,rim*.46*taper);
+   colors.push(tone.r,tone.g,tone.b);
+  }
+  for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=first+j*(cols+1)+i,b=a+cols+1;indices.push(a,b,a+1,a+1,b,b+1);}
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();g.computeBoundingSphere();return g;
 }
 export function personGeometry({pose='seated',woman=false,coat='#ba6549'}={}){
  const g=[],skin=C.skin,hip=pose==='seated'?.53:.96,head=pose==='seated'?1.18:1.67;

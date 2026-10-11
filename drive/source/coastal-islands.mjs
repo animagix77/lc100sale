@@ -42,6 +42,40 @@ function closest(x,z,segments){
 }
 export function coastalRouteSample(x,z){const q=closest(x,z,routeSegments);return {...q,height:q.segment.a.height+(q.segment.b.height-q.segment.a.height)*q.t,index:q.segment.index}}
 export function coastalRouteDistance(x,z){return closest(x,z,routeSegments).distance}
+// Judge Dean LLC — weathered paired traffic lines on the complete coastal route.
+// The primary line is shallow and compacted; older parallel passes sit farther
+// out in the softer shoulders. Shared by ground geometry and rut shading.
+const COASTAL_RUT_BANDS=[[.96,.10,.54],[2.65,.14,.49],[4.57,.14,.49]];
+export function coastalWornRuts(x,z,route=null){
+ if(x> -7||x< -480||z>12||z< -380)return 0;
+ const q=route||coastalRouteSample(x,z);if(q.distance>7.4)return 0;
+ const fade=(1-smooth(5.5,7.4,q.distance))*(1-smooth(-2,12,z))*smooth(18,27,Math.hypot(x-COASTAL_CAMP.x,z-COASTAL_CAMP.z));
+ if(!fade)return 0;
+ const wear=.72+.28*noise(x*.045+12,z*.045),d=q.distance;
+ let cut=0,rim=0;
+ for(const [center,depth,width] of COASTAL_RUT_BANDS){
+  const across=Math.abs(d-center),strength=center<2?1:(.40+.60*noise(x*.027+center,z*.035));
+  cut=Math.min(cut,-depth*wear*strength*Math.exp(-((across/width)**2)));
+  rim+=depth*.16*wear*strength*Math.exp(-(((across-.83)/.34)**2));
+ }
+ return (cut+rim)*fade;
+}
+export function coastalLaneHeight(x,z,route=coastalRouteSample(x,z),wornRut=coastalWornRuts(x,z,route)){
+ return route.height+Math.sin(x*.065+z*.054)*.016+wornRut;
+}
+// The original approach inherited metre-scale dunes and submerged swales.
+// Grade this narrow shared beach lane separately from offshore island support,
+// keeping mainland mountains and the rest of the original beach untouched.
+export function coastalEntryProfile(x,z){
+ if(x< -44||x> -7||z< -166||z>12)return {blend:0,height:0};
+ const route=coastalRouteSample(x,z),blend=(1-smooth(4.5,11,route.distance))*(1-smooth(-2,12,z))*smooth(-44,-32,x);
+ return {blend,height:blend?coastalLaneHeight(x,z,route):0};
+}
+export function coastalLaneCompaction(x,z,route=null){
+ if(x> -7||x< -480||z>12||z< -380)return 0;
+ const q=route||coastalRouteSample(x,z);
+ return (1-smooth(3.6,7,q.distance))*(1-smooth(-2,12,z));
+}
 // A cheap spatial gate protects the entire mainland (x >= -25) exactly and
 // prevents island noise/route work from running across the rest of the world.
 export function archipelagoRegion(x,z){
@@ -56,7 +90,7 @@ export function islandProfile(x,z){
   const island=ISLANDS[i],dx=(x-island.x)/island.rx,dz=(z-island.z)/island.rz;
   if(Math.abs(dx)>1.65||Math.abs(dz)>1.65)continue;
   // Lobed coastlines and several noise scales avoid regular oval sand discs.
-  const angle=Math.atan2(dz,dx),r=Math.hypot(dx,dz)/(1+.075*Math.sin(angle*3+i*1.7)+.045*Math.sin(angle*5-i));
+  const angle=Math.atan2(dz,dx),r=Math.hypot(dx,dz)/(1+.105*Math.sin(angle*3+i*1.7)+.06*Math.sin(angle*5-i)+.024*Math.sin(angle*9+i)+.035*(noise(x*.035,z*.035)-.5));
   if(r>=1.55)continue;
   const support=1-smooth(1.22,1.55,r),core=1-smooth(.50,.88,r);
   const beach=-3.2+4.15*(1-smooth(.92,1.25,r));
@@ -76,13 +110,12 @@ export function islandProfile(x,z){
  const route=coastalRouteSample(x,z),trail=1-smooth(4.5,10.5,route.distance);
  // Gentle undulation and shallow old tyre channels keep the traversable line
  // tactile without adding a sharp berm or a deep trench at island boundaries.
- const tread=-.045*Math.exp(-Math.pow((Math.abs(route.distance)-.94)/.36,2));
- const laneHeight=route.height+Math.sin(x*.21+z*.18)*.025+tread;
+ const wornRut=coastalWornRuts(x,z,route),laneHeight=coastalLaneHeight(x,z,route,wornRut);
  h+=(laneHeight-h)*trail;
  const camp=1-smooth(COASTAL_CAMP.radius,COASTAL_CAMP.radius+10,Math.hypot(x-COASTAL_CAMP.x,z-COASTAL_CAMP.z));
  h+=(COASTAL_CAMP.height-h)*camp;
  const land=smooth(-.10,.75,h),grass=land*interior*(1-trail*.96)*(1-rock)*(1-camp)*(.50+.50*noise(x*.07,z*.065));
- return {influence:influence*region,height:h,land,beach:land*(1-grass)*(1-rock),beachDry:smooth(.03,.68,h),grass,rock:rock*(1-trail)*(1-camp),trail,sandbar:barSupport*(1-interior),island:region};
+ return {influence:influence*region,height:h,land,beach:land*(1-grass)*(1-rock),beachDry:smooth(.03,.68,h),grass,rock:rock*(1-trail)*(1-camp),trail,compaction:coastalLaneCompaction(x,z,route),wornRut:wornRut*(1-camp),sandbar:barSupport*(1-interior),island:region};
 }
 export function islandTerrainHeight(x,z,original){const p=islandProfile(x,z);return original+(p.height-original)*p.influence}
 // Match the ocean shader: an offshore swell loses energy over the same shallow
