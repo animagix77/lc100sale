@@ -37,7 +37,8 @@ export class WeatherView{
   const canyon=clamp(state.canyon||0,0,1);this.fogFar+=canyon*390;this.fogNear+=canyon*18;
   // Broad sky illumination lifts shaded rock without flattening its normals.
   this.lightTarget=(2.65-c*1.55-weatherVeil*.20)*(1-night)+.68*night;
-  this.hemiTarget=(1.55+c*.24)*(1-night)+1.20*night;
+  // Directional HDR sky now supplies the material fill; keep a softer diffuse floor.
+  this.hemiTarget=(1.22+c*.32)*(1-night)+1.08*night;
   this.shadowTarget=(.78-c*.43-weatherVeil*.08)*(1-night)+.48*night;
   // PCF radius is in texels: scale with map resolution for equal world softness.
   this.shadowRadiusTarget=(6+c*4+weatherVeil*2)*(this.light.shadow.mapSize.x/2048);

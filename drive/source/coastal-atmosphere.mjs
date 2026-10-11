@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import {uniform,uv,float,smoothstep,attribute} from 'three/tsl';
+import {uniform,uv,float,smoothstep,attribute,positionWorld,vec3,mx_noise_float} from 'three/tsl';
 import {shore,smooth,surfaceAt} from './terrain.mjs';
 import {coastalWind} from './coastal-wind.mjs';
 const rand=n=>{const v=Math.sin(n*127.1+39.7)*43758.5453;return v-Math.floor(v)};
@@ -16,12 +16,18 @@ export class CoastalAtmosphere{
   this.mistAlpha=new THREE.InstancedBufferAttribute(new Float32Array(this.mistCount),1);
   const mistGeo=new THREE.PlaneGeometry(1,1);mistGeo.setAttribute('mistAlpha',this.mistAlpha);
   const mistMat=new THREE.MeshBasicNodeMaterial({color:'#d6ba8d',transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide});
-  mistMat.opacityNode=float(1).sub(smoothstep(.04,1,uv().sub(.5).length().mul(2))).pow(1.5).mul(attribute('mistAlpha','float'));
+  this.mistOrigin=uniform(new THREE.Vector3());this.mistFlow=uniform(0);
+  // Ground mist breaks into wisps rather than uniform camera-facing blankets.
+  // World-anchored noise retains its pattern during camera orbit and rebases.
+  const mistWorld=positionWorld.add(this.mistOrigin),curl=mx_noise_float(mistWorld.mul(vec3(.09,.28,.065)).add(vec3(this.mistFlow.mul(-.18),0,this.mistFlow.mul(.06))));
+  const wisps=smoothstep(-.45,.45,curl).mul(.72).add(.20);
+  mistMat.opacityNode=float(1).sub(smoothstep(.04,1,uv().sub(.5).length().mul(2))).pow(1.5).mul(attribute('mistAlpha','float')).mul(wisps);
   this.inlandMist=new THREE.InstancedMesh(mistGeo,mistMat,this.mistCount);this.inlandMist.frustumCulled=false;this.inlandMist.renderOrder=2;scene.add(this.inlandMist);
   this.mistColor=new THREE.Color();this.mistCells=Array.from({length:this.mistCount},()=>({}));this.mistKey='';
  }
  update(p,time,origin,camera,weather={}){
   const t=this.reduced?0:time,wind=coastalWind(t,weather.wind),wet=Math.max(weather.rain||0,weather.snow||0),night=(weather.altitude??8)<-6,d=this.dummy;
+  this.mistOrigin.value.set(origin.x,0,origin.z);this.mistFlow.value=t;
   this.hazeOpacity.value=(weather.fog?.52:.26+wind*.045+wet*.13)*(night?.80:1);
   this.haze.material.color.set(night?'#8492b5':(weather.altitude??8)<14?'#debba0':'#c3d9dc');
   const region=Math.floor(p.z/120);

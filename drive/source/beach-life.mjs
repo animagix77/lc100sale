@@ -20,7 +20,7 @@ const remembered=(cache,key,create,limit)=>{let value=cache.get(key);if(value!==
 const inRoadsideClearing=(x,z,pad=0)=>roadsideClearing(x,z,pad)||Math.hypot(x-CAMP.x,z-CAMP.z)<CAMP.radius+pad;
 const rand=(a,b=0)=>{const v=Math.sin(a*127.1+b*311.7)*43758.5453;return v-Math.floor(v)};
 // Shared immutable tints avoid thousands of short-lived Color objects per cell.
-const plantTint=Object.fromEntries(['#718e4b','#819366','#b1b774','#c4ba87','#c3c0b3','#ffffff','#b7c594','#8ea58a','#c1ceae','#e0d9ac','#96b186','#d1ce9a','#395e3d','#647749','#94a664','#b4aa70'].map(hex=>[hex,new THREE.Color(hex)]));
+const plantTint=Object.fromEntries(['#718e4b','#819366','#b1b774','#c4ba87','#c3c0b3','#ffffff','#a8c887','#8ab282','#adc69c','#c2d2ac','#96b186','#d1ce9a','#395e3d','#647749','#94a664','#b4aa70'].map(hex=>[hex,new THREE.Color(hex)]));
 const paint=(g,hex)=>{const c=new THREE.Color(hex),a=new Float32Array(g.attributes.position.count*3);for(let i=0;i<a.length;i+=3){a[i]=c.r;a[i+1]=c.g;a[i+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g};
 const combine=gs=>{const clean=gs.map(g=>{const a=g.index?g.toNonIndexed():g;for(const k of Object.keys(a.attributes))if(!['position','normal','color'].includes(k))a.deleteAttribute(k);return a});const out=mergeGeometries(clean);for(const g of new Set([...gs,...clean]))g.dispose();return out};
 function beam(a,b,r,hex,segments=6,openEnded=false){const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*.72,r,p.distanceTo(q),segments,1,openEnded);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,hex)}
@@ -277,7 +277,7 @@ export class BeachLife{
     c.copy(plantTint['#c3c0b3']).lerp(plantTint['#ffffff'],rand(ix+3,iz));this.trunks.setColorAt(ti,c);
     const crown=young?.64+rand(ix+8,iz)*.35:tall?.85+rand(ix+8,iz)*.35:1.15+rand(ix+8,iz)*.55;
     d.scale.set(crown*(.85+rand(ix+9,iz)*.30),height,crown*(.85+rand(ix+10,iz)*.30));d.updateMatrix();this.crowns.setMatrixAt(ti,d.matrix);
-    c.copy(plantTint[young?'#b7c594':'#8ea58a']).lerp(plantTint[tall?'#c1ceae':'#e0d9ac'],rand(ix+17,iz));this.crowns.setColorAt(ti,c);ti++;
+    c.copy(plantTint[young?'#a8c887':'#8ab282']).lerp(plantTint[tall?'#adc69c':'#c2d2ac'],rand(ix+17,iz));this.crowns.setColorAt(ti,c);ti++;
    }
    const fernX=x+1.9,fernZ=z-1.5;
    // Broad low fern patches alternate with upright young fronds. Limit spread
@@ -302,11 +302,11 @@ export class BeachLife{
    if((ix&15)===0)yield;
    const x=(ix+rand(ix,iz)*.7)*spacing,z=(iz+rand(iz,ix)*.7)*spacing;
    if(Math.hypot(x-centerX,z-centerZ)>76||gi>=this.grass.instanceMatrix.count)continue;
-   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;if(rockFormationMask(x,z)>.4)return null;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:routeSample(x,z).distance<4.5,patch:smooth(.20,.75,noise(x*.063,z*.063))}},40000);if(!place)continue;
-   d.position.set(x-origin.x,place.y-.035,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);const {riparian,trail,patch}=place;
+   const place=remembered(this.placementCaches.grass,`g${ix},${iz}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z);if(surface.grass<.30||surface.riverApproach>.18||riverMask(x,z)>.05)return null;if(rockFormationMask(x,z)>.4)return null;const clearance=routeSample(x,z).distance;return {y:baseHeight(x,z),riparian:riverGreenery(x,z)>.3,trail:clearance<4.5,clearance,patch:smooth(.23,.70,noise(x*.052,z*.052))}},40000);if(!place||rand(ix+97,iz)>.30+place.patch*.70)continue;
+   d.position.set(x-origin.x,place.y-.035,z-origin.z);d.rotation.set(0,rand(ix+5,iz)*6.28,0);const {riparian,trail,patch,clearance}=place;
    // Dense broad tussocks in damp patches, short scattered grasses between them.
    // Vary footprint and height independently instead of a uniform grass carpet.
-   const spread=(trail?1.1:1.2+patch*1.0)*(.85+rand(ix+9,iz)*.3),height=riparian?(trail?.23:.40+patch*.62)+rand(ix,iz+2)*.26:.68+patch*1.13+rand(ix,iz+2)*.38;
+   const broad=(trail?1.0:1.05+patch*1.65)*(.85+rand(ix+9,iz)*.3),spread=riparian?Math.min(broad,Math.max(1,(clearance-3.1)/.85)):broad,height=riparian?(trail?.23:.40+patch*.62)+rand(ix,iz+2)*.26:.68+patch*1.13+rand(ix,iz+2)*.38;
    d.scale.set(spread,height,spread*(.85+rand(ix+10,iz)*.3));d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);
    c.copy(plantTint[riparian?'#395e3d':'#647749']).lerp(plantTint[riparian?'#94a664':'#b4aa70'],patch*.35+rand(ix,iz+4)*.5);this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);
    this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;

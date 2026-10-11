@@ -18,26 +18,37 @@ export async function loadGroundTextures({mobile=false,loader=new THREE.TextureL
 }
 export function groundSurface(maps,name,{scale=1,triplanar=false}={}){
  const world=positionWorld.add(maps.origin),uv=world.xz.mul(scale);
- // Blend two orientations over broad world-space patches. The packed height,
- // roughness and albedo use the same footprint, including after origin rebases.
  const patch=smoothstep(-.28,.28,mx_noise_float(world.mul(.065).add(vec3(13.7,5.1,9.2))));
- const tile=(map,coords)=>{
-  const rotated=vec2(coords.x.mul(.8).sub(coords.y.mul(.6)),coords.x.mul(.6).add(coords.y.mul(.8))).add(vec2(.37,.71));
-  return mix(texture(map,coords),texture(map,rotated),patch);
+ // Sample each color/packed surface pair together. Height selects the edges of
+ // overlapping gravel and litter instead of averaging two crisp photos into
+ // a blurred midpoint. This reuses the same samples as the old orientation mix.
+ const tile=(coords,rotated=true)=>{
+  const colorA=texture(maps[name].color,coords).rgb,dataA=texture(maps[name].surface,coords).rgb;
+  if(!rotated)return {color:colorA,data:dataA};
+  const other=vec2(coords.x.mul(.8).sub(coords.y.mul(.6)),coords.x.mul(.6).add(coords.y.mul(.8))).add(vec2(.37,.71));
+  const colorB=texture(maps[name].color,other).rgb,dataB=texture(maps[name].surface,other).rgb;
+  const overlap=patch.mul(patch.oneMinus()).mul(4);
+  const weight=smoothstep(.18,.82,patch.add(dataB.r.sub(dataA.r).mul(overlap).mul(.50)));
+  return {color:mix(colorA,colorB,weight),data:mix(dataA,dataB,weight)};
  };
- const sample=map=>{
-  if(!triplanar)return tile(map,uv);
-  // Geometric normals avoid a dependency cycle with the detail normal below.
-  const weights=normalWorldGeometry.abs().pow(4),sum=weights.x.add(weights.y).add(weights.z).max(.001);
-  // Mobile cliffs retain three samples; horizontal ground gets both orientations.
-  const projected=(coords)=>maps.mobile?texture(map,coords):tile(map,coords);
-  return projected(world.zy.mul(scale)).mul(weights.x).add(projected(uv).mul(weights.y)).add(projected(world.xy.mul(scale)).mul(weights.z)).div(sum);
- };
- return {color:sample(maps[name].color).rgb,data:sample(maps[name].surface).rgb};
+ if(!triplanar)return tile(uv);
+ // Geometric normals avoid a dependency cycle with the detail normal below.
+ const weights=normalWorldGeometry.abs().pow(4),sum=weights.x.add(weights.y).add(weights.z).max(.001);
+ const a=tile(world.zy.mul(scale),!maps.mobile),b=tile(uv,!maps.mobile),c=tile(world.xy.mul(scale),!maps.mobile);
+ const blend=key=>a[key].mul(weights.x).add(b[key].mul(weights.y)).add(c[key].mul(weights.z)).div(sum);
+ return {color:blend('color'),data:blend('data')};
 }
-export function groundNormal(relief){
+// Suppress subpixel relief at grazing angles as well as in the distance. This
+// uses screen derivatives supported by both Three's WebGPU and WebGL2 paths.
+export function groundDetailFade(worldXZ,frequency){
+ const footprint=worldXZ.dFdx().length().max(worldXZ.dFdy().length()).mul(frequency);
+ return float(1).sub(smoothstep(.18,.72,footprint));
+}
+export function groundNormal(relief,detailFade=float(1)){
+ // Apply derivative-based filtering AFTER the height derivatives; nested
+ // derivatives would be undefined on some mobile fragment shader backends.
  const dx=positionView.dFdx(),dy=positionView.dFdy(),r1=dy.cross(normalView),r2=normalView.cross(dx),det=dx.dot(r1);
- return normalView.mul(det.abs()).sub(r1.mul(relief.dFdx()).add(r2.mul(relief.dFdy())).mul(det.sign())).normalize();
+ return normalView.mul(det.abs()).sub(r1.mul(relief.dFdx()).add(r2.mul(relief.dFdy())).mul(det.sign()).mul(detailFade)).normalize();
 }
 export function applyStoneSurface(material,maps,{scale=.65,strength=.025,weathered=false}={}){
  if(!maps)return;

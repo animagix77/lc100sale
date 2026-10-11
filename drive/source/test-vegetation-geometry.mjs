@@ -12,7 +12,15 @@ for(const mobile of [false,true]){
  assert(grass.index.count/3<=120&&grass.attributes.position.count<=150,'Better tuft shape stays inside the previous vertex and triangle budgets');
  assert(trunk.index.count/3<250,'Roots and branch forks share one modest static geometry');
  assert(trunk.boundingBox.min.y<-.5&&trunk.boundingBox.max.y>6,'Trees have a buried footing and a stem entering their foliage');
- assert.equal(canopy.index.count/3,mobile?30:42,'Canopy detail keeps its original card budget');
+ assert.equal(canopy.index.count/3,mobile?30:120,'Mobile canopy budget stays fixed; desktop has folded branch sprays');
+ // Smaller sprays should add crown depth without expanding alpha overdraw.
+ let canopyArea=0,inclinedArea=0,lowLeaves=0;const ca=new THREE.Vector3(),cb=new THREE.Vector3(),cc=new THREE.Vector3(),cp=canopy.attributes.position;
+ for(let i=0;i<canopy.index.count;i+=3){ca.fromBufferAttribute(cp,canopy.index.getX(i));cb.fromBufferAttribute(cp,canopy.index.getX(i+1));cc.fromBufferAttribute(cp,canopy.index.getX(i+2));cb.sub(ca).cross(cc.sub(ca));const area=cb.length()*.5;assert(area>1e-4,'Leaf sprays never collapse into invisible slivers');canopyArea+=area;inclinedArea+=Math.abs(cb.y)*.5;}
+ assert(canopyArea<50,'Layered crowns bound the total transparent card area');
+ assert(inclinedArea>canopyArea*.38,'Inclined sprays give the crown depth instead of forming upright sheets');
+ for(let i=0;i<cp.count;i++){if(cp.getY(i)<4)lowLeaves++;const n=new THREE.Vector3().fromBufferAttribute(canopy.attributes.normal,i);assert(n.x*cp.getX(i)+n.z*cp.getZ(i)>0,'Leaf shading normals face out of the crown');}
+ assert(lowLeaves>=cp.count*.18,'Lower branches carry foliage instead of leaving a bare pole');
+ assert([...canopy.attributes.uv.array].every(v=>v>=0&&v<=1),'Mirrored sprays retain the complete leaf silhouette inside the source image');
  for(const material of [life.crowns.material,life.crowns.userData.sceneryGhost.material])assert.equal(material.normalNode,normalViewGeometry,'Both canopy passes retain outward crown normals on back-facing leaf cards');
  assert.equal(life.trunks.userData.sceneryGhost.geometry,trunk,'Distant trees reuse the same rooted silhouette');
  for(const geometry of [grass,trunk,canopy])for(const name of ['position','normal'])assert([...geometry.attributes[name].array].every(Number.isFinite),'Geometry stays finite');

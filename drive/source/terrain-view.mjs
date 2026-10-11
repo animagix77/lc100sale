@@ -1,4 +1,4 @@
-import {groundSurface,groundNormal} from './ground-materials.mjs';
+import {groundSurface,groundNormal,groundDetailFade} from './ground-materials.mjs';
 import {canyonProfile} from './canyon.mjs';
 import * as THREE from 'three/webgpu';
 import {attribute,uniform,positionWorld,vec2,sin,float,smoothstep,mix,vec3,mx_noise_float,cameraPosition,normalWorldGeometry} from 'three/tsl';
@@ -26,14 +26,16 @@ export class TerrainView{
  const broad=mx_noise_float(vec3(world.x.mul(.12),positionWorld.y.mul(.18),world.y.mul(.12)));
  const grain=mx_noise_float(vec3(world.x.mul(2.8),positionWorld.y.mul(1.3),world.y.mul(2.8)));
  const layers=sin(positionWorld.y.mul(.85).add(broad.mul(8))).mul(.5).add(.5);
- const stratified=mix(float(1),layers.mul(.12).add(.88),detail.x);
+ const fissure=float(1).sub(smoothstep(.025,.12,layers)).mul(detail.x).mul(float(1).sub(surface.y));
+ const stratified=mix(float(1),layers.mul(.12).add(.88),detail.x).mul(mix(float(1),float(.79),fissure.mul(close)));
  // Centimetre grains and irregular soil aggregates share world coordinates
  // with the ruts. Distance fades suppress distant sparkle and aliasing.
  const soil=float(1).sub(surface.y).mul(float(1).sub(detail.x)).mul(float(1).sub(surface.z));
  const fineFade=float(1).sub(smoothstep(8,32,cameraPosition.distance(positionWorld)));
+ const grainVisibility=fineFade.mul(groundDetailFade(world,32));
  const grit=mx_noise_float(vec3(world.x.mul(32),float(2.3),world.y.mul(32)));
  const clumps=mx_noise_float(vec3(world.x.mul(8),float(7.1),world.y.mul(8)));
- const soilShade=clumps.mul(.18).add(grit.mul(.20).mul(fineFade)).mul(soil).mul(close).add(1);
+ const soilShade=clumps.mul(.18).add(grit.mul(.20).mul(grainVisibility)).mul(soil).mul(close).add(1);
  const textureShade=mix(soilShade.mul(broad.mul(.09).add(1).mul(grain.mul(.11).mul(close).mul(float(1).sub(surface.y.mul(.65))).add(1))),float(1),compacted.mul(.65));
  const photographed=groundTextures?(()=>{
   const forest=groundSurface(groundTextures,'forest',{scale:.38}),gravel=groundSurface(groundTextures,'gravel',{scale:.55}),rock=groundSurface(groundTextures,'stone',{scale:.30,triplanar:true});
@@ -48,17 +50,31 @@ export class TerrainView{
   const albedo=mix(mix(forest.color,gravel.color,gravelWeight),rock.color.mul(tint),rockWeight);
   const data=mix(mix(forest.data,gravel.data,gravelWeight),rock.data,rockWeight);
   const moisture=surface.x.mul(.50).add(detail.z.mul(.65)).add(damp.mul(.25)).clamp(0,1);
-  return {coverage,albedo,data,moisture};
+  // Damp fines sit in hollows; raised pebbles remain dry and rough. Reuse
+  // the photograph's height/AO rather than painting a uniform wet brown wash.
+  const raised=smoothstep(.28,.72,data.r),cavity=float(1).sub(smoothstep(.24,.60,data.r));
+  const wetness=moisture.mul(mix(float(.38),float(1),cavity)).mul(broad.mul(.18).add(.88)).clamp(0,1);
+  const aggregates=mix(float(.86),float(1.07),raised).mul(mix(float(1),data.b,.22));
+  const soilTint=mix(vec3(.88,.82,.72),vec3(1.06,1.04,.98),broad.mul(.5).add(.5)).mix(vec3(1),rockWeight);
+  const worn=compacted.mul(float(1).sub(rockWeight)).mul(noSnow);
+  return {coverage,albedo:albedo.mul(aggregates).mul(soilTint),data,wetness,raised,rockWeight,worn};
  })():null;
  const make=flat=>{const mat=new THREE.MeshStandardNodeMaterial({roughness:1,metalness:0,flatShading:flat});mat.colorNode=attribute('color','vec3').mul(mix(float(1),float(.76),fresh)).mul(stratified).mul(textureShade);mat.roughnessNode=mix(mix(mix(float(.98),float(.30),damp.mul(.75).add(fresh.mul(.25))),float(.47),attribute('surface','vec3').x),float(.075),attribute('surface','vec3').z).mul(clumps.mul(.10).mul(soil).add(.95)).clamp(.06,1);if(photographed){
-   const {coverage,albedo,data,moisture}=photographed;
-   mat.colorNode=mix(mat.colorNode,albedo.mul(textureShade).mul(mix(float(.98),float(.69),moisture)),coverage.mul(.90));
-   mat.roughnessNode=mix(mat.roughnessNode,mix(data.g.mul(.35).add(.60),float(.30),moisture),coverage);
-   mat.aoNode=mix(float(1),data.b,coverage.mul(.45));
+   const {coverage,albedo,data,wetness,raised,worn}=photographed;
+   const photoColor=albedo.mul(textureShade).mul(stratified).mul(mix(float(1.02),float(.58),wetness)).mul(mix(float(1),float(.74),worn));
+   mat.colorNode=mix(mat.colorNode,photoColor,coverage.mul(.94));
+   const dryRoughness=data.g.mul(.42).add(.55),wetRoughness=mix(float(.16),float(.32),raised);
+   mat.roughnessNode=mix(mat.roughnessNode,mix(dryRoughness,wetRoughness,wetness).mul(mix(float(1),float(.84),worn)).clamp(.12,1),coverage);
+   mat.aoNode=mix(float(1),data.b.mul(mix(float(.84),float(1),raised)),coverage.mul(.60));
   }if(!flat){
    let relief=grain.mul(.022).add(clumps.mul(.012).add(grit.mul(.0025).mul(fineFade)).mul(soil)).add(layers.mul(detail.x).mul(.02)).mul(close).mul(float(1).sub(surface.z)).mul(mix(float(1),float(.25),compacted));
-   if(photographed)relief=mix(relief,photographed.data.r.mul(.055).mul(close),photographed.coverage);
-   mat.normalNode=groundNormal(relief);
+   if(photographed){
+    const {data,coverage,rockWeight,worn}=photographed;
+    const photoRelief=data.r.mul(mix(float(.095),float(.14),rockWeight)).sub(fissure.mul(.022)).mul(close).mul(mix(float(1),float(.28),worn));
+    // Retain physical rut edges while compressing only shading-scale grains.
+    relief=mix(relief,photoRelief,coverage).mul(float(1).sub(surface.z.mul(.92)));
+   }
+   mat.normalNode=groundNormal(relief,groundDetailFade(world,groundTextures?3:8));
   }return mat};
  this.material=make(false);this.farMaterial=make(false);this.far=null}
  // Row-sized work units keep procedural terrain off the critical render frame.

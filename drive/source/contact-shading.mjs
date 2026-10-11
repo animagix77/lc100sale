@@ -2,8 +2,8 @@
 import {ao} from 'three/addons/tsl/display/GTAONode.js';
 import {denoise} from 'three/addons/tsl/display/DenoiseNode.js';
 import {vec4,mix,float} from 'three/tsl';
-export function contactShading(scenePass,camera,{mobile=false,enabled=true}={}){
- const color=scenePass.getTextureNode('output');
+export function contactShading(scenePass,camera,{mobile=false,enabled=true,colorNode=null}={}){
+ const color=colorNode??scenePass.getTextureNode('output');
  if(!enabled)return {output:color,dispose(){}};
  const depth=scenePass.getTextureNode('depth'),occlusion=ao(depth,null,camera);
  occlusion.resolutionScale=mobile?.35:.5;occlusion.samples.value=mobile?8:16;
