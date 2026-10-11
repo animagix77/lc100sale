@@ -52,6 +52,7 @@ import {PowerAntenna} from './antenna.mjs';
 import {createMusic} from './music.mjs';
 import {createKeyboardControls,drivingInput} from './keyboard.mjs';
 import {CameraOrbit} from './camera-orbit.mjs';
+import {ChaseCamera} from './chase-camera.mjs';
 import {createTouchCamera} from './touch-camera.mjs';
 import {ImpactShake} from './impact-shake.mjs';
 import {createTouchControls} from './touch-controls.mjs';
@@ -82,12 +83,12 @@ let previewActive=false;
 const $=id=>document.getElementById(id),canvas=$('view'),mobile=matchMedia('(pointer:coarse)').matches||innerWidth<700,reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
 if(parent!==window)$('exit').hidden=true;
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,1500),field=new SandField();
-let environmentLighting,sunScattering,contactShade,groundTextures,renderer,scenePass,renderPipeline,plainPipeline,glowPipeline,lavaBloom,plainOutput,glowOutput,bloomActive=false,physics,bridgeView,terrain,obstacles,hazards,pebbles,truck,antenna,vehicleLights,vehicleSnow,vehicleWetness,recovery,recoveryView,wheels=[],paused=false,loaded=false,dead=false,last=0,accumulator=0,elapsed=0,frameCount=0,cruise=false,started=false,camYaw=0,recoveryCamera=0,lastStamp=[],waterCenter=Infinity,aimHeight=null;
+let environmentLighting,sunScattering,contactShade,groundTextures,renderer,scenePass,renderPipeline,plainPipeline,glowPipeline,lavaBloom,plainOutput,glowOutput,bloomActive=false,physics,bridgeView,terrain,obstacles,hazards,pebbles,truck,antenna,vehicleLights,vehicleSnow,vehicleWetness,recovery,recoveryView,wheels=[],paused=false,loaded=false,dead=false,last=0,accumulator=0,elapsed=0,frameCount=0,cruise=false,started=false,lastStamp=[],waterCenter=Infinity;
 const messages=new DrivingMessages();
 const mobileFrame=new MobileCameraFrame();
 let mobileWindow;
-const cameraOrbit=new CameraOrbit(),impactShake=new ImpactShake({reduced:reduced||previewMode});
-const keys=new Set(),temp=new THREE.Vector3(),dummy=new THREE.Object3D(),q=new THREE.Quaternion();
+const cameraOrbit=new CameraOrbit(),chaseCamera=new ChaseCamera(),impactShake=new ImpactShake({reduced:reduced||previewMode});
+const keys=new Set(),dummy=new THREE.Object3D(),q=new THREE.Quaternion();
 const soundtrack=previewMode?{pause(){},dispose(){}}:createMusic($('music'),()=>canvas.focus({preventScroll:true}),{onPower:on=>{antenna?.power(on,{speed:physics?.speed??0,recovering:!!recovery?.pending||recovery?.state!=='roof'});if(on)say('Rusty: Raising the antenna. A three-second flex from 2004.')}});
 const audio=previewMode?{pause(){},update(){},dispose(){}}:createSound($('sound'),()=>canvas.focus({preventScroll:true}),(on,load)=>soundtrack.setEffectsMix(on,load));
 if(!previewMode)audio.pause(true);
@@ -256,7 +257,7 @@ function reset(announce=true,customPose=null){
  terrain.prepareSpawn(x,z);beachLife.refresh({x,z},physics.origin);mountainDetails.refresh({x,z},physics.origin);lavaCrossing.update(elapsed,physics.origin);
  physics.reset(x,z,previewMode?field.height(x,z):pose.height);obstacles.refresh(beachLife);const yaw=pose.yaw;
  physics.rb.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
- route.resetTracking();messages.clear();cameraOrbit.reset();keys.clear();touchControls.reset();lastStamp=[];effects.clear();ocean.clear();aimHeight=null;recoveryCamera=0;camYaw=yaw;weatherTick=-1;
+ route.resetTracking();messages.clear();cameraOrbit.reset();keys.clear();touchControls.reset();lastStamp=[];effects.clear();ocean.clear();chaseCamera.reset(yaw);weatherTick=-1;
  camera.position.set(x-physics.origin.x+Math.sin(yaw)*11+Math.cos(yaw)*4,(previewMode?field.height(x,z):pose.height)+4,z-physics.origin.z+Math.cos(yaw)*11-Math.sin(yaw)*4);camera.lookAt(x-physics.origin.x,(previewMode?field.height(x,z):pose.height)+1.69,z-physics.origin.z);weatherView.resetMotion(camera);
  if(announce)say('Rusty: Back at the last checkpoint. Rubber side down this time.');
 }
@@ -283,8 +284,9 @@ function sync(dt){mobileFrame.restore(camera);bridgeView?.update(elapsed,camera)
  for(const mark of waterContactState.marks)if(mark.active)effects.emit(mark,heading,physics.speed,elapsed);
  for(const mark of waterContactState.marks)if(mark.active&&waterExists(mark.x,mark.z))ocean.disturb(mark,physics.speed,heading,elapsed);
 
- const recoveryFocus=!reduced&&!cameraOrbit.active&&(recovery?.state==='deploying'||(recovery?.state==='ground'&&Math.abs(physics.speed)<.5));recoveryCamera+=((recoveryFocus?1:0)-recoveryCamera)*(1-Math.exp(-dt*2));
- let delta=Math.atan2(Math.sin(heading-camYaw),Math.cos(heading-camYaw));camYaw+=delta*(1-Math.exp(-dt*2));const canyonView=(1-smooth(18,70,Math.abs(p.x-665)))*(1-smooth(45,95,Math.abs(p.z+470)));const vista=previewMode||mobileWindow?.current.enabled?0:smooth(40,100,p.y)*(1-recoveryCamera),fov=48+vista*16;if(Math.abs(camera.fov-fov)>.03){camera.fov+=(fov-camera.fov)*(1-Math.exp(-dt*2));camera.updateProjectionMatrix()}const narrow=innerWidth<1050&&innerHeight>innerWidth,dist=(previewMode?9.5:narrow?13.5:10.5)*(1-recoveryCamera)+2*recoveryCamera+vista*5.5,lateral=(previewMode?2:narrow?.5:3.7)*(1-recoveryCamera)*(1-vista*.6)+(narrow?15.5:8)*recoveryCamera;const orbitOffset=cameraOrbit.offset(camYaw,dist,lateral,(previewMode?2.8:narrow?4.1:3.3)-vista*.8+canyonView*3.5);temp.set(local.x+orbitOffset.x,local.y+orbitOffset.y,local.z+orbitOffset.z);temp.y=Math.max(temp.y,field.height(temp.x+physics.origin.x,temp.z+physics.origin.z)+2);camera.position.lerp(temp,1-Math.exp(-dt*(reduced?12:4)));camera.position.y=Math.max(camera.position.y,field.height(camera.position.x+physics.origin.x,camera.position.z+physics.origin.z)+1.2);const aim=(previewMode?1:3+vista*21)*(1-recoveryCamera)+.45*recoveryCamera;aimHeight??=local.y+1;aimHeight+=(local.y+1+vista*10*(1-canyonView*.9)-aimHeight)*(1-Math.exp(-dt*(reduced?12:2.4)));camera.lookAt(local.x+f.x*aim*(1-cameraOrbit.blend),aimHeight*(1-cameraOrbit.blend)+(local.y+1)*cameraOrbit.blend,local.z+f.z*aim*(1-cameraOrbit.blend));Object.assign(canvas.dataset,{cameraYaw:cameraOrbit.yaw.toFixed(3),cameraPitch:cameraOrbit.pitch.toFixed(3),cameraManual:String(cameraOrbit.active)});antenna?.camera(camera,field,physics.origin);if(hoodCamera&&!camp.placing){const eye=new THREE.Vector3(0,.85,-1.25).applyQuaternion(q).add(new THREE.Vector3(local.x,local.y,local.z));camera.position.copy(eye);const look=new THREE.Vector3(f.x,f.y,f.z).applyAxisAngle(new THREE.Vector3(0,1,0),cameraOrbit.yaw*cameraOrbit.blend);camera.lookAt(eye.x+look.x*20,eye.y+look.y*20+Math.sin(cameraOrbit.pitch*cameraOrbit.blend)*20-.25,eye.z+look.z*20);}
+ // Board deployment/packing never takes ownership of the driving camera.
+ chaseCamera.update(camera,dt,{world:p,local,forward:f,heading,origin:physics.origin,field,orbit:cameraOrbit,narrow:innerWidth<1050&&innerHeight>innerWidth,preview:previewMode,mobile:!!mobileWindow?.current.enabled,reduced});
+ Object.assign(canvas.dataset,{cameraYaw:cameraOrbit.yaw.toFixed(3),cameraPitch:cameraOrbit.pitch.toFixed(3),cameraManual:String(cameraOrbit.active)});antenna?.camera(camera,field,physics.origin);if(hoodCamera&&!camp.placing){const eye=new THREE.Vector3(0,.85,-1.25).applyQuaternion(q).add(new THREE.Vector3(local.x,local.y,local.z));camera.position.copy(eye);const look=new THREE.Vector3(f.x,f.y,f.z).applyAxisAngle(new THREE.Vector3(0,1,0),cameraOrbit.yaw*cameraOrbit.blend);camera.lookAt(eye.x+look.x*20,eye.y+look.y*20+Math.sin(cameraOrbit.pitch*cameraOrbit.blend)*20-.25,eye.z+look.z*20);}
  if(camp.placing){camera.fov=Math.max(48,2*Math.atan((CAMP.radius+3)/(34*camera.aspect))*180/Math.PI);camera.updateProjectionMatrix();const fitHeight=34;camera.position.set(CAMP.x-physics.origin.x,field.height(CAMP.x,CAMP.z)+fitHeight,CAMP.z-physics.origin.z+fitHeight*.25);camera.lookAt(CAMP.x-physics.origin.x,field.height(CAMP.x,CAMP.z),CAMP.z-physics.origin.z+(innerWidth<700?8:0));camp.result=campPlacement(camp.candidate,{heightAt:(x,z)=>field.height(x,z),waterAt:(x,z)=>sampleWaterHeight(x,z,elapsed),vehicle:p,obstructed:campBlocked});}
  campCamera.update(camera,dt,{origin:physics.origin,height:field.height(CAMP.x,CAMP.z),complete:route.complete,distance:Math.hypot(p.x-CAMP.x,p.z-CAMP.z),manual:hoodCamera||cameraOrbit.active,placing:camp.placing,reduced});
  $('game').classList.toggle('camp-placing',camp.placing);$('game').classList.toggle('camp-resting',campCamera.active&&!camp.placing);canvas.dataset.campCamera=camp.placing?'placement':campCamera.active?'camp':'drive';
