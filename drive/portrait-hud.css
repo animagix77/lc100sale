@@ -133,18 +133,69 @@
  .drive-range #recover{font-size:11px}
  #recovery-status{font-size:11px;line-height:1.35}
 }
-/* Expanded advice temporarily uses the navigation area, leaving the road clear. */
+/* Advice can replace the map without relocating the speed readout. */
 @media(max-width:700px) and (orientation:portrait){
- #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .expedition-map{visibility:hidden}
- #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .destination .trail-tip{top:calc(var(--map-top) + 54px)}
- #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .bottom{top:calc(max(12px,env(safe-area-inset-top)) + 2px);left:96px;width:80px;max-width:80px}
- #game:has(.trail-tip:not([hidden]):not(.hint-compact)) .speed small{display:none}
+ .expedition-map{transition:opacity .24s ease,visibility .24s}
+ .has-trail-tip .expedition-map{opacity:0;visibility:hidden;pointer-events:none}
+ .bottom{top:calc(max(12px,env(safe-area-inset-top)) + 2px);left:96px;width:90px;max-width:90px}
+ .speed small{max-width:54px}
 }
+@media(prefers-reduced-motion:reduce){.expedition-map{transition:none}}
+
 @media(orientation:landscape) and (max-height:600px){
  @media(any-pointer:coarse),(max-width:700px){
   #game:not(.camp-resting):not(.camp-placing) .driving-hud{display:flex;flex-direction:column-reverse;gap:8px;position:absolute;left:calc(var(--stick-size) + max(var(--hud-edge),env(safe-area-inset-left)) + 24px);right:calc(var(--ebrake-size) + max(var(--hud-edge),env(safe-area-inset-right)) + 24px);bottom:var(--touch-bottom);max-width:348px;z-index:4;pointer-events:none}
   #game:not(.camp-resting):not(.camp-placing) .driving-hud .drive-range,#game:not(.camp-resting):not(.camp-placing) .driving-hud #journey-controls{position:static;width:100%;max-width:none;margin:0;pointer-events:auto}
   .bottom{top:14px;bottom:auto;left:96px;right:auto;width:80px;max-width:80px}
   .bottom .speed small{display:none}
+ }
+}
+
+/* Judge Dean LLC — stable driving composition, independent of message text.
+   This empty, noninteractive box shares the HUD's responsive dimensions. Its
+   bounds are the camera contract; no live text is measured by the camera. */
+#driving-view-window{display:none;position:absolute;pointer-events:none;visibility:hidden}
+#game{--advice-height:168px;--status-height:48px}
+.trail-tip{contain:layout paint;pointer-events:auto;overflow-y:auto;overscroll-behavior:contain}
+[data-scroll-message]:focus-visible{outline:2px solid var(--ui-focus,#ffd2a4);outline-offset:3px}
+@media(any-pointer:coarse),(max-width:1050px) and (orientation:portrait),(max-width:700px){
+ #recovery-status{position:absolute;top:calc(100% + 8px);bottom:auto;left:0;right:0;max-height:var(--status-height);overflow-y:auto;pointer-events:auto;overscroll-behavior:contain}
+ #ford-status{position:absolute;bottom:calc(100% + 8px);left:0;right:0;max-height:var(--status-height);overflow-y:auto;background:#172d32eb;border-radius:8px;padding:6px 8px;pointer-events:auto;overscroll-behavior:contain}
+}
+@media(max-width:1050px) and (orientation:portrait){
+ #game{--advice-top:calc(var(--map-top) + var(--map-height) + 12px)}
+ #driving-view-window{display:block;left:var(--hud-edge);right:var(--hud-edge);top:calc(var(--advice-top) + var(--advice-height) + 12px);bottom:calc(var(--touch-bottom) + var(--stick-size) + 12px + 44px + 8px + var(--status-height) + 12px)}
+ .destination .trail-tip{top:var(--advice-top);max-height:var(--advice-height)}
+ .bottom #quip{top:calc(var(--map-top) + var(--map-height) + 12px);max-height:var(--advice-height);overflow-y:auto;pointer-events:auto;overscroll-behavior:contain}
+ #game:not(.camp-resting):not(.camp-placing) .driving-hud .drive-range{position:relative;inset:auto}
+ #recovery-status{top:auto;bottom:calc(100% + 8px)}
+ .driving-hud #ford-status{bottom:calc(100% + 8px);left:auto;right:0;width:100%;font-size:10px}
+ .driving-hud:has(#recovery-status:not([hidden])):has(#ford-status:not(:empty)) #recovery-status{right:calc(50% + 4px)}
+ .driving-hud:has(#recovery-status:not([hidden])) #ford-status{width:calc(50% - 4px)}
+}
+@media(max-width:700px) and (orientation:portrait){
+ #game{--advice-top:calc(var(--map-top) + 54px);--advice-height:clamp(100px,calc(100dvh - 520px),168px)}
+ .bottom #quip{max-height:calc(var(--advice-height) - var(--map-height) + 42px)}
+}
+@media(orientation:landscape){
+ @media(any-pointer:coarse),(max-width:700px){
+  #game{--advice-width:278px}
+  #driving-view-window{display:block;left:calc(max(var(--advice-width),var(--stick-size)) + max(var(--hud-edge),env(safe-area-inset-left)) + 16px);right:calc(max(var(--map-width),var(--ebrake-size)) + max(var(--hud-edge),env(safe-area-inset-right)) + 16px);top:80px;bottom:calc(var(--touch-bottom) + 44px + 8px + var(--status-height) + 12px)}
+  .destination{width:var(--advice-width);max-width:var(--advice-width)}
+  .destination .trail-tip{width:100%;max-width:100%;max-height:calc(100dvh - 200px)}
+  .bottom{top:14px;bottom:auto;left:108px;right:auto;width:88px;max-width:88px}
+  .bottom #quip{position:fixed;left:var(--hud-edge);top:calc(100dvh - var(--stick-size) - var(--touch-bottom) - 104px);width:var(--advice-width);max-width:var(--advice-width);max-height:88px;overflow:auto;font-size:11px;background:#172d32dd;padding:8px;border-radius:8px;pointer-events:auto}
+  .has-trail-tip .bottom #quip{display:none}
+  .speed small{max-width:54px;white-space:normal}
+  .desktop-help{display:none}
+  @media(max-height:600px){
+   #game{--advice-width:250px}
+   #driving-view-window{top:72px;bottom:calc(var(--touch-bottom) + 44px + 8px + 44px + 8px + var(--status-height) + 12px)}
+   #game:not(.camp-resting):not(.camp-placing) .driving-hud .drive-range{position:relative;inset:auto}
+   #recovery-status{top:auto;bottom:calc(100% + 60px)}
+   .driving-hud:has(#recovery-status:not([hidden])):has(#ford-status:not(:empty)) #recovery-status{right:calc(50% + 4px)}
+   .driving-hud:has(#recovery-status:not([hidden])) #ford-status{left:calc(50% + 4px)}
+   .destination .trail-tip{max-height:calc(100dvh - 170px)}
+  }
  }
 }

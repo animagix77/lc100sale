@@ -24,6 +24,8 @@ The local poll expects its separate backend at `127.0.0.1:8767`; it is not inclu
 
 Follow [the LC100 design system](drive/DESIGN-SYSTEM.md) for shared colors, control states, spacing, motion and accessibility. The game and sale page use the authored `drive/ui-icons.svg` family; do not use emoji, system icons, icon fonts or Unicode pictograms as controls. Prefer clear labels, and keep “Skip intro” text only.
 
+The local driving HUD reserves space for advice, checkpoint messages and recovery/water notices. The mobile camera fits a stable CSS clearance box, so text wrapping, automatic tip compaction and dismissal cannot shift the scene or controls. Long messages scroll with touch or keyboard; new instructions start at the top, while unchanged text preserves reading position. Message duration remains 30–45 seconds. This message-stability fix is local and has not been deployed yet.
+
 ## Trail markers
 
 Local design pass: planted timber and metal checkpoint posts, stitched numbered banners and named plaques replace floating labels and dotted gate lines. Orange marks the next stop; cream marks upcoming stops; passed markers retain their number and use a quiet teal treatment with a custom check. Both faces read correctly, camp entrance signs remain outside the tent clearing, and reduced motion stops cloth movement. The signs share the interface palette and are prepared in a single startup atlas with four retained groups. Visual shoulder spacing does not change route acceptance, physics or saved progress.

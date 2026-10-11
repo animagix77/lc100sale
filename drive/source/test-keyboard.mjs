@@ -17,6 +17,12 @@ assert(looks.includes('ArrowUp')&&looks.includes('ArrowDown')&&looks.includes('A
 const lookCount=looks.length;press('ArrowLeft',{repeat:true});assert.equal(looks.length,lookCount,'OS key repeats do not add extra camera nudges');keys.clear();
 press('KeyC');press('KeyC',{repeat:true});assert.equal(recenters,1,'Camera reset does not repeat');
 assert.equal(press('Space',{target:target('button')}).prevented,false,'Space still activates buttons');
+for(const code of ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End','Space']){
+ const oldFocus=focused,oldLooks=looks.length;
+ assert.equal(press(code,{target:target('data-scroll-message')}).prevented,false,'Focused messages keep native '+code+' scrolling');
+ assert.equal(focused,oldFocus);assert.equal(looks.length,oldLooks);assert(!keys.has(code));
+}
+assert(press('KeyW',{target:target('data-scroll-message')}).prevented,'WASD still resumes driving from a message');controls.keyup({code:'KeyW'});
 for(const kind of ['input','textarea','select','editable']) {assert.equal(press('KeyW',{target:target(kind)}).prevented,false);assert.equal(press('KeyK',{target:target(kind)}).prevented,false);assert.equal(press('ArrowUp',{target:target(kind)}).prevented,false);assert.equal(press('KeyC',{target:target(kind)}).prevented,false);}
 for(const modifier of ['ctrlKey','metaKey','altKey','isComposing','defaultPrevented']) assert.equal(press('KeyW',{[modifier]:true}).prevented,false);
 press('KeyK');press('KeyK',{repeat:true});assert.equal(locks,1);

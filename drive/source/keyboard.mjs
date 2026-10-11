@@ -1,5 +1,6 @@
 import {CAMERA_KEYS} from './camera-orbit.mjs';
 const driveKeys = new Set(['KeyW','KeyA','KeyS','KeyD','Space']);
+const messageScrollKeys=new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End','Space']);
 
 export function drivingInput(keys,touch={},cruise=false){
  return {gas:keys.has('KeyW')||touch.gas||false,reverse:keys.has('KeyS')||touch.reverse||false,brake:keys.has('Space'),handbrake:!!touch.handbrake,turn:keys.has('KeyA')||keys.has('KeyD')?Number(keys.has('KeyA'))-Number(keys.has('KeyD')):touch.turn||0,cruise};
@@ -19,6 +20,9 @@ export function createKeyboardControls({keys, state, focus, cancelCruise, pause,
       return;
     }
     if (paused) return;
+    // Long advice can scroll inside its reserved HUD area. Reading it with a
+    // keyboard must not orbit the world or steal focus; WASD still drives.
+    if(messageScrollKeys.has(e.code)&&target?.closest?.('[data-scroll-message]'))return;
     if (e.code === 'KeyC') { e.preventDefault(); if(!e.repeat) recenter(); focus(); return; }
     if (CAMERA_KEYS.has(e.code)) { e.preventDefault(); keys.add(e.code); if(!e.repeat) look(e.code); focus(); return; }
     if (e.code === 'KeyL' || e.code === 'KeyR' || e.code === 'KeyK') {

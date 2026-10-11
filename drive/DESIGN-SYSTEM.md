@@ -39,6 +39,14 @@ Secondary actions use a dark teal surface and a pale border. The same hierarchy 
 - Color transitions last 140 ms. Panel entrances last 240 ms and use only composited opacity/translation. Respect reduced motion, keep controls immediately usable, and do not animate text metrics, panel dimensions, or driving HUD positions on key presses.
 - Preserve semantic `button`, `dialog`, `details`, and range controls. Custom appearance must not replace keyboard interaction or accessible names.
 
+## Driving messages and camera stability
+
+Messages must never reframe the world. The empty `#driving-view-window` element defines the mobile camera's stable clearance in `portrait-hud.css`. Reserve space for advice and status notices before they appear; observe only that box and the game viewport. Do not derive camera zoom or offsets from live text, transient visibility, or animated card bounds. Orientation and viewport changes still update the clearance.
+
+Keep speed and driving controls anchored while advice opens, compacts, expands or closes. Phone advice temporarily replaces the map without moving either instrument; board and water notices occupy reserved space outside the control flow. Bound long messages to their assigned area, preserve keyboard/touch scrolling, and use the shared focus outline. New copy starts at the top; unchanged copy and live water-depth readings preserve the reader's position. Keep the existing 30–45 second reading window. WASD resumes driving from a message; scrolling keys read a focused message instead of orbiting the camera.
+
+The markup, portrait stylesheet and game bundle form one framing contract; update their cache versions together.
+
 ## Change checklist
 
 Use the shared tokens and icon source; label the action plainly; verify hover, focus, pressed, disabled, and reduced-motion states. Check phone portrait, tablet landscape, and desktop for overlap, clipped targets, missing icons, and vehicle visibility before publishing. A decorative child must never intercept a button click.

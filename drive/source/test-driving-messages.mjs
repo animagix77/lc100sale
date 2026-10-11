@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {DrivingMessages,readingSeconds} from './driving-messages.mjs';
+import {DrivingMessages,readingSeconds,setMessageText} from './driving-messages.mjs';
 const messages=new DrivingMessages(),long='Give yourself time to read this while keeping an eye on the trail. '.repeat(3);
 assert.equal(readingSeconds('Range changed.'),30);
 assert(readingSeconds(long)>30&&readingSeconds(long)<=45);
@@ -15,3 +15,9 @@ assert.equal(messages.pending,null,'Safety and direct-control feedback immediate
 assert.equal(messages.update(100),false);
 messages.say('Flag 06 reached.',101,{defer:true});messages.clear();assert.equal(messages.pending,null,'Reset discards stale announcements');
 console.log('Driving messages: 30–45 second reading time, deferred checkpoints, bounded pending text, immediate control/safety feedback and reset passed');
+let writes=0,copy=long;const region={scrollTop:64,get textContent(){return copy},set textContent(value){copy=value;writes++}};
+for(let i=0;i<600;i++)setMessageText(region,long);
+assert.equal(writes,0,'Ordinary frames cannot recreate text or reset reading position');assert.equal(region.scrollTop,64);
+setMessageText(region,'Boards down. Ease forward.');assert.equal(writes,1);assert.equal(region.scrollTop,0,'A replacement instruction starts at its beginning');
+region.scrollTop=18;setMessageText(region,'WATER 0.23 m · Slow, steady throttle',{resetScroll:false});assert.equal(region.scrollTop,18,'Live measurements can update without interrupting reading');
+console.log('Message reading: unchanged copy preserves DOM/scroll position; new instructions start at the top; live numeric updates can retain scroll.');
