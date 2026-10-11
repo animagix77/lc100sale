@@ -42,3 +42,11 @@ Secondary actions use a dark teal surface and a pale border. The same hierarchy 
 ## Change checklist
 
 Use the shared tokens and icon source; label the action plainly; verify hover, focus, pressed, disabled, and reduced-motion states. Check phone portrait, tablet landscape, and desktop for overlap, clipped targets, missing icons, and vehicle visibility before publishing. A decorative child must never intercept a button click.
+
+## Trail markers
+
+World checkpoints use the same orange, dark teal and cream palette as the interface. The next stop has an orange numbered fabric banner marked **Next**. Upcoming stops use weathered cream; passed stops use quiet teal with **Passed** and the authored check path while retaining their number. Numbers stay the same physical size when progress changes.
+
+Use planted timber posts, dark metal hardware, stitched cloth and small named plaques. The large banner and name sit outside the left shoulder; a smaller opposite marker makes the passage clear. Signs read correctly from both sides, receive scene lighting and use subtle motion only on loose cloth. Reduced motion keeps the cloth still. Avoid floating number panels, glowing road lines, pulsing markers or default icon glyphs. Camp entrance signs stand outside the tent clearing and remain after arrival.
+
+Prepare all route names and state labels in one atlas before driving. Reuse the four marker groups through checkpoint advances and origin shifts. Visual shoulder spacing is separate from the unchanged checkpoint acceptance radius; preserve the narrow bridge's clearance. Cache terrain-aware shoulder placement during startup so plaques stay above slopes without adding terrain probes to checkpoint transitions.

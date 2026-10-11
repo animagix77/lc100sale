@@ -24,6 +24,10 @@ The local poll expects its separate backend at `127.0.0.1:8767`; it is not inclu
 
 Follow [the LC100 design system](drive/DESIGN-SYSTEM.md) for shared colors, control states, spacing, motion and accessibility. The game and sale page use the authored `drive/ui-icons.svg` family; do not use emoji, system icons, icon fonts or Unicode pictograms as controls. Prefer clear labels, and keep “Skip intro” text only.
 
+## Trail markers
+
+Local design pass: planted timber and metal checkpoint posts, stitched numbered banners and named plaques replace floating labels and dotted gate lines. Orange marks the next stop; cream marks upcoming stops; passed markers retain their number and use a quiet teal treatment with a custom check. Both faces read correctly, camp entrance signs remain outside the tent clearing, and reduced motion stops cloth movement. The signs share the interface palette and are prepared in a single startup atlas with four retained groups. Visual shoulder spacing does not change route acceptance, physics or saved progress.
+
 ## Expedition routes
 
 The current development build starts with two itineraries. **Mountain expedition** keeps the rocky fords, snow, volcano and suspension bridge, then returns to Sunset camp. **Coastal islands** follows ten beach checkpoints through three palm islands, exposed low-tide sandbars and a grounded salvage barge, finishing at Island sunset camp. Its crossings remain open while exploring; there is no tide countdown.
