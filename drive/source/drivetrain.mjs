@@ -6,6 +6,11 @@ export const RANGES={HI:{name:'4HI',maxSpeed:22.352,cruise:3.55,force:2550,rever
 // An implicit contact spring avoids oscillation at the 120 Hz physics step.
 function tyreResponse(w,{dt,roadSpeed,driveForce,load,soft,depth,contact,brake,handbrake=false,tractionControl=false,throttle=0,grip=1}){
  const radius=VEHICLE_SETUP.rollingRadius,inertia=18,sink=smooth(.24,.78,depth),mu=(1.12-.40*soft)*(1-.50*sink)*grip,cap=contact?Math.max(0,load)*mu:0;
+ // Service braking belongs to Rapier's contact impulse, not the engine-force
+ // channel. Keep grounded tread near rolling speed (bounded ABS slip), while
+ // airborne wheels spin down without inventing chassis grip.
+ if(brake&&!handbrake){const amount=clamp(Number(brake),0,1),target=contact?roadSpeed/radius*(1-.08*amount):0;
+  return {force:0,omega:clamp(w.omega+(target-w.omega)*(1-Math.exp(-dt*30*amount)),-70,70),sink};}
  // Loose soil and wet low-grip contacts shear under throttle in either direction.
  // Rotation follows applied torque and contact resistance, not chassis speed.
  const loose=clamp(soft+Math.max(0,1-grip)*1.6,0,1);
@@ -37,7 +42,7 @@ export function stepDriveline(wheels,contacts,{dt,motor,locked,brake=false,handb
  let transfer=0;
  // The parking brake acts downstream of the torque solver. Free front tyres
  // must retain rolling rotation while the rear tyres slide.
- if(locked&&!handbrake){
+ if(locked&&!handbrake&&!brake){
   const difference=t=>wheels.reduce((sum,w,i)=>sum+(i<2?1:-1)*tyreResponse(w,sample(i,t)).omega,0);
   let low=-24000,high=24000;
   if(difference(low)<=0)transfer=low;

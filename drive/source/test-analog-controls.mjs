@@ -21,7 +21,8 @@ for(const p of [feather,mid,keyboard])p.dispose();
 // Pulling back first meters the service brakes, then selects proportional reverse.
 const partialBrake=await accelerate(true);step(full,{reverse:1},12);step(partialBrake,{reverse:.2},12);
 assert(partialBrake.speed>full.speed+.15,'Partial reverse-stick travel brakes less strongly while moving forward');
-assert(Math.abs(partialBrake.vehicle.wheelBrake(0)-17)<.01,'Reverse-stick service braking is proportional');
+assert(Math.abs(partialBrake.vehicle.wheelBrake(0)/full.vehicle.wheelBrake(0)-.2)<.001,'Reverse-stick service braking is proportional');
+assert.equal(partialBrake.vehicle.wheelEngineForce(0),0,'Service braking cannot be bypassed by tyre engine force');
 assert(partialBrake.lighting.braking&&!partialBrake.lighting.reversing,'Forward braking is not displayed as reverse');
 step(partialBrake,{reverse:.2},1200);assert(partialBrake.speed<-.2,'Holding back transitions from braking into reverse');
 const slowReverse=partialBrake.speed;step(full,{reverse:true},1200);assert(Math.abs(full.speed)>Math.abs(slowReverse),'Partial reverse preserves controllable crawling speed');

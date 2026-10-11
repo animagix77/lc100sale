@@ -91,7 +91,16 @@ export class DrivePhysics{
  this.centerTransfer=result.transfer;this.axleSlip=result.axleSlip;
  for(let i=0;i<4;i++){
   const w=this.tyres[i],{soft:soil,depth}=contacts[i];
-  this.vehicle.setWheelEngineForce(i,-result.forces[i]);this.vehicle.setWheelBrake(i,Math.max(brake,handbrake&&i>=2?85:0)+soil*w.sink*6.5);this.vehicle.setWheelSteering(i,i<2?this.steer:0);this.vehicle.setWheelFrictionSlip(i,(1.9-soil*.6)*contacts[i].grip*(i>=2?1-this.handbrakeSlip*.48:1));const normalSide=(.92-soil*.22)*contacts[i].grip;
+  // Rapier chooses engine force OR brake impulse, never both. Service
+  // braking must own this channel; otherwise tyre drag bypasses the brake.
+  const wheelBraking=braking;
+  // Pressure limits and a front bias bound deceleration independently of a
+  // suspension spike. Rapier expects N*s, so all limits scale with the step.
+  const pressure=VEHICLE_SETUP.massKg*9.81*.85*(i<2?.325:.175)*serviceBrake*(1-soil*.3)*contacts[i].grip*dt;
+  const wheelBrake=wheelBraking?pressure:(Math.max(brake,handbrake&&i>=2?85:0)+soil*w.sink*6.5)*dt*120;
+  // Rapier applies this budget against the current raycast contact and
+  // suspension load; an airborne wheel cannot create a stopping impulse.
+  this.vehicle.setWheelEngineForce(i,wheelBraking?0:-result.forces[i]);this.vehicle.setWheelBrake(i,wheelBrake);this.vehicle.setWheelSteering(i,i<2?this.steer:0);this.vehicle.setWheelFrictionSlip(i,(1.9-soil*.6)*contacts[i].grip*(i>=2?1-this.handbrakeSlip*.48:1));const normalSide=(.92-soil*.22)*contacts[i].grip;
   const lockedSide=.003+.005*clamp(contacts[i].grip-soil*.4,0,1);
   this.vehicle.setWheelSideFrictionStiffness(i,normalSide*(i>=2?1-this.handbrakeSlip*(1-lockedSide):1));
   totalDepth+=depth;totalSlip+=w.slip;

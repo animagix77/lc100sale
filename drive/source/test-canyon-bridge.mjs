@@ -52,7 +52,10 @@ for(const direction of [-1,1]){
  if(direction>0)p.rb.setRotation({x:0,y:1,z:0,w:0},true);
  let crossed=false,minY=Infinity,deckContact=false;
  for(let i=0;i<6000;i++){
-  p.step(dt,{cruise:i>240,brake:i<=240,turn:0});const pos=p.position();minY=Math.min(minY,pos.y);
+  // Keep a driving line across a physically swaying deck, as on the full route.
+  // A zero-steering fixture can drift into a rope rail after a changed approach.
+  const before=p.position(),forward=p.forward(),heading=Math.atan2(-forward.x,-forward.z),desired=Math.atan2(-(S.centerX-before.x),-direction*8),error=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading));
+  p.step(dt,{cruise:i>240,brake:i<=240,turn:i>240?Math.max(-1,Math.min(1,error*3)):0});const pos=p.position();minY=Math.min(minY,pos.y);
   for(let w=0;w<4;w++)deckContact ||= p.bridge.has(p.vehicle.wheelGroundObject(w));
   if(direction*(pos.z-(direction<0?-507:-433))>0){crossed=true;break}
   assert(pos.y>76,'Truck stays on the span throughout crossing');

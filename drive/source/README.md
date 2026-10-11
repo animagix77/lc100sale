@@ -1,3 +1,15 @@
+## Braking stability on descents — October 11, 2026
+
+Judge Dean LLC. Service braking now owns Rapier's brake-impulse channel. Previously the angular tyre solver kept supplying a nonzero engine-force reaction while braking; Rapier selected that force instead of its brake, allowing high suspension-load spikes to amplify braking torque on corrugations. A 50 mph, 25-degree, 12 cm corrugated descent reproduced a rollover with 4.59m of extra body lift in the prior build.
+
+The service brake now has a step-scaled 0.85g maximum force budget with 65/35 front/rear bias, reduced for softer or lower-grip surfaces. Rapier still applies it at real wheel contacts with current suspension/friction limits. Grounded tread follows a bounded ABS-like slip approximation; airborne wheels spin down without producing contact force. No chassis rotation, terrain, suspension or camera pose is clamped. The rear-only E-brake and its sliding/recovery behavior remain intact. Braking and chassis are game approximations, not measured LC100 brake calibration.
+
+`test-braking-stability.mjs` covers the exact old-build rollover, 25/35-degree corrugations, service/E-brake stability, 50 mph stops on 0/15/25/35-degree smooth ramps at 60/120 Hz, steering, analog pressure and airborne tread. On extreme rough grades, air time can still prevent stopping and severe obstacles can still cause real rollovers. The low-range launch test now measures its first two seconds rather than a six-second interval that mixed rollback from the old brake with the 4LO road-speed governor.
+
+The full-route regression also exposed a separate gravel instability: a pebble trapped below a kinematic tyre proxy could return over 1,000 N·s in one step and roll the truck while cruising. The proxy now couples to the chassis through finite stone/corner reduced mass and pre-solver relative momentum instead of transferring an unlimited kinematic constraint impulse. Direct chassis contacts and fixed-rock suspension remain unchanged. A real pinched-pebble fixture at 60/120 Hz exercises raw manifold impulses over 1,200 N·s, verifies the bounded reaction and keeps the truck upright; ordinary gravel displacement and sand settling are still tested. This remains a compliant-contact approximation rather than fully dynamic tyre geometry.
+
+The dedicated bridge crossing test now steers toward its centerline with an 8m lookahead in both directions. Its former zero-steering traversal could drift into a rail as the deck swayed; the real deck contacts and crossing requirements remain.
+
 ## Small rock contacts and crash audio — October 11, 2026
 
 Judge Dean LLC. Mountain shoulder scree and canyon river stones now join the existing obstacle streamer with collision meshes matching their visible transforms. Mountain geometry publishes collision revisions atomically, including origin shifts; canyon instances retain world coordinates while their parent rebases. Nearby collision shapes are prepared before contact, and distant construction retains the existing frame budget.

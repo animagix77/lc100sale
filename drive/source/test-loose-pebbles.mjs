@@ -53,5 +53,22 @@ for(const reverse of [false,true]){
  p.reset(start.x+100,start.z,0);p.step(dt,{brake:true});assert(gravel.tyres.every(t=>Math.abs(t.body.translation().x-(start.x+100))<1.1),'Reset snaps push shapes instead of sweeping through the world');
  gravel.dispose();p.dispose();
 }
+// A pebble pinched against a fixed ledge cannot transfer an infinite-mass
+// kinematic tyre impulse into the truck. Use real manifolds, not mocked forces.
+for(const dt of [1/60,1/120]){
+ const p=await DrivePhysics.create(),scene=new THREE.Scene(),start={x:64,z:-164};p.reset(start.x,start.z,0);
+ p.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.5,100).setTranslation(start.x,-.5,start.z));
+ const gravel=new LoosePebbles(scene,p,field);for(let i=0;i<2/dt;i++)p.step(dt,{brake:true});
+ const rock=gravel.pool[2],x=start.x+wheelLayout[0].x,z=start.z-2.7,y=rock.radius*gravel.bottom+.006;
+ Object.assign(rock,{key:'pinched-pebble',x,z,moved:false});gravel.active.set(rock.key,rock);rock.body.setTranslation({x,y,z},false);rock.body.setEnabled(true);rock.body.wakeUp();
+ p.world.createCollider(RAPIER.ColliderDesc.cuboid(.18,.16,.12).setTranslation(x,.16,z-.19));
+ let rawPeak=0,reactionPeak=0,upMin=1,lift=0,before=0;
+ for(let i=0;i<5/dt;i++){
+  p.step(dt,i<2/dt?{gas:true}:{brake:true});const stepReaction=gravel.stats.reactionImpulse-before;before=gravel.stats.reactionImpulse;reactionPeak=Math.max(reactionPeak,stepReaction);
+  for(const t of gravel.tyres)p.world.contactPair(t.collider,rock.collider,m=>{let raw=0;for(let j=0;j<m.numContacts();j++)raw+=m.contactImpulse(j);rawPeak=Math.max(rawPeak,raw);});
+  const q=p.rb.rotation();upMin=Math.min(upMin,1-2*(q.x*q.x+q.z*q.z));lift=Math.max(lift,p.position().y);
+ }
+ console.log('Pinched pebble',{dt,rawPeak,reactionPeak,upMin,lift});assert(rawPeak>1,'Fixture must physically load the pebble');assert(reactionPeak/VEHICLE_SETUP.massKg<.05,'One pebble at crawling speed cannot kick the whole truck by more than 0.05 m/s in one step');assert(upMin>.95&&lift<1,'A pinched pebble cannot tip or launch the truck');gravel.dispose();p.dispose();
+}
 for(const p of [{x:-45,z:0},{x:248,z:-336},{x:312,z:-600},{x:527,z:-680}])assert(!pebbleHabitat(p.x,p.z),'Water, snow and volcanic scenery retain their own surface treatment');
 console.log('Loose pebbles: actual tyre contact, sideways displacement, angular motion, settling, self-collision exclusion, pooling, rebasing, world history, habitats and mobile budgets passed.');

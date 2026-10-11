@@ -20,7 +20,7 @@ export class LoosePebbles{
    const size=i%3,radius=RADII[size],vertices=Float32Array.from(pos.array,v=>v*radius);
    const body=physics.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setEnabled(false).setCanSleep(true).setCcdEnabled(true).setLinearDamping(.35).setAngularDamping(1.4));
    const collider=physics.world.createCollider(RAPIER.ColliderDesc.convexHull(vertices).setDensity(2450).setFriction(.82).setRestitution(.10).setCollisionGroups(0x0004ffff),body);
-   const rock={body,collider,radius,size,key:null,moved:false,sand:false,embedded:false,quiet:0};this.pool.push(rock);this.stones.set(collider.handle,rock);
+   const rock={body,collider,radius,size,key:null,moved:false,sand:false,embedded:false,quiet:0,incoming:{x:0,y:0,z:0}};this.pool.push(rock);this.stones.set(collider.handle,rock);
   }
   // Suspension samples terrain; wheel-shaped contact proxies push loose gravel.
   // Solver normal impulses are transferred back to the chassis after each step.
@@ -43,6 +43,9 @@ export class LoosePebbles{
    if(snap){t.body.setTranslation(this.center,false);t.body.setRotation(rotation,false)}
    t.body.setNextKinematicTranslation(this.center);t.body.setNextKinematicRotation(rotation);
   }
+  // Capture pre-solver stone motion. A trapped stone's post-solver velocity
+  // is not an impact approach speed, and kinematic proxies have infinite mass.
+  for(const r of this.active.values()){const v=r.body.linvel();Object.assign(r.incoming,v);}
   this.lastTruck.copy(p);this.snapTyres=false;
  }
  embed(r){
@@ -64,6 +67,13 @@ export class LoosePebbles{
      const wheel=this.tyres.findIndex(t=>t.collider===collider);
      if(wheel<0||impulse<=0)return;
      const normal=m.normal(),sign=flipped?1:-1,at=body.translation();
+     // The proxy pushes gravel but cannot supply an infinite-mass reaction
+     // to the truck. Bound coupling by the finite stone/corner reduced mass
+     // and incoming relative momentum. This represents compliant tyre tread;
+     // fixed rocks retain their ordinary suspension/chassis collision path.
+     const mass=r.body.mass(),cornerMass=VEHICLE_SETUP.massKg/4,reduced=mass*cornerMass/(mass+cornerMass),incoming=r.incoming;
+     const relative=Math.hypot(v.x-incoming.x,v.y-incoming.y,v.z-incoming.z);
+     impulse=Math.min(impulse,reduced*(1.1*relative+9.81*dt));
      this.physics.rb.applyImpulseAtPoint({x:normal.x*impulse*sign,y:normal.y*impulse*sign,z:normal.z*impulse*sign},at,true);
      this.stats.contacts++;this.stats.reactionImpulse+=impulse;
      this.contactHits.push({id:other.handle,source:'pebble',kind:'rock',impulse,closing:Math.hypot(v.x,v.y,v.z),pan:wheel%2?.65:-.65});
