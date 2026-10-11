@@ -52,7 +52,7 @@
 .opening-titles{position:absolute;left:8%;top:22%;max-width:84%;text-shadow:0 2px 22px #071114aa;pointer-events:none;filter:opacity(var(--opening-fade,0))}
 .opening-eyebrow{font:9px/1.5 monospace;letter-spacing:3px;color:#f5d2ac;margin:0 0 20px}.opening-titles h1{font:800 clamp(62px,11vw,144px)/.9 Arial,sans-serif;letter-spacing:-5px;margin:0}.opening-titles h1 span{color:#f1b27a}.opening-name{font:12px/1.5 monospace;letter-spacing:7px;margin:18px 0}.opening-line{font:italic 16px/1.5 Georgia,serif;margin:0;color:#f9e7cd}
 .opening-chapter{position:absolute;left:8%;bottom:max(12vh,68px);margin:0;font:10px/1.6 monospace;letter-spacing:2px;text-shadow:0 2px 12px #000;opacity:var(--opening-fade,0);max-width:60%}
-.opening-skip{position:absolute;right:6%;bottom:max(11vh,60px);min-height:44px;padding:10px 15px;border:1px solid #fff5df66;border-radius:25px;background:#14272ccc;color:#fff5df;font:12px Arial,sans-serif;backdrop-filter:blur(8px)}.opening-skip span{margin-left:12px}.opening-skip:focus-visible{outline:2px solid #ffbf87;outline-offset:4px}
+.opening-skip{position:absolute;right:6%;bottom:max(11vh,60px);min-height:44px;padding:10px 15px;border:1px solid #fff5df66;border-radius:25px;background:#14272ccc;color:#fff5df;font:12px Arial,sans-serif;backdrop-filter:blur(8px)}.opening-skip:focus-visible{outline:2px solid #ffbf87;outline-offset:4px}
 @media(max-width:600px){.opening-titles{top:22%;left:7%}.opening-eyebrow{letter-spacing:2px;font-size:8px}.opening-name{letter-spacing:5px;font-size:10px}.opening-chapter{left:7%;bottom:19vh;max-width:86%;font-size:9px}.opening-skip{bottom:10vh;right:7%}}
 @media(prefers-reduced-motion:reduce){.opening-film{display:none}}
 

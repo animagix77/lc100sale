@@ -7,10 +7,10 @@ import {ROUTE_FORKS} from './expedition.mjs';
 import {warmSceneMaterials} from './scene-warmup.mjs';
 
 const previousDocument=globalThis.document,paint=[],canvases=[];
-globalThis.document={createElement(type){assert.equal(type,'canvas');const ctx={fillRect(...args){paint.push({kind:'background',color:this.fillStyle,args})},fillText(text,x,y){paint.push({kind:'text',text,x,y,color:this.fillStyle,font:this.font,align:this.textAlign,baseline:this.textBaseline})}},canvas={width:0,height:0,getContext(kind){assert.equal(kind,'2d');return ctx}};canvases.push(canvas);return canvas}};
+globalThis.document={createElement(type){assert.equal(type,'canvas');const ctx={beginPath(){this.points=[]},moveTo(x,y){this.points.push([x,y])},lineTo(x,y){this.points.push([x,y])},stroke(){paint.push({kind:'check',x:this.points[0][0]+14,y:this.points[0][1],points:this.points,color:this.strokeStyle,width:this.lineWidth,cap:this.lineCap,join:this.lineJoin})},fillRect(...args){paint.push({kind:'background',color:this.fillStyle,args})},fillText(text,x,y){paint.push({kind:'text',text,x,y,color:this.fillStyle,font:this.font,align:this.textAlign,baseline:this.textBaseline})}},canvas={width:0,height:0,getContext(kind){assert.equal(kind,'2d');return ctx}};canvases.push(canvas);return canvas}};
 const scene=new THREE.Scene(),route=new WaypointRoute(),field={height:(x,z)=>2+x*.017-z*.003},view=new WaypointView(scene,route,field);
 const pool=[...view.pool],labels=pool.map(g=>g.userData.label),materials=labels.map(l=>l.material),graphs=materials.map(m=>m.colorNode),versions=materials.map(m=>m.version),atlasVersion=view.labelAtlas.map.version;
-assert.equal(canvases.length,1);assert.equal(paint.filter(p=>p.kind==='text').length,WAYPOINT_COUNT*2+1);assert.equal(scene.children.length,4);assert(pool.every(g=>!g.visible));
+assert.equal(canvases.length,1);assert.equal(paint.filter(p=>p.kind==='text').length,WAYPOINT_COUNT*2);assert.equal(scene.children.length,4);assert(pool.every(g=>!g.visible));
 assert.equal(canvases[0].width,2048);assert(canvases[0].height<=1024,'The atlas remains a small bounded startup upload');
 assert(materials.every(m=>m.isSpriteNodeMaterial&&m.map===view.labelAtlas.map&&!m.depthWrite));
 const close=(a,b)=>assert(Math.abs(a-b)<1e-9,`${a} ≈ ${b}`);
@@ -31,8 +31,8 @@ function check(origin){
   // Match UV cell to the exact painted text and state, including all numbered
   // gates after the canyon insertion and the completed checkpoint checkmark.
   const column=Math.round(labelOffset.value.x*view.labelAtlas.columns),row=Math.round((1-labelOffset.value.y)*view.labelAtlas.rows)-1;
-  const cell=paint.find(p=>p.kind==='text'&&p.x===column*256+128&&p.y===row*96+48);
-  assert(cell);assert.equal(cell.text,passed?'✓':String(t.leg).padStart(2,'0'));assert.equal(cell.color,active?'#ffc381':'#eee9d9');assert.equal(cell.font,'bold 44px monospace');assert.equal(cell.align,'center');assert.equal(cell.baseline,'middle');
+  const cell=paint.find(p=>['text','check'].includes(p.kind)&&p.x===column*256+128&&p.y===row*96+48);
+  assert(cell);assert.equal(cell.color,active?'#ffc381':'#eee9d9');if(passed){assert.equal(cell.kind,'check');assert.deepEqual(cell.points,[[cell.x-14,cell.y],[cell.x-4,cell.y+10],[cell.x+14,cell.y-10]]);assert.equal(cell.width,3.5);assert.equal(cell.cap,'round');assert.equal(cell.join,'round');}else{assert.equal(cell.text,String(t.leg).padStart(2,'0'));assert.equal(cell.font,'bold 44px monospace');assert.equal(cell.align,'center');assert.equal(cell.baseline,'middle');}
  }
  assert.deepEqual(materials.map(m=>m.version),versions);assert(materials.every((m,i)=>m.colorNode===graphs[i]&&labels[i].material===m));assert.equal(view.labelAtlas.map.version,atlasVersion);assert.equal(canvases.length,1,'No checkpoint or origin shift allocates another canvas or uploads a texture');
 }

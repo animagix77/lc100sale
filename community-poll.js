@@ -8,7 +8,7 @@
  try{voter=localStorage.getItem('lc100-voter-v1');if(!/^[0-9a-f-]{36}$/i.test(voter||'')){voter=crypto.randomUUID();localStorage.setItem('lc100-voter-v1',voter)}}catch{voter=crypto.randomUUID();storageWorks=false}
  function controls(){choices.forEach(b=>b.disabled=busy||!ready);show.disabled=busy||!ready;retry.disabled=busy;root.setAttribute('aria-busy',String(busy))}
  function draw(data){
-  latest=data;choices.forEach(b=>{const selected=b.dataset.vote===data.choice;b.setAttribute('aria-pressed',String(selected));b.querySelector('.poll-vote-label').textContent=selected?'Your vote ✓':`Vote ${b.dataset.vote} ↗`});
+  latest=data;choices.forEach(b=>{const selected=b.dataset.vote===data.choice;b.setAttribute('aria-pressed',String(selected));b.querySelector('.poll-vote-label').textContent=selected?'Your vote':`Vote ${b.dataset.vote}`});
   for(const choice of ['sell','keep']){const count=data.counts[choice],pct=data.total?Math.round(count/data.total*100):0;document.getElementById(choice+'-percent').textContent=data.total?pct+'%':'—';document.getElementById(choice+'-bar').style.width=pct+'%';document.getElementById(choice+'-count').textContent=count+' '+(count===1?'vote':'votes')}
   document.getElementById('poll-total').textContent=data.total?`${data.total} community ${data.total===1?'vote':'votes'}. The driveway awaits its verdict.`:'No votes yet. Democracy starts in the driveway.';
  }

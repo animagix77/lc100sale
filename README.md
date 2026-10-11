@@ -20,6 +20,10 @@ The static website needs no package installation. For game development, run `npm
 
 The local poll expects its separate backend at `127.0.0.1:8767`; it is not included in this checkout. Reserve that port for the backend and use port 8768 for the sibling model comparison viewer. Use the `127.0.0.1` preview URL: the current frontend selects the production poll on `localhost`.
 
+## Interface design
+
+Follow [the LC100 design system](drive/DESIGN-SYSTEM.md) for shared colors, control states, spacing, motion and accessibility. The game and sale page use the authored `drive/ui-icons.svg` family; do not use emoji, system icons, icon fonts or Unicode pictograms as controls. Prefer clear labels, and keep “Skip intro” text only.
+
 ## Photos and vehicle tour
 
 - `assets/gallery/` contains presentation edits and corresponding source photos, including camping images and unretouched mechanic photos. The current lightbox shows an image, title and caption; it has no original-versus-edited comparison toggle. Source photos remain the reference for condition; camping accessories in historical photos are excluded unless explicitly listed.

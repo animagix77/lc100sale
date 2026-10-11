@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Judge Dean LLC: authored 24-unit icons. Shared by the site and expedition. -->
+  <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="chevron-left" viewBox="0 0 24 24"><path d="m14.5 5.5-6.5 6.5 6.5 6.5"/></symbol>
+  <symbol id="chevron-right" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></symbol>
+  <symbol id="chevron-up" viewBox="0 0 24 24"><path d="m5.5 14.5 6.5-6.5 6.5 6.5"/></symbol>
+  <symbol id="chevron-down" viewBox="0 0 24 24"><path d="m5.5 9.5 6.5 6.5 6.5-6.5"/></symbol>
+  <symbol id="heading" viewBox="0 0 24 24"><path d="m5 10 7-7 7 7M12 3v18"/></symbol>
+  <symbol id="expand" viewBox="0 0 24 24"><path d="M8 4H4v4m0-4 6 6m6 10h4v-4m0 4-6-6"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="rotate" viewBox="0 0 24 24"><path d="M18.5 7.5A8 8 0 1 0 20 12M14 7.5h5v-5"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="external" viewBox="0 0 24 24"><path d="M13 4h7v7m0-7L10 14M8 5H4v15h15v-4"/></symbol>
+  <symbol id="brake" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M3.5 5.5a11 11 0 0 0 0 13m17-13a11 11 0 0 1 0 13M12 8v5m0 3v.1"/></symbol>
+</svg>

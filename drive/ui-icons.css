@@ -1,0 +1,4 @@
+/* Judge Dean LLC — shared authored icon geometry, never a font or emoji. */
+.ui-icon{display:inline-block;width:20px;height:20px;flex:none;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;overflow:visible}
+.ui-icon use{pointer-events:none}
+.issue-plus{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px}

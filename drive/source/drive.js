@@ -268,7 +268,7 @@ function sync(dt){mobileFrame.restore(camera);bridgeView?.update(elapsed,camera)
  recoveryView?.update();syncRecoveryNotice();
  // Keep the button and its label stable between pointer-down and pointer-up.
  // Rebuilding text on every animation frame can cancel clicks over the glyphs.
- const recoveryLabel=recovery?.pending?'Braking…':recovery?.state==='roof'?'Boards ↓':recovery?.state==='stowing'?'Packing…':recovery?.state==='ground'?'Reposition boards':'Placing boards…';
+ const recoveryLabel=recovery?.pending?'Braking…':recovery?.state==='roof'?'Boards':recovery?.state==='stowing'?'Packing…':recovery?.state==='ground'?'Reposition boards':'Placing boards…';
  const recoveryLabelNode=$('recovery-label');if(recoveryLabelNode.textContent!==recoveryLabel)recoveryLabelNode.textContent=recoveryLabel;
  const recoveryBusy=String(!!recovery?.pending||recovery?.state==='deploying'||recovery?.state==='stowing');
  if($('recover').getAttribute('aria-disabled')!==recoveryBusy)$('recover').setAttribute('aria-disabled',recoveryBusy);

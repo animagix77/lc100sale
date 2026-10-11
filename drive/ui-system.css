@@ -1,0 +1,238 @@
+/* Judge Dean LLC — LC100 interface tokens and shared controls. Load after layout CSS. */
+:root{
+ --ui-ink:#142b30;
+ --ui-surface:#172d32;
+ --ui-surface-raised:#203c41;
+ --ui-surface-hover:#2b484c;
+ --ui-surface-overlay:#142b30f5;
+ --ui-text:#fff2dc;
+ --ui-text-muted:#c4d3ce;
+ --ui-border:#c4d3ce66;
+ --ui-border-strong:#c4e2dc;
+ --ui-accent:#f2a45f;
+ --ui-accent-hover:#ffb777;
+ --ui-selection:#f0c39a;
+ --ui-focus:#ffd2a4;
+ --ui-space-1:4px;
+ --ui-space-2:8px;
+ --ui-space-3:12px;
+ --ui-space-4:16px;
+ --ui-space-5:24px;
+ --ui-radius-control:8px;
+ --ui-radius-card:12px;
+ --ui-radius-panel:16px;
+ --ui-target:44px;
+ --ui-icon-size:22px;
+ --ui-stroke:1.75;
+ --ui-motion-fast:140ms;
+ --ui-motion-panel:240ms;
+ --ui-ease:cubic-bezier(.22,.68,.2,1);
+ --ui-shadow:0 12px 36px #07171955;
+}
+
+/* Icons are authored paths, never font glyphs. Their parent owns the hit area. */
+.ui-icon{
+ display:inline-block;
+ width:var(--ui-icon-size);
+ height:var(--ui-icon-size);
+ flex:none;
+ vertical-align:middle;
+ fill:none;
+ stroke:currentColor;
+ stroke-width:var(--ui-stroke);
+ stroke-linecap:round;
+ stroke-linejoin:round;
+ pointer-events:none;
+ user-select:none;
+ -webkit-user-select:none;
+}
+.ui-icon *{pointer-events:none}
+.map-expand{display:inline-flex;align-items:center;justify-content:center}
+.waypoint-guide>span:first-child{display:grid;place-items:center}
+.waypoint-guide .ui-icon{width:20px;height:20px}
+
+/* Shared control treatment does not set HUD positions, wrapping, or grid widths. */
+.tools button,
+.tools #hud-menu,
+.tools #pause,
+.drive-range button,
+#journey-controls button,
+#journey-dialog button,
+#camp-placement button,
+.weather-options button,
+.radio-tuning button,
+.radio-presets button,
+.control-modes button,
+.intro-new,
+.unstuck-actions button,
+.pause-menu #resume,
+.pause-menu #reset,
+.opening-film .opening-skip{
+ min-height:var(--ui-target);
+ border-radius:var(--ui-radius-control);
+ touch-action:manipulation;
+ transition:background-color var(--ui-motion-fast) ease,border-color var(--ui-motion-fast) ease,color var(--ui-motion-fast) ease;
+}
+.tools button,
+.tools #hud-menu,
+.tools #pause,
+#journey-controls button,
+#journey-dialog button.journey-secondary,
+#camp-placement button,
+.weather-options button,
+.radio-tuning button,
+.radio-presets button,
+.intro-new,
+.unstuck-actions button,
+.pause-menu #reset,
+.opening-film .opening-skip{
+ background:var(--ui-surface-overlay);
+ border:1px solid var(--ui-border);
+ color:var(--ui-text);
+}
+.opening-film .opening-skip{padding:var(--ui-space-3) var(--ui-space-4);font-weight:600;line-height:1.2}
+.drive-intro .intro-leave{min-height:var(--ui-target);color:var(--ui-text-muted)}
+.drive-intro .primary{border-radius:var(--ui-radius-control)}
+.drive-intro #intro-start{border-color:var(--ui-accent)}
+.drive-intro #intro-start:not(:disabled)::before{background:var(--ui-accent)}
+.drive-range #recover,.drive-range #center-lock{min-height:var(--ui-target)}
+#camp-placement #camp-rotate{min-height:var(--ui-target)}
+.pause-menu .control-modes button{min-height:var(--ui-target)}
+
+/* An orange button commits or advances. A selected option remains a choice. */
+#journey-dialog button.journey-primary,
+#camp-placement #camp-confirm,
+.pause-menu #resume,
+.unstuck-actions #unstuck-reset,
+.camp-resting #journey-controls #journey-plan{
+ background:var(--ui-accent);
+ border-color:var(--ui-accent);
+ color:var(--ui-ink);
+ font-weight:700;
+}
+/* Overrides the earlier placement rule while that layout stylesheet is retained. */
+#camp-placement #camp-confirm{background:var(--ui-accent)!important}
+#journey-dialog button.journey-route{
+ background:var(--ui-surface-raised);
+ border:2px solid var(--ui-border);
+ color:var(--ui-text);
+ border-radius:var(--ui-radius-card);
+}
+#journey-dialog button.journey-route[aria-pressed=true]{background:#294b50;border-color:var(--ui-border-strong)}
+#journey-dialog .journey-route-description,#journey-dialog .journey-route-state{color:var(--ui-text-muted)}
+#journey-dialog .journey-route[aria-pressed=true] .journey-route-state{color:var(--ui-text);font-weight:700}
+.drive-range button[aria-pressed=true],
+.drive-range #center-lock[aria-pressed=true]{background:var(--ui-selection);border-color:var(--ui-selection);color:var(--ui-ink)}
+.weather-options button[aria-pressed=true],
+.radio-tuning #radio-power[aria-pressed=true],
+.radio-presets button[aria-pressed=true],
+.tools #hud-menu[aria-expanded=true],
+.tools #cruise[aria-pressed=true]{background:#294b50;border-color:var(--ui-border-strong);color:var(--ui-text)}
+
+/* One close-button shape and one station stepper shape across all panels. */
+#weather-panel #weather-close,
+#radio-panel #radio-close,
+#route-dialog #map-close,
+.trail-tip #trail-tip-dismiss,
+#radio-panel #radio-prev,
+#radio-panel #radio-next{
+ display:inline-flex;
+ justify-content:center;
+ align-items:center;
+ flex:0 0 var(--ui-target);
+ width:var(--ui-target);
+ height:var(--ui-target);
+ min-width:var(--ui-target);
+ min-height:var(--ui-target);
+ padding:0;
+ border:1px solid var(--ui-border);
+ border-radius:var(--ui-radius-control);
+ background:transparent;
+ color:var(--ui-text);
+ line-height:1;
+ touch-action:manipulation;
+ transition:background-color var(--ui-motion-fast) ease,border-color var(--ui-motion-fast) ease;
+}
+.trail-tip #trail-tip-dismiss{border-color:transparent}
+#weather-panel,#radio-panel,#route-dialog,#journey-dialog,.pause-menu,.drive-intro,#camp-placement{
+ border-color:var(--ui-border);
+ border-radius:var(--ui-radius-panel);
+ color:var(--ui-text);
+ box-shadow:var(--ui-shadow);
+}
+#weather-panel,#journey-dialog{background:var(--ui-surface-overlay)}
+
+/* Disclosures use a small drawn chevron, suppressing OS-specific markers. */
+.intro-briefing>summary,.camp-more>summary{
+ display:flex;
+ align-items:center;
+ gap:var(--ui-space-3);
+ min-height:var(--ui-target);
+ list-style:none;
+ color:var(--ui-text-muted);
+}
+.intro-briefing>summary::-webkit-details-marker,.camp-more>summary::-webkit-details-marker{display:none}
+.intro-briefing>summary::marker,.camp-more>summary::marker{content:""}
+.intro-briefing>summary::after,.camp-more>summary::after{
+ content:"";
+ display:block;
+ flex:none;
+ width:7px;
+ height:7px;
+ margin-left:auto;
+ margin-right:var(--ui-space-1);
+ border-right:1.75px solid currentColor;
+ border-bottom:1.75px solid currentColor;
+ transform:rotate(45deg) translateY(-2px);
+ transition:transform var(--ui-motion-fast) ease;
+}
+.intro-briefing[open]>summary::after,.camp-more[open]>summary::after{transform:rotate(225deg) translate(-1px,-1px)}
+
+/* Both browser slider implementations render the same authored track and knob. */
+.radio-volume input[type=range]{
+ appearance:none;
+ -webkit-appearance:none;
+ height:var(--ui-target);
+ margin:0;
+ padding:0;
+ border:0;
+ border-radius:var(--ui-radius-control);
+ background:transparent;
+ cursor:pointer;
+}
+.radio-volume input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:#748e87}
+.radio-volume input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:#748e87}
+.radio-volume input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:#748e87}
+.radio-volume input[type=range]::-webkit-slider-thumb{
+ appearance:none;-webkit-appearance:none;width:20px;height:20px;margin-top:-8px;
+ border:2px solid var(--ui-ink);border-radius:50%;background:var(--ui-selection);box-shadow:0 0 0 1px var(--ui-selection);
+}
+.radio-volume input[type=range]::-moz-range-thumb{
+ width:16px;height:16px;border:2px solid var(--ui-ink);border-radius:50%;background:var(--ui-selection);box-shadow:0 0 0 1px var(--ui-selection);
+}
+
+/* Explicit focus remains visible regardless of each component's older rules. */
+html body :is(button,input,summary,canvas):focus-visible{outline:2px solid var(--ui-focus);outline-offset:3px}
+.expedition-map #map-open:focus-visible{outline-offset:-4px}
+@media(hover:hover){
+ .tools button:hover:not(:disabled):not([aria-pressed=true]):not([aria-expanded=true]),
+ #journey-controls button:hover:not(:disabled),
+ #weather-panel button:hover:not(:disabled):not([aria-pressed=true]),
+ #radio-panel button:hover:not(:disabled):not([aria-pressed=true]),
+ #route-dialog #map-close:hover,
+ .trail-tip #trail-tip-dismiss:hover,
+ .opening-film .opening-skip:hover,
+ .intro-new:hover:not(:disabled),
+ .pause-menu #reset:hover,
+ #journey-dialog button.journey-secondary:hover,
+ #camp-placement #camp-cancel:hover{background:var(--ui-surface-hover);border-color:var(--ui-border-strong)}
+ #journey-dialog button.journey-primary:hover:not(:disabled),
+ #camp-placement #camp-confirm:hover:not(:disabled),
+ .pause-menu #resume:hover,
+ .unstuck-actions #unstuck-reset:hover,
+ .camp-resting #journey-controls #journey-plan:hover{background:var(--ui-accent-hover);border-color:var(--ui-accent-hover)}
+ #camp-placement #camp-confirm:hover:not(:disabled){background:var(--ui-accent-hover)!important}
+}
+@media(prefers-reduced-motion:reduce){
+ html body :is(button,input,summary),.intro-briefing>summary::after,.camp-more>summary::after{transition:none}
+}

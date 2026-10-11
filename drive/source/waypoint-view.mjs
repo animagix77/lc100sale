@@ -10,7 +10,12 @@ function makeLabelAtlas(){
  for(let cell=0;cell<=WAYPOINT_COUNT*2;cell++){
   const active=cell>=WAYPOINT_COUNT&&cell<WAYPOINT_COUNT*2;
   ctx.fillStyle=active?'#ffc381':'#eee9d9';
-  ctx.fillText(cell===WAYPOINT_COUNT*2?'✓':String(cell%WAYPOINT_COUNT+1).padStart(2,'0'),(cell%columns)*256+128,Math.floor(cell/columns)*96+48);
+  const x=(cell%columns)*256+128,y=Math.floor(cell/columns)*96+48;
+  if(cell===WAYPOINT_COUNT*2){
+   // Match ui-icons.svg#check at 2x scale; no font-dependent completed glyph.
+   ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=3.5;ctx.lineCap=ctx.lineJoin='round';
+   ctx.beginPath();ctx.moveTo(x-14,y);ctx.lineTo(x-4,y+10);ctx.lineTo(x+14,y-10);ctx.stroke();
+  }else ctx.fillText(String(cell%WAYPOINT_COUNT+1).padStart(2,'0'),x,y);
  }
  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
  return {map,columns,rows};
