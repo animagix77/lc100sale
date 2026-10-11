@@ -1,3 +1,9 @@
+## Sun/cloud occlusion — October 10, 2026
+
+Judge Dean LLC. The sun disc no longer writes to the scene depth buffer, so distant transparent cloud banks can obscure it according to their alpha instead of leaving a solid circle in front. Clouds retain depth testing and terrain/trees still occlude the sky. No added passes, assets or instance counts.
+
+Production/review builds and existing cloud, weather-view and scene-warmup suites passed. An isolated before/after browser fixture using the production sun initializer and cloud module verified overlap and foreground occlusion on WebGPU (1536px cloud asset) and WebGL (768px mobile asset), without captured warnings/errors. These are desktop-browser checks. Evidence: `3d/lc100-cleanup/review/canyon-bridge/sun-cloud-occlusion-comparison.png`. Cache marker `sun-cloud-occlusion-20261010-1`.
+
 ## Rock formations, vegetation and driving continuity — October 10, 2026
 
 Judge Dean LLC. Added irregular, interlocking bedrock shelves with buried footings and photographed stone surfaces. They now emerge along woodland and mountain shoulders instead of being excluded from grassy regions. Shared placement masks keep trunks and plants out of exposed formations; all actual visible rock vertices retain at least 5.5 m of route clearance. Rendered geometry supplies exact Rapier colliders. Beaches, canyon bare-rock masks, ford channels, campsite and roadside clearings remain protected. Woodland extends into sheltered foothills with saplings, tall/narrow standards, broad mature crowns, spreading ferns and clustered grass. Nearby pools include 65 trees within 50 m of the foothill review location on both tiers; mobile instance capacities remain unchanged. The original LC100 asset and saved-game keys are unchanged.

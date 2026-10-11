@@ -217,7 +217,9 @@ function cancelCruise(){cruise=false;$('cruise').setAttribute('aria-pressed','fa
 $('cruise').addEventListener('click',()=>{cruise=!cruise;$('cruise').setAttribute('aria-pressed',String(cruise));$('cruise').textContent=cruise?'Cruise on':'Cruise';canvas.focus({preventScroll:true})});
 // Graphic sunset palette: dark violet overhead, coral horizon, amber dunes and blue surf.
 const skyMat=new THREE.MeshBasicNodeMaterial({side:THREE.BackSide,depthWrite:false,fog:false,toneMapped:false});const sy=positionLocal.y.div(1200);skyMat.colorNode=mix(mix(color('#ed8a75'),color('#f2ad79'),smoothstep(-.03,.025,sy)),color('#49355e'),smoothstep(.015,.30,sy));const sky=new THREE.Mesh(new THREE.SphereGeometry(1200,32,20),skyMat);sky.renderOrder=-20;scene.add(sky);scene.fog=new THREE.Fog('#d59388',180,520);
-const sun=new THREE.Mesh(new THREE.SphereGeometry(25,40,24),new THREE.MeshBasicMaterial({color:'#ffe3a0',fog:false}));sun.renderOrder=-10;scene.add(sun);
+// The celestial disc is background: it must not depth-occlude more distant cloud cards.
+// Keep cloud depth testing enabled so terrain still hides the entire sky.
+const sun=new THREE.Mesh(new THREE.SphereGeometry(25,40,24),new THREE.MeshBasicMaterial({color:'#ffe3a0',fog:false,depthWrite:false}));sun.renderOrder=-10;scene.add(sun);
 const hemi=new THREE.HemisphereLight('#a498ca','#855063',1.7);scene.add(hemi);const light=new THREE.DirectionalLight('#ffd39d',2.1);light.castShadow=true;light.shadow.mapSize.set(mobile?1024:2048,mobile?1024:2048);Object.assign(light.shadow.camera,{left:-32,right:32,top:32,bottom:-32,near:1,far:220});light.shadow.radius=mobile?3:6;light.shadow.intensity=.70;light.shadow.bias=-.0002;light.shadow.normalBias=.035;scene.add(light,light.target);
 const ocean=new Ocean(scene,{mobile});
 const river=new RiverView(scene,ocean);
