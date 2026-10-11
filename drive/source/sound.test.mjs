@@ -117,13 +117,21 @@ context.currentTime+=.08;sound.update({speed:0,impacts:[{...landing,energy:.12,d
 assert.equal(volcanicShots().length,2,'A later landing can be heard after the bounded cooldown');
 assert(volcanicShots()[1].connections[0].gain.value<thudGain.gain.value*.4);
 firstThud.onended();assert(firstThud.disconnected&&thudGain.disconnected&&thudFilter.disconnected&&thudPan.disconnected,'Completed landing voices release every transient node');
+const crashEvent={kind:'rock',source:'chassis',crash:true,energy:.8,pan:.4};
+const crashShots=()=>context.nodes.filter(node=>node.started&&!node.loop&&node.buffer?.duration===.72);
+sound.update({speed:0,impacts:[crashEvent]});assert.equal(crashShots().length,1,'A chassis crash uses the dedicated prepared sound');
+const crashShot=crashShots()[0],crashGain=crashShot.connections[0],crashFilter=crashGain.connections[0],crashPan=crashFilter.connections[0];
+assert.equal(crashFilter.frequency.value,1800);assert.equal(crashPan.pan.value,.4);assert.equal(crashPan.connections[0],context.nodes[0],'Crash obeys master volume and mute');
+sound.update({speed:0,impacts:[crashEvent]});assert.equal(crashShots().length,1,'Same instant cannot allocate repeated crash voices');
+context.currentTime+=.4;sound.update({speed:0,impacts:[{...crashEvent,energy:.2}]});assert.equal(crashShots().length,2);assert(crashShots()[1].connections[0].gain.value<crashGain.gain.value,'Impact strength controls crash loudness');
+crashShot.onended();assert(crashShot.disconnected&&crashGain.disconnected&&crashFilter.disconnected&&crashPan.disconnected,'Crash completion releases transient nodes');
 const beforeImpact=context.nodes.length;sound.update({speed:3,tyres:[tyre],impacts:[{kind:'wood',energy:.8,pan:-.6}]});assert(context.nodes.length>beforeImpact,'Obstacle contact plays its own one-shot');sound.update({speed:0,canyonRiver:.22,shoreDistance:500});sound.pause(true);assert.equal(rapidsGain.value,0,'Pause clears canyon ambience');assert.equal(context.nodes[0].gain.value,0);assert.deepEqual(mix,[false,0]);
 assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);assert.equal(rainGain.value,0,'Pause also clears weather gains');
-const voicesBeforePause=context.nodes.length;sound.update({...river,rain:1,impacts:[landing]});assert.equal(context.nodes.length,voicesBeforePause,'Paused updates do not play water or volcanic impacts');assert.equal(rainGain.value,0);
+const voicesBeforePause=context.nodes.length;sound.update({...river,rain:1,impacts:[landing,crashEvent]});assert.equal(context.nodes.length,voicesBeforePause,'Paused updates do not play water or volcanic impacts');assert.equal(rainGain.value,0);
 sound.pause(false);assert.equal(context.nodes[0].gain.value,.72);assert.equal(rainGain.value,0,'Resume waits for current weather instead of replaying stale rain');
 context.currentTime=10;sound.update({speed:3,tyres:[tyre],shoreDistance:2,input:{gas:true},rain:1});
 assert(context.nodes.filter(n=>n.started).length>=7,'Gull and splash one-shots play');
-await button.click();assert.equal(context.nodes[0].gain.value,0);assert.equal(button.attrs['aria-pressed'],'false');assert.equal(rainGain.value,0);assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);const mutedVoices=context.nodes.length;sound.update({...river,rain:1,impacts:[landing]});assert.equal(context.nodes.length,mutedVoices,'Muted rockfalls allocate no voices');assert.equal(rainGain.value,0,'Live rain never overrides mute');
+await button.click();assert.equal(context.nodes[0].gain.value,0);assert.equal(button.attrs['aria-pressed'],'false');assert.equal(rainGain.value,0);assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);const mutedVoices=context.nodes.length;sound.update({...river,rain:1,impacts:[landing,crashEvent]});assert.equal(context.nodes.length,mutedVoices,'Muted rockfalls allocate no voices');assert.equal(rainGain.value,0,'Live rain never overrides mute');
 await gestures.emit('keydown');assert.equal(context.nodes[0].gain.value,0,'Driving never overrides mute');
 await button.click();assert.equal(requests,6,'Re-enable reuses decoded audio');sound.dispose();assert.equal(gestures.handlers.size,0);assert.equal(button.handlers.size,0);assert(context.closed);assert(context.nodes.filter(n=>n.started).every(n=>n.stopped||n.disconnected));
 // Muting before the first drive gesture must neither fetch nor create a context.
@@ -155,7 +163,7 @@ console.log('Audio tests passed: default-on gesture unlock, concurrent activatio
  const [bank,sameBank]=await Promise.all([preparedSound.prepare(),preparedSound.prepare()]);
  assert.equal(bank,sameBank,'Concurrent loading shares the exact prepared bank');assert.equal(offlineContexts,beforeOffline+1);assert.equal(requests,beforeRequests+6);
  assert.equal(contexts,beforeContexts,'Preloading does not create an audible AudioContext');assert.equal(resumes,beforeResumes,'Preloading never attempts audio resume');
- assert(bank.fire&&bank.river&&bank.volcano2&&bank.skid&&bank.wave2,'Recorded, contact, engine-environment banks are all ready');
+ assert(bank.fire&&bank.river&&bank.volcano2&&bank.crash0&&bank.crash1&&bank.crash2&&bank.skid&&bank.wave2,'Recorded, contact, engine-environment banks are all ready');
  await controlsBefore.gestures.emit('pointerdown');assert.equal(contexts,beforeContexts+1);assert.equal(requests,beforeRequests+6,'Gesture unlock never repeats downloads after preparation');
  assert(context.nodes.some(n=>n.loop&&n.buffer===bank.river),'Playback consumes the prepared buffers');assert.equal(offlineContexts,beforeOffline+1,'No mid-drive PCM bank regeneration');preparedSound.dispose();
 }

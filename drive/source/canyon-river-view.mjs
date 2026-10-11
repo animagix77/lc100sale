@@ -75,7 +75,7 @@ export class CanyonRiverView{
   this.wallOutcrops=canyonWallOutcrops(geo,{limit:80});this.wallRockStart=n;
   for(const outcrop of this.wallOutcrops){rocks.setMatrixAt(n,outcrop.matrix);rocks.setColorAt(n++,c.set('#aab1a4').multiplyScalar(.60+random(outcrop.cluster+701)*.17));}
   for(let i=0;i<200-this.wallOutcrops.length;i++){const x=605+random(i+441)*343,r=canyonRiver(x),side=i%2?1:-1,z=r.z+side*r.halfWidth*(1.08+random(i+333)*.65),s=.10+random(i+451)*.24;d.position.set(x,baseHeight(x,z)+s*.2,z);d.scale.set(s*1.6,s*.7,s);d.rotation.set(0,random(i+532)*6.28,0);d.updateMatrix();rocks.setMatrixAt(n,d.matrix);rocks.setColorAt(n++,c.set('#bfc1b6').multiplyScalar(.65+random(i+451)*.3));}
-  rocks.count=n;rocks.castShadow=rocks.receiveShadow=true;this.group.add(rocks);this.rockMesh=rocks;this.resources.push(geo,mat);
+  rocks.count=n;rocks.userData.worldCoordinates=true;rocks.castShadow=rocks.receiveShadow=true;this.group.add(rocks);this.rockMesh=rocks;this.resources.push(geo,mat);
  }
  makeMist(){
   const count=this.mobile?RAPIDS.mistMobile:RAPIDS.mistDesktop,geo=new THREE.PlaneGeometry(1,1);

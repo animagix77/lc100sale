@@ -1,3 +1,13 @@
+## Small rock contacts and crash audio — October 11, 2026
+
+Judge Dean LLC. Mountain shoulder scree and canyon river stones now join the existing obstacle streamer with collision meshes matching their visible transforms. Mountain geometry publishes collision revisions atomically, including origin shifts; canyon instances retain world coordinates while their parent rebases. Nearby collision shapes are prepared before contact, and distant construction retains the existing frame budget.
+
+Loose pebbles retain their pooled dynamic Rapier bodies and four tyre contact shapes. Actual tyre–stone normal impulses now return an opposing impulse to the chassis at the wheel hub; direct chassis contacts already receive the solver reaction. Sand still holds resting stones until vehicle contact. Embedded scree stays fixed. This is a bounded rigid-body gravel approximation with raycast suspension, not a deformable tyre simulation.
+
+Substantial chassis contacts trigger a new preloaded crash voice: low body thump, short muffled metal crunch and trim rattle, scaled by impact impulse. Light rock contacts stay quiet. The crash has its own cooldown so wheel thumps cannot mask it; parked pressure, small pebbles and reset settling do not trigger crashes. Three original synthesized variants use the existing master mute, pause and cleanup paths, without new audio downloads or driving-time sample generation.
+
+Regression coverage includes exact small-stone collision and rebase identity, real tyre displacement and reaction, sand settling, actual wall crash versus silent flat driving, audio severity/cooldown/mute and disposal. The full expedition fixture includes shoulder scree as well as the loose gravel pool.
+
 ## HDR environment lighting and grounded scenery — October 11, 2026
 
 Judge Dean LLC. The sky now lights materials through startup-baked, linear HDR environment maps. Desktop WebGPU blends clear and overcast probes as weather changes; mobile and WebGL use one smaller probe with continuous tinting. Hemisphere fill is lower to retain directional form, and the solar disc has a more restrained angular size. Desktop WebGPU also adds shadow-map-tested sunlight scattering at 35% resolution, with 24 base ray-march steps, bilateral filtering and depth-aware compositing before tone mapping. Cloud cover, rain, night and volcanic conditions smoothly suppress the rays. This is procedural environment lighting and bounded light scattering, not ray tracing or captured HDR photography. No reflection probes are recaptured during driving.

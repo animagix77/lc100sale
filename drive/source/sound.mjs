@@ -24,8 +24,9 @@ export function drivingMix({speed=0,tyres=[],range='HI',input={},engine=null,sho
 }
 // Restrained contact foley; only real wheel/body events reach this voice.
 export function contactImpactMix(hit){
+ if(hit.crash)return {kind:'crash',volume:.18+clamp(Number(hit.energy)||0,0,1)*.38,pan:clamp(Number(hit.pan)||0,-1,1),cutoff:1800};
  const kind=['wood','rock','suspension'].includes(hit.kind)?hit.kind:'suspension';
- return {kind,volume:.055+clamp(Number(hit.energy)||0,0,1)*.30,
+ return {kind,volume:hit.source==='pebble'?.025+clamp(Number(hit.energy)||0,0,.35)*.20:.055+clamp(Number(hit.energy)||0,0,1)*.30,
   pan:clamp(Number(hit.pan)||0,-1,1),cutoff:kind==='rock'?850:kind==='wood'?620:420};
 }
 // Hazard energy already includes distance falloff. Size gives larger landings
@@ -78,7 +79,7 @@ function wetBank(ctx){
 }
 export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocument){
  let ctx,master,compressor,buffers,loading,preparing,preparationFailed=false,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,splash,waterWash,waterSpray,waterFilter,rainBed,rainFilter,grassBed,skidBed,fireBed,riverBed,riverFilter;
- let nextGull=0,nextSplash=0,nextImpact=0,nextVolcanoImpact=0,impactVariant=0,lastWet=0;const sources=new Set(),controller=new AbortController();
+ let nextGull=0,nextSplash=0,nextImpact=0,nextCrash=0,nextVolcanoImpact=0,impactVariant=0,lastWet=0;const sources=new Set(),controller=new AbortController();
  const label=()=>{button.textContent=on?'Sound on':'Sound off';button.setAttribute('aria-pressed',String(on));};
  const smooth=(param,value,seconds=.12)=>param.setTargetAtTime(value,ctx.currentTime,seconds);
  function gain(value){const n=ctx.createGain();n.gain.value=value;return n;}
@@ -179,7 +180,9 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    else if(m.wet-lastWet>.18&&now>=nextSplash){stopSplash();splash=shot('wave1',m.splashEntry,(Math.random()-.5)*.45,m.splashRate,m.splashDuration);nextSplash=now+.65;}
    lastWet=m.wet;
    if(state.impacts?.length){
-    const contacts=state.impacts.filter(hit=>hit.source!=='volcano'||hit.ground!==true);
+    const crashes=state.impacts.filter(hit=>hit.crash);
+    if(crashes.length&&now>=nextCrash){const hit=crashes.reduce((a,b)=>a.energy>b.energy?a:b),voice=contactImpactMix(hit);shot(voice.kind+(impactVariant++%3),voice.volume,voice.pan,.97+Math.random()*.06,0,voice.cutoff);nextCrash=now+.35;}
+    const contacts=state.impacts.filter(hit=>!hit.crash&&(hit.source!=='volcano'||hit.ground!==true));
     if(contacts.length&&now>=nextImpact){const hit=contacts.reduce((a,b)=>a.energy>b.energy?a:b);const voice=contactImpactMix(hit);shot(voice.kind+(impactVariant++%3),voice.volume,voice.pan,.97+Math.random()*.06,0,voice.cutoff);nextImpact=now+.07;}
     // Landings have their own short throttle, so a rockfall cannot suppress the
     // truck's contact sounds or pile up a new bass voice on every contact frame.

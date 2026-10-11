@@ -9,7 +9,7 @@ import {DrivePhysics} from './physics.mjs';import {SandField,clamp} from './terr
 const choices=process.env.LC100_ROUTE_VARIANT||'saddle,mud';
 const f=new SandField(),p=await DrivePhysics.create(f),view=new TerrainView(new THREE.Scene(),p,f),r=new WaypointRoute();
 assert(r.choose('dunes',choices.split(',')[0]),'Valid dune route variant');assert(r.choose('return',choices.split(',')[1]),'Valid return route variant');console.log('ITINERARY',choices);
-const life=new BeachLife(view.scene),mountain=new MountainDetails(view.scene),crossing=new LavaCrossingView(view.scene),obstacles=new BeachObstacles(p);const gravel=new LoosePebbles(view.scene,p,f);life.ridgeRocks=mountain.rocks;life.lavaRocks=crossing.rocks;
+const life=new BeachLife(view.scene),mountain=new MountainDetails(view.scene),crossing=new LavaCrossingView(view.scene),obstacles=new BeachObstacles(p);const gravel=new LoosePebbles(view.scene,p,f);life.ridgeRocks=mountain.rocks;life.ridgeScree=mountain.scree;life.lavaRocks=crossing.rocks;
 const geometry=view.geometry.bind(view);view.geometry=(...args)=>args[4]?new THREE.PlaneGeometry(1,1):geometry(...args);
 const start=Number(process.env.LC100_ROUTE_START||0);if(start)r.next=r.passed=start;const spawn=start?r.checkpoint():{x:-14,z:0};
 view.update(spawn.x,spawn.z);p.reset(spawn.x,spawn.z,f.height(spawn.x,spawn.z));if(start){const t=r.target(),yaw=Math.atan2(-(t.x-spawn.x),-(t.z-spawn.z));p.rb.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true)}p.setRange('LO');p.setCenterLock(true);for(let i=0;i<240;i++)p.step(1/120,{brake:true});let lastPass=0;

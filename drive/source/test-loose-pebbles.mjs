@@ -18,12 +18,13 @@ for(const mobile of [false,true]){
  // Deliberately place one real convex pebble partly in the left tyre track.
  const rock=gravel.pool[1],x=start.x+wheelLayout[0].x+VEHICLE_SETUP.wheelWidth/2+.025,z=start.z-4,y=rock.radius*gravel.bottom+.012;
  Object.assign(rock,{key:'contact-test',x,z,moved:false});gravel.active.set(rock.key,rock);rock.body.setTranslation({x,y,z},false);rock.body.setEnabled(true);rock.body.wakeUp();
- let peakHeight=0,peakSpeed=0,angle=0,contact=false;
+ let peakHeight=0,peakSpeed=0,angle=0,contact=false,pebbleSounds=0;const impulseBefore=gravel.stats.reactionImpulse;
  for(let i=0;i<540;i++){
-  p.step(dt,i<360?{gas:true}:{brake:true});gravel.update(p.position());const at=rock.body.translation(),v=rock.body.linvel();peakHeight=Math.max(peakHeight,at.y);peakSpeed=Math.max(peakSpeed,Math.hypot(v.x,v.y,v.z));angle=Math.max(angle,Math.abs(rock.body.rotation().w-1));
+  p.step(dt,i<360?{gas:true}:{brake:true});pebbleSounds+=p.soundEvents.splice(0).filter(e=>e.source==='pebble'&&!e.crash).length;gravel.update(p.position());const at=rock.body.translation(),v=rock.body.linvel();peakHeight=Math.max(peakHeight,at.y);peakSpeed=Math.max(peakSpeed,Math.hypot(v.x,v.y,v.z));angle=Math.max(angle,Math.abs(rock.body.rotation().w-1));
   p.world.contactPairsWith(rock.collider,c=>{if(gravel.handles.has(c.handle))contact=true});
  }
  const displaced=rock.body.translation();console.log({mobile,contact,displacement:Math.hypot(displaced.x-x,displaced.z-z),side:displaced.x-x,peakHeight,peakSpeed});
+ assert(gravel.stats.reactionImpulse>impulseBefore,'Actual tyre contact returns a normal impulse to the chassis');assert(pebbleSounds>0,'Actual pebble contacts produce subdued foley');
  assert(contact,'The tyre and stone must share a real Rapier contact manifold');assert(Math.hypot(displaced.x-x,displaced.z-z)>.04,'Tyre contact displaces the stone');assert(Math.abs(displaced.x-x)>.03,'Off-centre contact pushes the stone sideways');assert(angle>.02,'Contact produces angular motion');assert(peakHeight<4&&peakSpeed<22,'Small stones do not explode from a contact');
  for(let i=0;i<1800;i++)p.step(dt,{brake:true});
  assert(rock.body.isSleeping()||Math.hypot(...Object.values(rock.body.linvel()))<.05,'A displaced stone settles instead of animating forever');

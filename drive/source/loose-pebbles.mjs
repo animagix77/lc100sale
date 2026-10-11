@@ -11,7 +11,7 @@ export function pebbleHabitat(x,z){
 }
 export class LoosePebbles{
  constructor(scene,physics,field,{mobile=false}={}){
-  Object.assign(this,{scene,physics,field});this.radius=mobile?11:14;this.capacity=mobile?72:120;this.origin={...physics.origin};this.candidateKey='';this.candidates=[];this.active=new Map();this.history=new Map();this.handles=new Set();this.stones=new Map();this.touched=new Set();this.pool=[];this.tyres=[];this.stats={visible:0,moving:0,displaced:0};this.disposed=false;this.snapTyres=true;this.lastTruck=new THREE.Vector3(Infinity,0,0);
+  Object.assign(this,{scene,physics,field});this.radius=mobile?11:14;this.capacity=mobile?72:120;this.origin={...physics.origin};this.candidateKey='';this.candidates=[];this.active=new Map();this.history=new Map();this.handles=new Set();this.stones=new Map();this.touched=new Set();this.contactHits=[];this.pool=[];this.tyres=[];this.stats={visible:0,moving:0,displaced:0,contacts:0,reactionImpulse:0};this.disposed=false;this.snapTyres=true;this.lastTruck=new THREE.Vector3(Infinity,0,0);
   this.dummy=new THREE.Object3D();this.rotation=new THREE.Quaternion();this.steer=new THREE.Quaternion();this.roll=new THREE.Quaternion();this.axle=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/2);this.xAxis=new THREE.Vector3(1,0,0);this.yAxis=new THREE.Vector3(0,1,0);this.center=new THREE.Vector3();this.tint=new THREE.Color();
   const geo=new THREE.IcosahedronGeometry(1,1),pos=geo.attributes.position;
   for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),rough=.90+.10*Math.sin(x*9+y*5+z*7);pos.setXYZ(i,x*rough,y*rough*.68,z*rough*.86)}geo.computeVertexNormals();geo.computeBoundingBox();this.bottom=-geo.boundingBox.min.y;
@@ -22,8 +22,8 @@ export class LoosePebbles{
    const collider=physics.world.createCollider(RAPIER.ColliderDesc.convexHull(vertices).setDensity(2450).setFriction(.82).setRestitution(.10).setCollisionGroups(0x0004ffff),body);
    const rock={body,collider,radius,size,key:null,moved:false,sand:false,embedded:false,quiet:0};this.pool.push(rock);this.stones.set(collider.handle,rock);
   }
-  // The suspension still samples terrain. These lightweight kinematic wheel
-  // shapes exist only to transfer contact momentum into loose dynamic gravel.
+  // Suspension samples terrain; wheel-shaped contact proxies push loose gravel.
+  // Solver normal impulses are transferred back to the chassis after each step.
   this.originalGroups=physics.chassis.collisionGroups();physics.chassis.setCollisionGroups(0x0001ffff);
   for(let i=0;i<4;i++){
    const body=physics.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased());
@@ -52,11 +52,22 @@ export class LoosePebbles{
  afterStep(dt){
   // Sand holds settled gravel. Only a real moving-vehicle manifold releases
   // it; rebuilding terrain, gravity and a nearby truck cannot wake a hillside.
-  const world=this.physics.world,touched=this.touched;touched.clear();
+  const world=this.physics.world,touched=this.touched;touched.clear();this.contactHits.length=0;
   for(const collider of this.movers){
    const body=collider.parent(),v=body.linvel(),w=body.angvel();if(Math.hypot(v.x,v.y,v.z)<.08&&Math.hypot(w.x,w.y,w.z)<.2)continue;
-   world.contactPairsWith(collider,other=>{const r=this.stones.get(other.handle);if(!r?.key||!r.sand)return;
-    world.contactPair(collider,other,m=>{for(let i=0;i<m.numContacts();i++)if(m.contactDist(i)<=.012){touched.add(r);break}});
+   world.contactPairsWith(collider,other=>{const r=this.stones.get(other.handle);if(!r?.key)return;
+    world.contactPair(collider,other,(m,flipped)=>{
+     let impulse=0,contact=false;for(let i=0;i<m.numContacts();i++){if(m.contactDist(i)<=.012)contact=true;impulse+=m.contactImpulse(i);}
+     if(!contact)return;if(r.sand)touched.add(r);
+     // The chassis already receives its own Rapier reaction. Only transfer the
+     // normal load from the kinematic tyre proxy, once, at that wheel's hub.
+     const wheel=this.tyres.findIndex(t=>t.collider===collider);
+     if(wheel<0||impulse<=0)return;
+     const normal=m.normal(),sign=flipped?1:-1,at=body.translation();
+     this.physics.rb.applyImpulseAtPoint({x:normal.x*impulse*sign,y:normal.y*impulse*sign,z:normal.z*impulse*sign},at,true);
+     this.stats.contacts++;this.stats.reactionImpulse+=impulse;
+     this.contactHits.push({id:other.handle,source:'pebble',kind:'rock',impulse,closing:Math.hypot(v.x,v.y,v.z),pan:wheel%2?.65:-.65});
+    });
    });
   }
   for(const r of this.pool)if(r.key&&r.sand){

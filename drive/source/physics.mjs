@@ -118,7 +118,16 @@ export class DrivePhysics{
  this.vehicle.updateVehicle(dt,0,undefined,c=>!excluded.has(c.handle)&&!this.loosePebbles?.handles.has(c.handle));this.bridge.applyWheelLoads(dt);this.loosePebbles?.beforeStep();this.world.step();this.bridge.afterStep(dt);this.loosePebbles?.afterStep(dt);
  const protectedMotion=this.roadsideSafety.constrain(p,this.position(),this.rb.linvel());
  if(protectedMotion){const a=protectedMotion.position;this.rb.setTranslation({x:a.x-this.origin.x,y:a.y,z:a.z-this.origin.z},true);this.rb.setLinvel(protectedMotion.velocity,true);this.lighting.braking=true;}
- const hits=[];this.world.contactPairsWith(this.chassis,other=>{if(!this.obstacles?.has(other))return;this.world.contactPair(this.chassis,other,m=>{let impulse=0;for(let i=0;i<m.numContacts();i++)impulse+=m.contactImpulse(i);const n=m.normal();hits.push({id:other.handle,kind:this.obstacles.kind?.(other)||'rock',impulse,closing:Math.abs(v.x*n.x+v.y*n.y+v.z*n.z),pan:n.x*right.x+n.z*right.z})})});
+ const hits=[...(this.loosePebbles?.contactHits||[])];this.world.contactPairsWith(this.chassis,other=>{
+  if(other.isSensor()||this.loosePebbles?.handles.has(other.handle))return;
+  this.world.contactPair(this.chassis,other,(m,flipped)=>{
+   let impulse=0;for(let i=0;i<m.numContacts();i++)impulse+=m.contactImpulse(i);
+   const n=m.normal(),sign=flipped?-1:1,ov=other.parent()?.linvel()||{x:0,y:0,z:0};
+   const closing=Math.max(0,((v.x-ov.x)*n.x+(v.y-ov.y)*n.y+(v.z-ov.z)*n.z)*sign);
+   const pebble=this.loosePebbles?.stones.has(other.handle);
+   hits.push({id:other.handle,source:pebble?'pebble':'chassis',kind:this.bridge.has(other)?'wood':this.obstacles?.kind?.(other)||(pebble?'rock':'suspension'),impulse,closing,pan:(n.x*right.x+n.z*right.z)*sign});
+  });
+ });
  const wheelSounds=wheelLayout.map((_,i)=>({contact:!!this.vehicle.wheelIsInContact(i),length:this.vehicle.wheelSuspensionLength(i),kind:(this.bridge.has(this.vehicle.wheelGroundObject(i))?'wood':this.obstacles?.kind?.(this.vehicle.wheelGroundObject(i)))||'sand'}));
  this.soundEvents.push(...this.feedback.sample(this.time,dt,wheelSounds,this.speed,v.y,hits));if(this.soundEvents.length>8)this.soundEvents.splice(0,this.soundEvents.length-8);
 

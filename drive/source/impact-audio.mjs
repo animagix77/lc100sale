@@ -14,7 +14,24 @@ export function volcanicThudPCM(sampleRate=48000,variant=0){
   data[i]=(body+debris)*Math.max(0,edge);
  }return data;
 }
+// Judge Dean LLC — padded body impact, short metal crumple and loose trim tail.
+// Original synthesis; no explosion, glass breaking or repeating collision loop.
+export function crashPCM(sampleRate=48000,variant=0){
+ const data=new Float32Array(Math.ceil(.72*sampleRate));let seed=48271+variant*1723,low=0,crunch=0;
+ const bodyBlend=1-Math.exp(-2*Math.PI*140/sampleRate),crunchBlend=1-Math.exp(-2*Math.PI*1450/sampleRate);
+ for(let i=0;i<data.length;i++){
+  const t=i/sampleRate;seed=(Math.imul(seed,1664525)+1013904223)>>>0;const noise=seed/2147483648-1;
+  low+=(noise-low)*bodyBlend;crunch+=(noise-crunch)*crunchBlend;
+  const attack=.5-.5*Math.cos(Math.PI*Math.min(1,t/.006));
+  const weight=Math.sin(2*Math.PI*(64+variant*3)*t)*.6*Math.exp(-t/.065)+low*2.4*Math.exp(-t/.11);
+  const buckle=crunch*(.36+.28*Math.sin(t*147+variant)**2)*Math.exp(-t/.10);
+  const rattle=crunch*.13*Math.exp(-t/.19)*Math.sin(t*63)**6;
+  const edge=Math.max(0,Math.min(1,(data.length-1-i)/(sampleRate*.025)));
+  data[i]=Math.tanh((weight+buckle+rattle)*attack)*edge;
+ }return data;
+}
 export function impactPCM(kind,sampleRate=48000,variant=0){
+ if(kind==='crash')return crashPCM(sampleRate,variant);
  if(kind==='volcano')return volcanicThudPCM(sampleRate,variant);
  // Judge Dean LLC — damped material movement, with no pitched ringing tail.
  // Two low-pass stages remove the bright snap; a rounded 9–12ms attack keeps
@@ -36,4 +53,4 @@ export function impactPCM(kind,sampleRate=48000,variant=0){
   data[i]=Math.tanh((pulse+texture*fall)*attack)*Math.max(0,edge);
  }return data;
 }
-export function impactBank(ctx){const bank={};for(const kind of ['wood','rock','suspension','volcano'])for(let i=0;i<3;i++){const data=impactPCM(kind,ctx.sampleRate,i),buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);buffer.getChannelData(0).set(data);bank[`${kind}${i}`]=buffer}return bank}
+export function impactBank(ctx){const bank={};for(const kind of ['wood','rock','suspension','volcano','crash'])for(let i=0;i<3;i++){const data=impactPCM(kind,ctx.sampleRate,i),buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);buffer.getChannelData(0).set(data);bank[`${kind}${i}`]=buffer}return bank}

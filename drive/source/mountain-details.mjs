@@ -27,14 +27,14 @@ export class MountainDetails{
  }
  _commit(){
   const {work,key}=this._pending,old=this.key.split(',').map(Number),next=key.split(',').map(Number);for(const name of ['rocks','scree']){const mesh=this[name],staged=work[name];stageSceneryArrival(mesh,staged,this.reduced?-2:this.clock.value,{x:old[2]||0,z:old[3]||0},{x:next[2],z:next[3]},!this.key);if(staged.sceneryBirth){mesh.geometry.attributes.sceneryBirth.array.set(staged.sceneryBirth.array);mesh.geometry.attributes.sceneryBirth.needsUpdate=true;}if(staged.rockHabitat){mesh.geometry.attributes.rockHabitat.array.set(staged.rockHabitat.array);mesh.geometry.attributes.rockHabitat.needsUpdate=true;}mesh.count=staged.count;mesh.instanceMatrix.array.set(staged.instanceMatrix.array);mesh.instanceColor.array.set(staged.instanceColor.array);mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true}
-  this.key=key;this.rocks.userData.detailKey=key;this.samples=work.samples;this._pending=null;
+  this.key=key;this.rocks.userData.detailKey=key;this.scree.userData.detailKey=key;this.samples=work.samples;this._pending=null;
  }
  rebase(origin){
   if(!this.key)return false;
   const old=this.key.split(',').map(Number),dx=origin.x-old[2],dz=origin.z-old[3];if(!dx&&!dz)return false;
   const shift=(mesh,count)=>{const v=mesh.instanceMatrix.array;for(let i=0;i<count;i++){v[i*16+12]-=dx;v[i*16+14]-=dz}mesh.instanceMatrix.needsUpdate=true;};
   for(const name of ['rocks','scree'])shift(this[name],this[name].count);
-  this.key=`${old[0]},${old[1]},${origin.x},${origin.z}`;this.rocks.userData.detailKey=this.key;
+  this.key=`${old[0]},${old[1]},${origin.x},${origin.z}`;this.rocks.userData.detailKey=this.key;this.scree.userData.detailKey=this.key;
   if(this._pending){const job=this._pending,cell=job.key.split(',');for(const name of ['rocks','scree'])shift(job.work[name],job.work[name].instanceMatrix.count);Object.assign(job.origin,origin);job.key=`${cell[0]},${cell[1]},${origin.x},${origin.z}`;}
   return true;
  }
@@ -73,8 +73,8 @@ export class MountainDetails{
    d.position.set(x-origin.x,h-.24,z-origin.z);d.rotation.set((rand(ix,iz+3)-.5)*.12,noise(x*.007,z*.007)*Math.PI+(rand(ix,iz+2)-.5)*.45,(rand(ix,iz+4)-.5)*.13);d.scale.set(scale,scale*(.62+rand(ix+4,iz)*.58),scale*(.72+rand(ix+5,iz)*.28));d.updateMatrix();this.rocks.setMatrixAt(ri,d.matrix);
    c.set(surface.volcanic>.3?'#686269':surface.grass>.2?'#889185':'#9b9990').lerp(new THREE.Color('#c4ccd0'),surface.snow*.50).multiplyScalar(.85+rand(ix+6,iz)*.35);(this.rocks.rockHabitat??this.rocks.geometry.attributes.rockHabitat).setX(ri,surface.grass*(1-surface.snow)*(1-surface.volcanic)*(1-surface.canyonRock));this.rocks.setColorAt(ri++,c);this.samples.push({x,z,scale,kind:'rock'});
   }
-  // Small stones make the shoulder read as broken ground. They are below tyre
-  // obstacle scale; the larger outcrops share exact geometry with solid colliders.
+  // Small embedded stones and larger outcrops both share their rendered
+  // geometry with nearby solid colliders; loose gravel uses the dynamic pool.
   const pebbles=[];
   for(let iz=Math.floor((centerZ-80)/3);iz<=Math.ceil((centerZ+80)/3);iz++)for(let ix=Math.floor((centerX-80)/3);ix<=Math.ceil((centerX+80)/3);ix++){
    if((ix&15)===0)yield;
