@@ -9,7 +9,7 @@ const chapters=[
   {
     "tag": "THE SETUP",
     "title": "Overqualified<br>for the mulch run.",
-    "body": "Old Man Emu suspension, BFGoodrich KM3s and Bora spacers. A little taller, a little wider. The garden center remains deeply unimpressed.",
+    "body": "Old Man Emu suspension, Bora spacers and BFGoodrich KM3 mud-terrains. I live in the suburbs. The roads are paved. But if the garden center ever loses control of the mulch, I’m ready.",
     "href": "#history",
     "link": "See the equipment & service"
   },
