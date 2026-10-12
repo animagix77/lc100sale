@@ -24,21 +24,23 @@ The local poll expects its separate backend at `127.0.0.1:8767`; it is not inclu
 
 Follow [the LC100 design system](drive/DESIGN-SYSTEM.md) for shared colors, control states, spacing, motion and accessibility. The game and sale page use the authored `drive/ui-icons.svg` family; do not use emoji, system icons, icon fonts or Unicode pictograms as controls. Prefer clear labels, and keep “Skip intro” text only.
 
-The local driving HUD reserves space for advice, checkpoint messages and recovery/water notices. The mobile camera fits a stable CSS clearance box, so text wrapping, automatic tip compaction and dismissal cannot shift the scene or controls. Long messages scroll with touch or keyboard; new instructions start at the top, while unchanged text preserves reading position. Message duration remains 30–45 seconds. This message-stability fix is local and has not been deployed yet.
+The driving HUD reserves space for advice, checkpoint messages and recovery/water notices. The mobile camera fits a stable CSS clearance box, so text wrapping, automatic tip compaction and dismissal cannot shift the scene or controls. Long messages scroll with touch or keyboard; new instructions start at the top, while unchanged text preserves reading position. Message duration remains 30–45 seconds.
 
 ## Trail markers
 
-Local design pass: planted timber and metal checkpoint posts, stitched numbered banners and named plaques replace floating labels and dotted gate lines. Orange marks the next stop; cream marks upcoming stops; passed markers retain their number and use a quiet teal treatment with a custom check. Both faces read correctly, camp entrance signs remain outside the tent clearing, and reduced motion stops cloth movement. The signs share the interface palette and are prepared in a single startup atlas with four retained groups. Visual shoulder spacing does not change route acceptance, physics or saved progress.
+Planted timber and metal checkpoint posts, stitched numbered banners and named plaques replace floating labels and dotted gate lines. Orange marks the next stop; cream marks upcoming stops; passed markers retain their number and use a quiet teal treatment with a custom check. Both faces read correctly, camp entrance signs remain outside the tent clearing, and reduced motion stops cloth movement. The signs share the interface palette and are prepared in a single startup atlas with four retained groups. Visual shoulder spacing does not change route acceptance, physics or saved progress.
 
 ## Expedition routes
 
-The current development build starts with two itineraries. **Mountain expedition** keeps the rocky fords, snow, volcano and suspension bridge, then returns to Sunset camp. **Coastal islands** follows ten beach checkpoints through three palm islands, exposed low-tide sandbars and a grounded salvage barge, finishing at Island sunset camp. Its crossings remain open while exploring; there is no tide countdown.
+The game starts with two itineraries. **Mountain expedition** keeps the rocky fords, snow, volcano and suspension bridge, then returns to Sunset camp. **Coastal islands** follows ten beach checkpoints through three palm islands, exposed low-tide sandbars and a grounded salvage barge, finishing at Island sunset camp. Its crossings remain open while exploring; there is no tide countdown.
+
+Coastal driving lanes are graded and compacted, with pre-existing paired tyre ruts and softer shoulders. Three bogged vehicles, irregular reef clusters, driftwood and tide-line vegetation add roadside detail. Low amber sunlight and cool shadows carry the islands into sunset.
 
 Island scenery and bathymetry are prepared during loading. Rendered and physical ground share the same height field; water reads the same shallow shelves through a static bathymetry texture, independently of distant water mesh detail. Palms, rocks, driftwood and the barge feed the budgeted collision streamer. This remains a game simulation with raycast tyres and terrain deformation, not a calibrated vehicle or tidal model.
 
 Existing saved Coastal shelf detours keep their original mainland itinerary. The persistence key and version-1 canyon migration are unchanged; new island saves use the separate `islands` route choice. Map bounds, progress, recovery checkpoints, shelter placement, fire and camp camera follow the selected itinerary. The owner is building the LC100 in Blender; the existing truck asset remains unchanged.
 
-`npm test` includes a complete real-physics coastal drive in 4HI with the center differential unlocked, alongside the existing mountain drive in 4LO. The local `.review-dirt/` tools are isolated from player saves and excluded from publishing. This coastal feature has not been deployed yet.
+`npm test` includes a complete real-physics coastal drive in 4HI with the center differential unlocked, alongside the existing mountain drive in 4LO. The local `.review-dirt/` tools are isolated from player saves and excluded from publishing.
 
 ## Photos and vehicle tour
 
