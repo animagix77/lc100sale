@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {Ocean} from './ocean.mjs';
+import {COASTAL_WATER_EXTENT} from './expedition.mjs';
 import {shore,baseHeight} from './terrain.mjs';
-import {oceanHeight,coastalWakeOffset,COASTAL_WAKE_LIMITS} from './ocean-height.mjs';
+import {oceanHeight,coastalWaterHeight,coastalWakeOffset,COASTAL_WAKE_LIMITS} from './ocean-height.mjs';
 
 // Reproduce the lost offshore deformation: the old coastline-only dense band
 // left no vertices within three metres of a tyre at shore-40m. A 69cm wake
@@ -18,7 +19,8 @@ for(const mobile of [false,true]){
    const vx=positions.getX(i),vz=positions.getZ(i),distance=Math.hypot(vx-x,vz-z);
    nearest=Math.min(nearest,distance);if(distance<3)near++;
    // The vertex shader adds this same world-space displacement to its swell.
-   const displacement=ocean.height(vx,vz,.8)-oceanHeight(vx,vz,.8,ocean.waveScale.value);
+   // Test the ocean shader itself; the expanded grid also spans the raised river mouth.
+   const displacement=coastalWaterHeight(vx,vz,.8,ocean.waveScale.value,ocean.wake.sample(vx,vz))-oceanHeight(vx,vz,.8,ocean.waveScale.value);
    if(Number.isFinite(displacement)){visibleCrest=Math.max(visibleCrest,displacement);visibleTrough=Math.min(visibleTrough,displacement)}
   }
   assert(near>=(mobile?48:90),'Every ocean driving position has tyre-scale surface vertices');
@@ -27,7 +29,7 @@ for(const mobile of [false,true]){
   assert(visibleCrest<=COASTAL_WAKE_LIMITS.crest+1e-6,'Visible ocean geometry uses the conservative coastal crest budget');
   assert(visibleTrough<(distance<=-8?-.05:-.005),'Actual ocean vertices retain a trailing trough that tapers toward the shore');
   assert(visibleTrough>=-COASTAL_WAKE_LIMITS.trough-1e-6,'A wake cannot dig an oversized trough into the coast');
-  assert.equal(ocean.columnOffsets[0],12,'Moving the detailed patch does not open a hole beside the shoreline');
+  assert.equal(ocean.columnOffsets[0],COASTAL_WATER_EXTENT,'Moving the detailed patch does not open a hole beside the shoreline');
   assert(ocean.columnOffsets[ocean.nx]<=-1200,'The same ocean mesh still reaches the horizon');
   for(let i=1;i<ocean.columnOffsets.length;i++)assert(ocean.columnOffsets[i]<ocean.columnOffsets[i-1],'Adaptive columns never fold or collapse to zero width');
   assert.equal(ocean.mesh.geometry,geometry);assert.equal(ocean.mesh.geometry.attributes.position,positions);assert.equal(ocean.wakeTexture,texture);assert.equal(ocean.wakePixels,pixels);

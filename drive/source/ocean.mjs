@@ -1,7 +1,7 @@
-import {waterExists} from './expedition.mjs';
+import {waterExists,COASTAL_WATER_EXTENT} from './expedition.mjs';
 import * as THREE from 'three/webgpu';
 import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,fract,mx_noise_float,texture,attribute} from 'three/tsl';
-import {shore,baseHeight,coastalHeight} from './terrain.mjs';
+import {shore,baseHeight} from './terrain.mjs';
 import {WakeField} from './wake-field.mjs';
 import {waterSurfaceHeight,COASTAL_WAKE_LIMITS} from './ocean-height.mjs';
 import {archipelagoRegion,islandOceanBed,preloadIslandBathymetry,islandBathymetryGrid} from './coastal-islands.mjs';
@@ -18,7 +18,7 @@ export class Ocean{
   this.skyTop=uniform(new THREE.Color('#46576c'));this.skyHorizon=uniform(new THREE.Color('#b58073'));this.sunColor=uniform(new THREE.Color('#ffe2af'));this.sunDirection=uniform(new THREE.Vector3(-430,105,-650).normalize());this.brightness=uniform(1);this.waveScale=uniform(1);
   this.vehicleLights=Array.from({length:4},()=>({position:uniform(new THREE.Vector3()),direction:uniform(new THREE.Vector3(0,0,-1)),radiance:uniform(new THREE.Color(0,0,0)),cone:uniform(new THREE.Vector4(.9,.96,48,1.45))}));this.lightTarget=new THREE.Vector3();
   this.wheelFoam=Array.from({length:4},()=>uniform(new THREE.Vector4()));
-  this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=this.focus=Infinity;this.originKey='';this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;this.nearX=mobile?64:80;this.shoreColumns=mobile?8:12;this.focusStep=mobile?10:8;
+  this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=this.focus=Infinity;this.originKey='';this.bedRows=new Map();this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;this.nearX=mobile?64:80;this.shoreColumns=mobile?8:12;this.focusStep=mobile?10:8;
   this.wake=new WakeField({size:mobile?97:129,spacing:mobile?2/3:.5});this.wakePixels=new Uint16Array(this.wake.count*4);this.wakeTexture=new THREE.DataTexture(this.wakePixels,this.wake.size,this.wake.size,THREE.RGBAFormat,THREE.HalfFloatType);this.wakeTexture.minFilter=this.wakeTexture.magFilter=THREE.LinearFilter;this.wakeTexture.generateMipmaps=false;this.wakeTexture.needsUpdate=true;
   this.wakeOrigin=uniform(new THREE.Vector2());this.wakeSpan=(this.wake.size-1)*this.wake.spacing;this.lastTime=0;this.lastDisturbance=[-Infinity,-Infinity,-Infinity,-Infinity];this.disturbanceInterval=1/(mobile?24:30);
   const wakeAt=Fn(([x,z])=>texture(this.wakeTexture,vec2(x,z).sub(this.wakeOrigin).div(this.wakeSpan).mul((this.wake.size-1)/this.wake.size).add(.5/this.wake.size)).level(0));
@@ -114,7 +114,11 @@ export class Ocean{
   }
   material.colorNode=mix(waterColor,color('#f5dec0'),foam).mul(this.brightness).add(vehicleSheen);
 
-  const mainlandOpacity=mix(float(.94),float(.68),smoothstep(0,10,d)).mul(float(1).sub(smoothstep(8,12,d)));
+  // The old +12m cutoff crossed submerged sand. Let actual depth feather the
+  // moving shoreline, suppressing nearly coplanar water/sand flicker. The mesh
+  // ends well inside dry dunes; its outer safety fade is normally occluded.
+  const shoreContact=smoothstep(.01,.12,depth);
+  const mainlandOpacity=mix(float(.68),float(.94),smoothstep(.12,2,depth)).mul(shoreContact).mul(float(1).sub(smoothstep(COASTAL_WATER_EXTENT-4,COASTAL_WATER_EXTENT,d)));
   material.opacityNode=mix(mainlandOpacity,mix(float(.36),float(.94),smoothstep(.05,3,depth)).mul(smoothstep(.005,.10,depth)),islands);
   // One constant mesh covers the coast and horizon. Its dense patch follows
   // the truck offshore, so tyre wakes always reach actual surface vertices.
@@ -136,25 +140,30 @@ export class Ocean{
   // samples during streaming, including the tablet's .625m by .75m cells.
   const center=Math.floor(p.z/6)*6,focus=Math.min(-8,-8+this.focusStep*Math.round(((p.x??shore(p.z))-shore(p.z)+8)/this.focusStep)),key=`${origin.x},${origin.z}`;
   if(center===this.center&&focus===this.focus&&key===this.originKey)return;
+  if(focus!==this.focus)this.bedRows.clear();
   this.center=center;this.focus=focus;this.originKey=key;
   // Keep the original shoreline detail while driving on the beach. Offshore,
-  // reserve a few columns back to shore and retain tyre-scale spacing locally.
-  const shoreColumns=focus< -8?this.shoreColumns:0,nearX=this.nearX,right=focus+20,left=focus-20,far=Math.min(-1200,left-256);
-  for(let i=0;i<=this.nx;i++)this.columnOffsets[i]=i<shoreColumns?12+(right-12)*i/shoreColumns:i<=shoreColumns+nearX?right-(i-shoreColumns)*40/nearX:left-(left-far)*Math.pow((i-shoreColumns-nearX)/(this.nx-shoreColumns-nearX),1.55);
+  // reserve columns back to shore and retain tyre-scale spacing locally. On
+  // the beach, concentrate those extra columns around the shallow wet margin.
+  const shoreColumns=this.shoreColumns,nearX=this.nearX,right=focus+20,left=focus-20,far=Math.min(-1200,left-256);
+  for(let i=0;i<=this.nx;i++)this.columnOffsets[i]=i<shoreColumns?right+(COASTAL_WATER_EXTENT-right)*Math.pow(1-i/shoreColumns,focus===-8?2:1):i<=shoreColumns+nearX?right-(i-shoreColumns)*40/nearX:left-(left-far)*Math.pow((i-shoreColumns-nearX)/(this.nx-shoreColumns-nearX),1.55);
   // The old offshore shortcut applies outside the archipelago. At the islands
   // render water samples the same actual bed as tyres; dry sand cannot flood.
-  const positions=this.mesh.geometry.attributes.position,beds=this.mesh.geometry.attributes.oceanBed;
+  const positions=this.mesh.geometry.attributes.position,beds=this.mesh.geometry.attributes.oceanBed,nextBedRows=new Map();
+  // Fine rows overlap when the grid moves. Reuse their actual sand heights so
+  // depth-correct shoreline shading adds no repeated terrain sampling there.
   for(let j=0;j<=this.nz;j++){
-   const z=center+this.rowOffsets[j],coast=shore(z)-origin.x,estuary=Math.abs(z+340)<=55;
+   const z=center+this.rowOffsets[j],coast=shore(z)-origin.x,estuary=Math.abs(z+340)<=55,cached=this.bedRows.get(z),row=cached??new Float32Array(this.nx+1);nextBedRows.set(z,row);
    for(let i=0;i<=this.nx;i++){
     const index=j*(this.nx+1)+i,x=coast+this.columnOffsets[i],worldX=x+origin.x;positions.setXYZ(index,x,-.18,z-origin.z);
     let bed;
-    if(archipelagoRegion(worldX,z)>0)bed=islandOceanBed(worldX,z,baseHeight);
-    else bed=estuary&&worldX>=-72?baseHeight(worldX,z):this.columnOffsets[i]<0?-.4+this.columnOffsets[i]*.075:coastalHeight(worldX,z);
-    beds.setX(index,bed);
+    if(cached)bed=cached[i];
+    else if(archipelagoRegion(worldX,z)>0)bed=islandOceanBed(worldX,z,baseHeight);
+    else bed=estuary&&worldX>=-72?baseHeight(worldX,z):this.columnOffsets[i]<0?-.4+this.columnOffsets[i]*.075:baseHeight(worldX,z);
+    row[i]=bed;beds.setX(index,bed);
    }
   }
-  positions.needsUpdate=beds.needsUpdate=true;
+  this.bedRows=nextBedRows;positions.needsUpdate=beds.needsUpdate=true;
  }
  updateWheelFoam(dt,physics,time){
   const velocity=physics.rb?.linvel(),speed=velocity?Math.hypot(velocity.x,velocity.z):Math.abs(physics.speed);
@@ -182,5 +191,5 @@ export class Ocean{
   this.lastDisturbance[wheel]=time;return true;
  }
  clear(){this.wake.clear();this.lastDisturbance.fill(-Infinity);this.wheelFoam.forEach((slot,i)=>slot.value.set(0,0,0,i*.21))}
- dispose(){this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose();this.islandBedTexture.dispose()}
+ dispose(){this.bedRows.clear();this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose();this.islandBedTexture.dispose()}
 }

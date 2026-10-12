@@ -79,7 +79,9 @@ export function biomeWeather(x,z){const b=routeSample(x,z),w=b.weights;
  return {mode:'expedition',live:false,label:canyon>.6?'CANYON CROSSING':BIOMES[b.biome].name,canyon,volcanic:w.volcanic,altitude:8+canyon*12+w.river*14-w.grass*4+w.snow*8+w.mud*3-w.volcanic*16,cloud:.20+w.river*.18-w.grass*.05+w.snow*.65+w.mud*.74+w.volcanic*.30,wind:10+w.snow*15+w.mud*10+w.volcanic*12,rain:w.mud*.85,snow:w.snow*.88,fog:false,storm:false};
 }
 
-export const waterExists=(x,z)=>x<(-36+8*Math.sin(z*.006)+3*Math.sin(z*.019))+10||riverMask(x,z)>0;
+// Judge Dean LLC — cover the whole shallow foreshore; depth decides wet/dry.
+export const COASTAL_WATER_EXTENT=40;
+export const waterExists=(x,z)=>x<(-36+8*Math.sin(z*.006)+3*Math.sin(z*.019))+COASTAL_WATER_EXTENT||riverMask(x,z)>0;
 
 // Shared dimensions for the crater and outer-flank scenery; route-side hazards
 // and the basalt lava crossing have separate bounded pools.
