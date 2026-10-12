@@ -31,6 +31,9 @@ const chapters=[
 const $=id=>document.getElementById(id);
 const tour=$('tour'),slider=$('scrubber'),video=$('orbit-video'),poster=$('scene-poster');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const mobileHero=matchMedia('(max-width: 700px), (pointer: coarse)');
+const sequenceCanvas=$('orbit-sequence'),sequenceContext=sequenceCanvas.getContext('2d');
+let sequenceReady=false,heroVisible=true;
 let progress=0,last=-2,queued=false,videoReady=false,targetTime=0;
 const introFraction=.08;
 let pendingFocus=null;
@@ -40,22 +43,23 @@ chapters.forEach((c,i)=>{const b=document.createElement('button');b.textContent=
 // The clip stays paused; scrolling requests the latest time instead of playing it.
 const videoBackdrop=$('video-backdrop'),videoContext=videoBackdrop.getContext('2d');
 function paintVideoFrame(){
- if(!videoReady)return;
+ if(!videoReady||mobileHero.matches)return;
  video.dataset.scrubTime=video.currentTime.toFixed(3);
  videoContext.drawImage(video,0,0,videoBackdrop.width,videoBackdrop.height);
  $('tour-progress').textContent=`${Math.round(progress*100)}%`;
  updateDetail(last);
 }
 function seekVideo(){
- if(videoReady&&!video.seeking&&Math.abs(video.currentTime-targetTime)>1/48){video.dataset.scrubTarget=targetTime.toFixed(3);video.currentTime=targetTime;}
+ if(!mobileHero.matches&&videoReady&&!video.seeking&&Math.abs(video.currentTime-targetTime)>1/48){video.dataset.scrubTarget=targetTime.toFixed(3);video.currentTime=targetTime;}
 }
 video.addEventListener('seeked',()=>{paintVideoFrame();seekVideo()});
 function paintPosterFrame(){
- if(videoReady||!poster.naturalWidth)return;
+ if((mobileHero.matches?sequenceReady:videoReady)||!poster.naturalWidth)return;
  videoContext.drawImage(poster,0,0,videoBackdrop.width,videoBackdrop.height);
  videoBackdrop.hidden=false;
 }
 function useVideo(){
+ if(mobileHero.matches)return;
  videoReady=Number.isFinite(video.duration)&&video.duration>0;
  if(!videoReady)return;
  video.pause();video.hidden=false;poster.hidden=true;videoBackdrop.hidden=false;
@@ -63,6 +67,7 @@ function useVideo(){
 }
 video.addEventListener('loadeddata',useVideo);
 video.addEventListener('error',()=>{
+ if(mobileHero.matches)return;
  videoReady=false;video.hidden=true;poster.hidden=false;
  paintPosterFrame();render(progress,true);
 });
@@ -86,7 +91,7 @@ function revealDetail(n){
 }
 function updateDetail(n){
  if(progress<introFraction)n=-1;else if(n===2){const phase=(orbitProgress()-.5)*4;n=phase<.38?2:phase<.68?3:5;}else if(n===3)n=-1;
- if(videoReady)updateVideoDetail(n);
+ if(mobileHero.matches?sequenceReady:videoReady)updateVideoDetail(n);
  else setDetailState(n,null);
 }
 
@@ -97,15 +102,17 @@ function updateVideoDetail(n){
  n===3?{live:true,label:'ROOF BARS'}:
  n===5?{src:'assets/gallery/24-grab-handle.jpeg',label:'GRAB HANDLE',size:'250%',position:'51% 42%'}:null;
  if(!setDetailState(n,detail)||!detail)return;
- const bubble=$('bubble'),base=$('orbit-pin').getBoundingClientRect(),r=video.getBoundingClientRect();
+ const media=mobileHero.matches?sequenceCanvas:video;
+ const sourceWidth=mobileHero.matches?sequenceCanvas.width:video.videoWidth,sourceHeight=mobileHero.matches?sequenceCanvas.height:video.videoHeight;
+ const bubble=$('bubble'),base=$('orbit-pin').getBoundingClientRect(),r=media.getBoundingClientRect();
  $('inspection-detail').dataset.detail=String(n);
- // Match the video's cover crop so callout dots stay on the same body part after resizing.
- const scale=Math.max(r.width/video.videoWidth,r.height/video.videoHeight);
- const imageWidth=video.videoWidth*scale,imageHeight=video.videoHeight*scale;
- const [positionX,positionY]=getComputedStyle(video).objectPosition.split(' ').map(value=>parseFloat(value)/100);
+ // Match the active frame's crop so callouts stay on the same body part after resizing.
+ const scale=Math.max(r.width/sourceWidth,r.height/sourceHeight);
+ const imageWidth=sourceWidth*scale,imageHeight=sourceHeight*scale;
+ const [positionX,positionY]=getComputedStyle(media).objectPosition.split(' ').map(value=>parseFloat(value)/100);
  const imageLeft=r.left-base.left+(r.width-imageWidth)*(Number.isFinite(positionX)?positionX:.5);
  const imageTop=r.top-base.top+(r.height-imageHeight)*(Number.isFinite(positionY)?positionY:.5);
- const t=video.currentTime;
+ const t=mobileHero.matches?Number(sequenceCanvas.dataset.scrubTime):video.currentTime;
  const rearX=.87-Math.min(1,Math.max(0,(t-1.25)/.8))*.044;
  const hoodX=.63-.075*Math.min(1,Math.max(0,(t-.7)/.8));
  const cargoX=.923-.055*Math.min(1,Math.max(0,(t-2.02)/.67));
@@ -123,10 +130,10 @@ function updateVideoDetail(n){
  bubble.style.top=`${top}px`;
  if(detail.live){
   // Magnify the roof from the exact paused video frame, keeping the crop in sync with scrubbing.
-  const canvas=$('bubble-video'),crop=160;
-  const sx=Math.max(0,Math.min(video.videoWidth-crop,pointX*video.videoWidth-crop/2));
-  const sy=Math.max(0,Math.min(video.videoHeight-crop,pointY*video.videoHeight-crop/2));
-  canvas.getContext('2d').drawImage(video,sx,sy,crop,crop,0,0,canvas.width,canvas.height);
+  const canvas=$('bubble-video'),crop=160*sourceWidth/1280;
+  const sx=Math.max(0,Math.min(sourceWidth-crop,pointX*sourceWidth-crop/2));
+  const sy=Math.max(0,Math.min(sourceHeight-crop,pointY*sourceHeight-crop/2));
+  canvas.getContext('2d').drawImage(media,sx,sy,crop,crop,0,0,canvas.width,canvas.height);
  }else{
   $('bubble-photo').style.backgroundImage=`url('${detail.src}')`;
   $('bubble-photo').style.backgroundSize=detail.size;$('bubble-photo').style.backgroundPosition=detail.position;
@@ -166,7 +173,8 @@ function render(p,forceDetail=false){
   Array.from($('chapter-dots').children).forEach((b,i)=>b.setAttribute('aria-current',String(i===n)));
   $('previous').disabled=n<0;$('next').disabled=n===chapters.length-1;last=n;
  }
- if(videoReady){targetTime=progress*Math.max(0,video.duration-.04);seekVideo()}
+ if(mobileHero.matches)mobileSequence.seek(progress);
+ else if(videoReady){targetTime=progress*Math.max(0,video.duration-.04);seekVideo()}
  if(chapterChanged||forceDetail)updateDetail(n);
 }
 function tourDistance(){const overlap=Math.max(0,-parseFloat(getComputedStyle(document.querySelector('.page-content')).marginTop)||0);return tour.offsetHeight-innerHeight-overlap}
@@ -187,7 +195,36 @@ slider.addEventListener('keydown',event=>{
 });
 $('start-tour').addEventListener('click',()=>go(0,'tour-title'));$('previous').addEventListener('click',()=>go(last-1,last===0?'start-tour':null));$('next').addEventListener('click',()=>go(last+1,last===chapters.length-2?'tour-title':null));
 window.addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(onScroll)}},{passive:true});window.addEventListener('resize',()=>render(reduced.matches?progress:scrollProgress(),true));
-reduced.addEventListener('change',()=>{render(progress,true);if(!reduced.matches)setProgress(progress);});render(0);onScroll();
+const mobileSequence=createOrbitSequence({
+ count:96,url:index=>`assets/orbit/mobile/frame-${String(index+1).padStart(3,'0')}.png`,
+ onFrame(image,index){
+  sequenceContext.drawImage(image,0,0,sequenceCanvas.width,sequenceCanvas.height);
+  sequenceCanvas.dataset.frame=String(index);sequenceCanvas.dataset.scrubTime=String(index/16);
+  videoContext.drawImage(image,0,0,videoBackdrop.width,videoBackdrop.height);
+  sequenceReady=true;sequenceCanvas.hidden=false;poster.hidden=true;videoBackdrop.hidden=false;
+  updateDetail(last);
+ }
+});
+function selectHeroMedia(){
+ if(mobileHero.matches){
+  video.pause();video.hidden=true;videoReady=false;
+  if(video.hasAttribute('src')){video.removeAttribute('src');video.load()}
+  sequenceCanvas.hidden=!sequenceReady;poster.hidden=sequenceReady;
+  mobileSequence.seek(progress);mobileSequence.setActive(heroVisible);
+ }else{
+  mobileSequence.setActive(false);sequenceCanvas.hidden=true;poster.hidden=!videoReady;
+  if(!video.hasAttribute('src')){video.src=video.dataset.src;video.preload='auto';video.load()}
+  else if(video.readyState>=2)useVideo();
+ }
+ paintPosterFrame();render(progress,true);
+}
+new IntersectionObserver(entries=>{
+ heroVisible=entries[0].isIntersecting;
+ mobileSequence.setActive(mobileHero.matches&&heroVisible);
+},{rootMargin:'100px'}).observe(tour);
+mobileHero.addEventListener('change',selectHeroMedia);
+reduced.addEventListener('change',()=>{render(progress,true);if(!reduced.matches)setProgress(progress);});
+render(0);onScroll();selectHeroMedia();
 
 // Cached media may have loaded before this controller attached its listeners.
 paintPosterFrame();
