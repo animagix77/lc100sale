@@ -34,7 +34,7 @@ Planted timber and metal checkpoint posts, stitched numbered banners and named p
 
 The game starts with two itineraries. **Mountain expedition** keeps the rocky fords, snow, volcano and suspension bridge, then returns to Sunset camp. **Coastal islands** follows ten beach checkpoints through three palm islands, exposed low-tide sandbars and a grounded salvage barge, finishing at Island sunset camp. Its crossings remain open while exploring; there is no tide countdown.
 
-Coastal driving lanes are graded and compacted, with pre-existing paired tyre ruts and softer shoulders. Three bogged vehicles, irregular reef clusters, driftwood and tide-line vegetation add roadside detail. Low amber sunlight and cool shadows carry the islands into sunset.
+Coastal driving lanes are graded and compacted, with pre-existing paired tyre ruts and softer shoulders. The local natural-shore pass adds asymmetric, varying-width sandbars, gently wandering tyre lines and broad dune transitions; these final shoreline refinements are not published yet. Three bogged vehicles, irregular reef clusters, driftwood and tide-line vegetation add roadside detail. Low amber sunlight and cool shadows carry the islands into sunset.
 
 Island scenery and bathymetry are prepared during loading. Rendered and physical ground share the same height field; water reads the same shallow shelves through a static bathymetry texture, independently of distant water mesh detail. Palms, rocks, driftwood and the barge feed the budgeted collision streamer. This remains a game simulation with raycast tyres and terrain deformation, not a calibrated vehicle or tidal model.
 

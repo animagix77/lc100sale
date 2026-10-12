@@ -1,3 +1,7 @@
+## Natural sandbar contours — October 11, 2026
+
+Judge Dean LLC. Coastal shelves now widen and narrow with broad asymmetric tidal lobes and smaller shoreline scallops. Each bank samples stable world-space variation independently, so the crossings no longer keep parallel straight edges. Island approach cuts blend through broader, varying dune shoulders. Old tyre tracks wander gently within the firm lane. The central 9 m corridor remains graded, and the same ground field still drives visual geometry, collision and preloaded ocean bathymetry. No extra terrain meshes, texture downloads or per-frame generators are added. Checkpoints and saved positions stay unchanged.
+
 ## Coastal island refinement — October 11, 2026
 
 Judge Dean LLC. The scenic coastal route now has a graded, compacted driving lane from the mainland through all three island crossings. The former approach inherited steep dunes and submerged dips; the sampled first three legs now peak at 6.46% grade and retain at least 37.6 cm of water clearance in the regression samples. Shared geometry and shading add shallow, weathered paired tyre tracks plus older parallel shoulder passes. Fresh tracks deepen the compacted lane only slightly, preserving repeat-pass comfort; untracked shoulders retain deeper soft-sand deformation.

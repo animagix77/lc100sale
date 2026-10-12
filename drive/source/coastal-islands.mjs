@@ -40,7 +40,7 @@ function closest(x,z,segments){
  for(const s of segments){const t=clamp(((x-s.a.x)*s.dx+(z-s.a.z)*s.dz)/s.length2,0,1),qx=s.a.x+t*s.dx,qz=s.a.z+t*s.dz,d2=(x-qx)**2+(z-qz)**2;if(d2<distance2){distance2=d2;found=s;along=t;px=qx;pz=qz}}
  return {distance:Math.sqrt(distance2),segment:found,t:along,x:px,z:pz};
 }
-export function coastalRouteSample(x,z){const q=closest(x,z,routeSegments);return {...q,height:q.segment.a.height+(q.segment.b.height-q.segment.a.height)*q.t,index:q.segment.index}}
+export function coastalRouteSample(x,z){const q=closest(x,z,routeSegments),s=q.segment;return {...q,signedDistance:((x-q.x)*s.dz-(z-q.z)*s.dx)/Math.sqrt(s.length2),height:s.a.height+(s.b.height-s.a.height)*q.t,index:s.index}}
 export function coastalRouteDistance(x,z){return closest(x,z,routeSegments).distance}
 // Judge Dean LLC — weathered paired traffic lines on the complete coastal route.
 // The primary line is shallow and compacted; older parallel passes sit farther
@@ -51,7 +51,10 @@ export function coastalWornRuts(x,z,route=null){
  const q=route||coastalRouteSample(x,z);if(q.distance>7.4)return 0;
  const fade=(1-smooth(5.5,7.4,q.distance))*(1-smooth(-2,12,z))*smooth(18,27,Math.hypot(x-COASTAL_CAMP.x,z-COASTAL_CAMP.z));
  if(!fade)return 0;
- const wear=.72+.28*noise(x*.045+12,z*.045),d=q.distance;
+ // Slow lateral wander follows old drivers' lines, independently of the
+ // broader tidal bank. It fades on the shared mainland approach.
+ const wander=(noise(x*.025+41,z*.025-17)-.5)*3.2*smooth(-25,-60,x);
+ const wear=.60+.40*noise(x*.045+12,z*.045),d=Math.abs(q.signedDistance-wander);
  let cut=0,rim=0;
  for(const [center,depth,width] of COASTAL_RUT_BANDS){
   const across=Math.abs(d-center),strength=center<2?1:(.40+.60*noise(x*.027+center,z*.035));
@@ -100,14 +103,22 @@ export function islandProfile(x,z){
   if(relief>h){h=relief;interior=core;rock=headland}
   influence=Math.max(influence,support);
  }
- const crossing=closest(x,z,barSegments),bar=crossing.segment.bar,half=bar.width*.5;
- const barSupport=1-smooth(half+18,half+36,crossing.distance);
+ const crossing=closest(x,z,barSegments),bar=crossing.segment.bar;
+ // Tidal shelves widen into lobes and narrow into shallow scallops. Sample
+ // world space so both banks differ and adjoining segments share their shape.
+ // All relief starts outside the protected driving corridor: irregular banks
+ // must not reintroduce bumps or submerged dips in the scenic lane.
+ const bankNoise=noise(x*.032+71,z*.032-29),detail=noise(x*.085-19,z*.085+37);
+ const half=bar.width*.5+3+(bankNoise-.5)*13+(detail-.5)*2.4;
+ const bankDistance=crossing.distance;
+ const barSupport=1-smooth(half+18,half+36,bankDistance);
  if(barSupport>0){
-  const shelf=bar.height-smooth(6.5,half,crossing.distance)*(bar.height+.45)-smooth(half,half+18,crossing.distance)*3;
+  const crest=6.5+(noise(x*.042-3,z*.042+19)-.5)*2;
+  const shelf=bar.height-smooth(crest,half,bankDistance)*(bar.height+.45)-smooth(half,half+18,bankDistance)*3;
   h=Math.max(h,shelf);influence=Math.max(influence,barSupport);
  }
  if(influence<=0)return OUTSIDE;
- const route=coastalRouteSample(x,z),trail=1-smooth(4.5,10.5,route.distance);
+ const route=coastalRouteSample(x,z),shoulder=18+(noise(x*.035+33,z*.035-51)-.5)*16,trail=1-smooth(4.5,shoulder,route.distance);
  // Gentle undulation and shallow old tyre channels keep the traversable line
  // tactile without adding a sharp berm or a deep trench at island boundaries.
  const wornRut=coastalWornRuts(x,z,route),laneHeight=coastalLaneHeight(x,z,route,wornRut);

@@ -31,6 +31,18 @@ for(let i=3;i<COASTAL_LANDMARKS.length;i++){
 }
 assert(clearance>.65,'A wide low-tide line stays exposed through the complete swell cycle');
 assert(maxGrade<.16,'Island approaches have gradual grades, not raised causeway steps');
+// Measure the actual dry shoreline through the exposed middle crossing.
+// A constant-width strip passes driveability checks but looks engineered.
+const bankWidths=[];
+for(let t=.15;t<.66;t+=.1){
+ const dx=-69,dz=-62,length=Math.hypot(dx,dz),x=-205+t*dx,z=-219+t*dz,sideWidths=[];
+ for(const side of [-1,1]){let width=0;for(;width<35;width+=.25)if(baseHeight(x+side*dz/length*width,z-side*dx/length*width)<0)break;sideWidths.push(width);}
+ bankWidths.push(sideWidths);
+}
+const fullWidths=bankWidths.map(([a,b])=>a+b);
+assert(Math.max(...fullWidths)-Math.min(...fullWidths)>2,'The tidal crossing widens and narrows instead of keeping parallel banks');
+assert(bankWidths.some(([a,b])=>Math.abs(a-b)>1.5),'Opposite banks have different erosion contours');
+console.log({naturalBankWidths:bankWidths});
 for(let angle=0;angle<Math.PI*2;angle+=.25)for(const radius of [0,8,17]){
  const x=COASTAL_CAMP.x+Math.cos(angle)*radius,z=COASTAL_CAMP.z+Math.sin(angle)*radius;
  assert(Math.abs(baseHeight(x,z)-COASTAL_CAMP.height)<1e-6,'The entire usable camp clearing is level');
