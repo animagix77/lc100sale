@@ -403,7 +403,7 @@
 .editorial .evap-plan .evap-parts{font-size:clamp(28px,3vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1.12;margin:0 0 22px;color:var(--ink)}
 .editorial .evap-plan p{font-size:16px;line-height:1.65;color:#bdccca;max-width:43ch}
 .editorial .evap-plan .small-note{font-size:13px;color:var(--muted)}
-.editorial .service-pending{border-top:2px solid var(--accent)}
-.editorial .service-pending b{display:inline-block;font-size:10px;letter-spacing:.09em;border:1px solid var(--accent);padding:2px 6px;margin-top:6px}
-.editorial .service-pending strong{color:var(--ink)}
+.editorial .service-completed{border-top:2px solid var(--accent)}
+.editorial .service-completed b{display:inline-block;font-size:10px;letter-spacing:.09em;border:1px solid var(--accent);padding:2px 6px;margin-top:6px}
+.editorial .service-completed strong{color:var(--ink)}
 @media(max-width:900px){.editorial .evap-update{grid-template-columns:1fr;gap:30px}.editorial .evap-plan{border-left:0;border-top:1px solid var(--editorial-rule);padding:26px 0 0}.editorial .evap-update .evidence-copy p{max-width:54ch}}

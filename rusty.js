@@ -14,18 +14,23 @@
   const notes = [
     {
       question: 'Is she for sale? What’s the price?',
-      reply: '$TBD. The owner is considering a sale but hasn’t decided to let her go. The latest mechanic recommends EVAP replacement: solenoid, canister and gas cap. Work is pending. Built an entire website. Still emotionally attached. Classic.',
+      reply: '$TBD. The owner is considering a sale but hasn’t decided to let her go. The EVAP system and rear weatherstrip are now repaired; the owner reports the check-engine light is off and the rear leak has stopped. Built an entire website. Still emotionally attached. Classic.',
       link: 'See the sale status and comparables', href: '#price'
     },
     {
       question: 'How much work does it need?',
-      reply: 'EVAP replacement is planned: solenoid, canister and gas cap, per the latest mechanic visit. The sunroof, driver’s seat heater and other listed items still need attention. The repair list has direction. The wallet has concerns.',
+      reply: 'The mechanic has repaired the EVAP system and the check-engine light is off. The owner repaired the rear weatherstrip and says the rear leak has stopped. The sunroof, driver’s seat heater and other listed items still need attention. Two jobs done. Still no shortage of personality.',
       link: 'Read the known issues', href: '#condition'
     },
     {
-      question: 'What are the EVAP codes?',
-      reply: 'P2418, P0442 and P0446 remain unresolved. Following the October 7 mechanic visit, EVAP replacement is planned: solenoid, canister and gas cap. Work is pending and emissions readiness is unconfirmed. EPA, contain your excitement. The owner is about to pay good money to contain the vapors.',
-      link: 'Read the latest EVAP update', href: '#evap-update'
+      question: 'Was the EVAP system repaired?',
+      reply: 'Yes. The owner reports his mechanic repaired the EVAP system and the check-engine light is now off. The previously listed codes were P2418, P0442 and P0446. Specific parts replaced and emissions readiness/inspection status have not been confirmed. The vapors are contained. His excitement is not.',
+      link: 'Read the completed repair update', href: '#evap-update'
+    },
+    {
+      question: 'Is the rear still leaking?',
+      reply: 'The owner repaired the rear weatherstrip and reports the rear leak has stopped. Indoor rain has been removed from the amenities list. The separate sunroof issue is still listed for attention.',
+      link: 'Read the completed repair update', href: '#evap-update'
     },
     {
       question: 'Where are the running boards?',

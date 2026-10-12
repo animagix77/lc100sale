@@ -23,7 +23,7 @@ const chapters=[
   {
     "tag": "THE BIG MAYBE",
     "title": "A hobby.<br>With a VIN.",
-    "body": "$TBD. Still considering a sale. The mechanic recommends an EVAP solenoid, canister and gas cap replacement; that work is next. Apparently I needed a whole website and another repair bill to discover I’m attached.",
+    "body": "$TBD. Still considering a sale. The EVAP is repaired, the check-engine light is off, and the repaired rear weatherstrip has stopped the leak. Two repairs completed. Emotional detachment remains pending.",
     "href": "#verdict",
     "link": "Help decide: keep or sell?"
   }

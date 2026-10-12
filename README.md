@@ -55,7 +55,7 @@ The ownership story scrolls through three chapters, with the map following the t
 
 ## Listing
 
-Considering a sale; price $TBD, located in Leonia, NJ. If sold, condition will be disclosed and the truck sold as is. Maintenance and vehicle history are owner-reported; service receipts are unavailable. The October 7, 2026 mechanic visit resulted in a recommendation to replace the EVAP solenoid, canister and gas cap. Work is pending; codes remain unresolved and emissions readiness is unconfirmed. The prior clamp/line feature and its two displayed gallery photos have been retired, with source photos retained. Historical production notes and storyboards predate this update; the live copy in index.html, app.js and rusty.js is current.
+Considering a sale; price $TBD, located in Leonia, NJ. If sold, condition will be disclosed and the truck sold as is. Maintenance and vehicle history are owner-reported; service receipts are unavailable. Owner update received October 12, 2026: the mechanic repaired the EVAP system, and the owner reports the check-engine light is off. The owner also repaired the rear weatherstrip and reports the rear leak has stopped. Specific EVAP parts replaced and emissions readiness/inspection status are unconfirmed. The prior clamp/line feature and its two displayed gallery photos have been retired, with source photos retained. Historical production notes and storyboards predate this update; current condition copy is maintained in index.html, app.js, rusty.js and the gallery captions. Publication status is recorded in PROJECT-HANDOFF.md in the parent workspace.
 
 Contact: animagix@mac.com.
 
