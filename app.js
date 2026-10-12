@@ -2,7 +2,7 @@ const chapters=[
   {
     "tag": "THE TRUCK",
     "title": "Big V8.<br>Small workload.",
-    "body": "4.7 liters. 220,718 miles shown. Roughly 1,340 miles a year since I bought her in 2018. I bought a Land Cruiser and gave it a desk job.",
+    "body": "4.7 liters. 220,718 miles shown. Roughly 1,340 miles a year since I bought her in 2018. My first truck. Sensible errands. Then the weekends got involved.",
     "href": "#ownership",
     "link": "Meet the owner’s truck"
   },
@@ -16,7 +16,7 @@ const chapters=[
   {
     "tag": "THE PRACTICAL BITS",
     "title": "Bring the gear.<br>All of it. Apparently.",
-    "body": "A 2-inch hitch receiver, Malone crossbars and fold-away rear seats. The cargo setup earned its keep on our camping trips. Packing light was never a family policy.",
+    "body": "A 2-inch hitch receiver, Malone crossbars and fold-away rear seats. Then came the beach camps and a bedroom on the roof. Apparently, “practical” needed an upstairs.",
     "href": "#outdoor-title",
     "link": "See the camping years"
   },

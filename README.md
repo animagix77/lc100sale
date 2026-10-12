@@ -53,6 +53,10 @@ Existing saved Coastal shelf detours keep their original mainland itinerary. The
 
 The ownership story scrolls through three chapters, with the map following the truck between regional stops. Desktop places the story on the left and the map on the right; small screens use a stacked layout. The vehicle orbit remains continuous. Text uses masked reveals, headlines use cream and orange, and numeric stats roll into view. Reduced-motion preferences and keyboard chapter controls are supported.
 
+## Editorial direction
+
+The existing visual design and interactions frame a practical first truck becoming a family camping rig, then a reluctant possible sale. Copy uses suburban errands, mud-terrains, the former rooftop bedroom and owner attachment as callbacks. Keep remaining condition notes, owner-reported repairs and historical equipment exclusions explicit; preserve the hero, imagery, map, gallery, poll and game when revising prose.
+
 ## Listing
 
 Considering a sale; price $TBD, located in Leonia, NJ. If sold, condition will be disclosed and the truck sold as is. Maintenance and vehicle history are owner-reported; service receipts are unavailable. Owner update received October 12, 2026: the mechanic repaired the EVAP system, and the owner reports the check-engine light is off. The owner also repaired the rear weatherstrip and reports the rear leak has stopped. Specific EVAP parts replaced and emissions readiness/inspection status are unconfirmed. The prior clamp/line feature and its two displayed gallery photos have been retired, with source photos retained. Historical production notes and storyboards predate this update; current condition copy is maintained in index.html, app.js, rusty.js and the gallery captions. Publication status is recorded in PROJECT-HANDOFF.md in the parent workspace.

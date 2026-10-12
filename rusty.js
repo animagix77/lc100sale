@@ -14,7 +14,7 @@
   const notes = [
     {
       question: 'Is she for sale? What’s the price?',
-      reply: '$TBD. The owner is considering a sale but hasn’t decided to let her go. The EVAP system and rear weatherstrip are now repaired; the owner reports the check-engine light is off and the rear leak has stopped. Built an entire website. Still emotionally attached. Classic.',
+      reply: '$TBD. The owner is considering a sale. The EVAP system is repaired, the check-engine light is off, and the repaired rear weatherstrip has stopped the leak. He bought a truck for errands, turned it into a family camping rig, then built a website to avoid making a decision.',
       link: 'See the sale status and comparables', href: '#price'
     },
     {
@@ -44,7 +44,7 @@
     },
     {
       question: 'What equipment comes with her?',
-      reply: 'Malone crossbars are included; rooftop tents, awnings and camping gear are excluded. She has OME suspension, KM3 tires, 1.25-inch Bora spacers installed in 2025, two functional rear jump seats and a 2-inch hitch receiver. The penthouse was a previous tenancy.',
+      reply: 'Malone crossbars are included; rooftop tents, awnings and camping gear are excluded. She has OME suspension, KM3 tires, 1.25-inch Bora spacers installed in 2025, two functional rear jump seats and a 2-inch hitch receiver. The rooftop bedroom was a previous tenancy. This is a truck sale, not a furnished rental.',
       link: 'See the camping equipment note', href: '#camping'
     },
     {
