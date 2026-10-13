@@ -3,7 +3,7 @@ import * as THREE from 'three/webgpu';
 import {SurfaceEffects} from './surface-effects.mjs';
 import {surfaceProfile,oceanHeight} from './ocean-height.mjs';
 import {SandField,shore} from './terrain.mjs';
-import {riverZ} from './expedition.mjs';
+import {riverZ,COASTAL_WATER_EXTENT} from './expedition.mjs';
 const field=new SandField(),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(),fx=new SurfaceEffects(scene,field,{random:()=>.5});
 assert(fx.sand.mesh.instanceColor,'Material-specific tint must exist before the preload shader compilation');
 const dry={x:shore(0)+22,z:0,soft:.1,slip:0,dir:1,wheel:0};
@@ -26,7 +26,10 @@ for(const heading of [0,Math.PI/2,Math.PI,-.7])for(const dir of [1,-1])for(const
 }
 assert(fast.drops.every(p=>p.size<.04&&p.ttl<.9),'Droplets stay small while higher-speed throws last longer');
 assert.equal(sample(0).count,0,'Parked wheels never spray');
-assert(!surfaceProfile({...dry,x:shore(0)+25},3,-1,0).wet,'An inland rut is not mistaken for the sea');
+// Judge Dean LLC — the coastal support now reaches +40m; test the dry domain beyond that shared limit.
+assert(!surfaceProfile({...dry,x:shore(0)+COASTAL_WATER_EXTENT+5},3,-1,0).wet,'An inland rut beyond the coastal water domain is not mistaken for the sea');
+const inland={...dry,x:shore(0)+25};
+assert(!surfaceProfile(inland,3,field.height(inland.x,inland.z),0).wet,'Raised sand within the wider water mesh stays dry');
 for(let i=0;i<100;i++)fx.emit(wet,.5,5,1+i/60);
 const capacities=fx.pools.map(p=>p.particles.length);fx.update(.016,camera,{x:512,z:-512},.3);
 assert(fx.wake.particles.some(p=>p.life>0&&Math.abs(p.y-oceanHeight(p.x,p.z,.3)-.045)<1e-8),'Wake follows the displaced water surface');
