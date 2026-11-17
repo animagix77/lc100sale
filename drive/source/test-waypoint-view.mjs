@@ -30,7 +30,7 @@ function check(origin){
   const cell=view.labelAtlas.cells.get(`${d.state}:${t.leg}`),name=view.labelAtlas.cells.get(t.name);
   close(d.offset.value.x,(cell.x+1)/view.labelAtlas.width);close(d.offset.value.y,1-(cell.y+cell.height-1)/view.labelAtlas.height);close(d.nameOffset.value.x,(name.x+1)/view.labelAtlas.width);
   for(let i=0;i<2;i++){
-   const side=i?1:-1,x=t.x-side*dz*half,z=t.z+side*dx*half,post=d.posts[i];post.getWorldPosition(point);
+   const side=i?1:-1,offset=i?half:(t.signOffset??half),x=t.x-side*dz*offset,z=t.z+side*dx*offset,post=d.posts[i];post.getWorldPosition(point);
    close(point.x+origin.x,x);close(point.z+origin.z,z);close(point.y,field.height(x,z));
    const face=new THREE.Vector3(0,0,1).applyQuaternion(post.quaternion);close(face.x,-dx);close(face.z,-dz);
    // Every sign vertex stays on its side of the road, including narrow bridge
@@ -38,6 +38,12 @@ function check(origin){
    post.traverse(mesh=>{if(!mesh.isMesh)return;const p=mesh.geometry.attributes.position;for(let v=0;v<p.count;v++){
     point.fromBufferAttribute(p,v).applyMatrix4(mesh.matrixWorld);const lateral=(point.x+origin.x-t.x)*(-dz)+(point.z+origin.z-t.z)*dx;
     assert(lateral*side>=half-.12,`${t.name} roadside hardware intrudes into the passage`);
+    if(t.name==='Low-tide crossing'||t.name==='Palm cay'){
+     const [ax,az,bx,bz]=t.name==='Palm cay'?[-119.25,-216.78,-156.28,-220.68]:[-42.28,-160.56,-87.51,-200.29];
+     const lx=bx-ax,lz=bz-az,length=Math.hypot(lx,lz),px=point.x+origin.x-ax,pz=point.z+origin.z-az;
+     const u=(px*lx+pz*lz)/(length*length),across=(px*lz-pz*lx)/length-.55*Math.sin(Math.PI*u)**2;
+     assert(Math.abs(across)>2.8,`${t.name} marker overhangs the drivable shortcut`);
+    }
    }});
   }
  }

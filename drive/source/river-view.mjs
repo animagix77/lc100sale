@@ -10,19 +10,41 @@ export class RiverView{
   const positions=[],indices=[],uvs=[],depths=[],beds=[],riffles=[],nx=ocean.mobile?696:1112,nz=ocean.mobile?28:40;
   // Half-metre desktop tessellation resolves the tyre-scale crest and trough.
   // River geometry uses absolute coordinates; only the mesh origin is rebased.
+  // Each column is shared by several adjacent water rows. Sample the fixed
+  // rock bed once during construction, including its strongest wet shoulders.
+  const rockColumns=new Map();
+  function rocksAt(column){
+   if(!rockColumns.has(column)){
+    const rocks=[];
+    for(let row=-4;row<=4;row++){
+     const rock=riverRock(column,row);
+     if(rock)rocks.push({...rock,channelOffset:rock.z-riverZ(rock.x)});
+    }
+    rockColumns.set(column,rocks);
+   }
+   return rockColumns.get(column);
+  }
   for(let i=0;i<=nx;i++){
-   const x=riverBounds.minX+i*(riverBounds.maxX-riverBounds.minX)/nx,near=[];
-   for(let col=Math.floor(x/3)-1;col<=Math.floor(x/3)+2;col++)for(let row=-4;row<=4;row++){const rock=riverRock(col,row);if(rock)near.push(rock)}
+   const x=riverBounds.minX+i*(riverBounds.maxX-riverBounds.minX)/nx,center=riverZ(x),width=riverWidth(x),h=riverLevel(x),near=[];
+   for(let col=Math.floor(x/3)-1;col<=Math.floor(x/3)+2;col++)near.push(...rocksAt(col));
    for(let j=0;j<=nz;j++){
-    const side=j/nz*2-1,z=riverZ(x)+side*riverWidth(x),h=riverLevel(x),profile=riverProfile(x,z),depth=Math.max(0,profile.depth);
+    const side=j/nz*2-1,cross=side*width,z=center+cross,profile=riverProfile(x,z),depth=Math.max(0,profile.depth);
     positions.push(x,h,z);uvs.push(i/nx,j/nz);depths.push(depth);beds.push(baseHeight(x,z));
     let turbulence=0;
     for(const rock of near){
-     const along=rock.x-x,across=z-rock.z,exposed=Math.max(0,Math.min(1,(rock.y+rock.sy*.46-h+.16)*4));
-     // Downstream streaks and small bow turbulence at exposed stone shoulders.
-     const eddy=Math.exp(-((along-1.1)**2/5+across*across/.5));
-     const rim=Math.exp(-((along+.3)**2/.4+across*across/.7));
-     turbulence=Math.max(turbulence,(eddy*.65+rim*.7)*exposed);
+     const along=rock.x-x;
+     if(along< -1.8||along>5.5)continue;
+     const exposed=Math.max(0,Math.min(1,(rock.y+rock.sy*.46-h+.13)*4));
+     if(!exposed)continue;
+     // The two seams diverge from the stone and follow the bend in the
+     // channel. The sheltered pocket immediately behind a rock stays clear.
+     const across=Math.abs(cross-rock.channelOffset);
+     const radius=.34*rock.sz,lee=Math.max(0,along);
+     const seam=across-radius-lee*.21;
+     const width=.16+.055*lee;
+     const tail=Math.exp(-seam*seam/(width*width)-lee*lee/6)*Math.min(1,lee*2);
+     const bow=Math.exp(-(((along+.30*rock.sx)/.42)**2)-((across-radius*.65)/(.28+radius*.35))**2);
+     turbulence=Math.max(turbulence,Math.max(tail,bow)*exposed);
     }
     riffles.push(turbulence);
     if(i<nx&&j<nz){const a=i*(nz+1)+j,b=a+nz+1;indices.push(a,a+1,b,b,a+1,b+1)}
@@ -36,14 +58,15 @@ export class RiverView{
   const energy=smoothstep(0,RIVER_WAKE_LIMITS.edgeDepth,depth),mouth=smoothstep(-48,-28,positionGeometry.x);
   // Keep this displacement identical to waterSurfaceHeight: no full-height wakes
   // along a zero-depth bank, and no trough can cut through the shallow bed.
-  const phase=positionGeometry.x.mul(.9).add(positionGeometry.z.mul(1.8)).sub(t.mul(2.2));
+  const phase=positionGeometry.x.mul(.9).add(positionGeometry.z.mul(1.8)).add(t.mul(2.2));
   const ripple=sin(phase).mul(.012).add(sin(positionGeometry.x.mul(2.3).add(t.mul(3.1))).mul(.006)).mul(energy);
   const wakeHeight=wakeVertex.r.max(depth.mul(-RIVER_WAKE_LIMITS.troughDepth)).min(depth.mul(RIVER_WAKE_LIMITS.crestDepth).min(RIVER_WAKE_LIMITS.crest)).mul(energy);
   const inland=positionGeometry.y.add(ripple).add(wakeHeight),tidalBase=ocean.surfaceNode(positionGeometry.x,positionGeometry.z,bed),tidal=tidalBase.add(ocean.coastalWakeNode(tidalBase.sub(bed),wakeVertex.r));
   const mat=new THREE.MeshPhysicalNodeMaterial({metalness:0,ior:1.333,transparent:true,depthWrite:false,side:THREE.FrontSide});
   mat.positionNode=vec3(positionGeometry.x,mix(tidal,inland,mouth),positionGeometry.z);
-  const flowNoise=mx_noise_float(vec3(world.x.add(t.mul(1.25)).mul(1.4),world.y.mul(3.2),float(4))).mul(.5).add(.5);
-  const fine=mx_noise_float(vec3(world.x.add(t.mul(.85)).mul(3.8),world.y.mul(4.8),float(12)));
+  const crossChannel=world.y.sub(sin(world.x.sub(140).mul(.025)).mul(10));
+  const flowNoise=mx_noise_float(vec3(world.x.add(t.mul(1.25)).mul(1.4),crossChannel.mul(3.2),float(4))).mul(.5).add(.5);
+  const fine=mx_noise_float(vec3(world.x.add(t.mul(.85)).mul(3.8),crossChannel.mul(4.8),float(12)));
   // Derivatives use the displaced triangles, including the actual bow wave and
   // bank transition. Small current ripples only add detail to that geometry.
   const geometricNormal=positionView.dFdx().cross(positionView.dFdy()).normalize().transformDirection(cameraWorldMatrix);
@@ -53,7 +76,7 @@ export class RiverView{
   const sky=mix(ocean.skyHorizon,ocean.skyTop,smoothstep(.025,.65,skyRay.y));
   const wetDepth=positionWorld.y.sub(bed).max(0),wetEdge=smoothstep(0,.045,wetDepth);
   const coastalGain=ocean.coastalWakeGainNode(ocean.surfaceNode(world.x,world.y,bed).sub(bed),wake.r),wakeGain=mix(coastalGain,float(1),smoothstep(-48,-28,world.x));
-  const broken=smoothstep(.50,.76,flowNoise),foam=riffle.mul(broken).mul(.34).add(wake.a.mul(smoothstep(.25,.65,flowNoise)).add(smoothstep(.18,.85,wake.r).mul(.24)).mul(energy).mul(wakeGain)).max(ocean.tireFoamNode).min(.92).mul(wetEdge);
+  const broken=smoothstep(.50,.76,flowNoise),foam=riffle.mul(broken.mul(.56).add(.12)).add(wake.a.mul(smoothstep(.25,.65,flowNoise)).add(smoothstep(.18,.85,wake.r).mul(.24)).mul(energy).mul(wakeGain)).max(ocean.tireFoamNode).min(.92).mul(wetEdge);
   const water=mix(color('#70938a'),color('#225556'),smoothstep(.03,.48,wetDepth));
   mat.colorNode=mix(water,color('#e0ebe4'),foam);
   mat.emissiveNode=sky.mul(fresnel).mul(.55).mul(ocean.brightness).mul(float(1).sub(foam.mul(.65)));

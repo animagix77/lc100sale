@@ -150,7 +150,10 @@ export class WaypointView{
    const state=t.index<this.route.next?'passed':t.index===this.route.next?'next':'trail',d=g.userData;
    g.position.set(t.x-origin.x,0,t.z-origin.z);d.phase.value=t.x*.071+t.z*.019;d.stripMaterial.color.set(PALETTE[state].paper);d.stripMaterial.emissive.set(PALETTE[state].paper);d.stripMaterial.emissiveIntensity=state==='next'?.15:.05;
    for(let i=0;i<2;i++){
-    const side=i===0?-1:1,x=t.x-side*t.dz*half,z=t.z+side*t.dx*half;
+    // At the two coastal bends the signed route and the worn inside line
+    // share a gate. Put its nameboard on the dry ground beyond both lines.
+    const side=i===0?-1:1,offset=i===0?(t.signOffset??half):half;
+    const x=t.x-side*t.dz*offset,z=t.z+side*t.dx*offset;
     d.posts[i].position.set(x-t.x,this.field.height(x,z),z-t.z);d.posts[i].rotation.y=Math.atan2(-t.dx,-t.dz);
    }
    setCell(this.labelAtlas,`${state}:${t.leg}`,d.offset,d.scale);setCell(this.labelAtlas,t.name,d.nameOffset,d.nameScale);

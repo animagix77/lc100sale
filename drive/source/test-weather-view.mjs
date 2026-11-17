@@ -13,6 +13,7 @@ for(const reduced of [false,true]){
  const clearShadow=light.shadow.intensity,clearRadius=light.shadow.radius;
  assert(clearShadow>.5&&clearShadow<.8,'Clear-day shadows retain depth without full black occlusion');
  apply({altitude:60,cloud:1,rain:.8});assert(light.shadow.intensity<clearShadow*.6&&light.shadow.radius>clearRadius,'Overcast shadows grow softer and less opaque');
+ assert(ocean.cloudCover.value>.98&&ocean.cloudColor.value.equals(clouds.mesh.material.color),'Water follows the visible overcast cloud palette');
  const stormShadow=light.shadow.intensity;v.set({altitude:60,cloud:0,rain:0,snow:0,wind:8});v.update(1/60,camera,{x:0,y:0,z:0});assert(Math.abs(light.shadow.intensity-stormShadow)<.01,'Shadow weather transitions do not pop');
  light.shadow.mapSize.set(2048,2048);v.set({altitude:60,cloud:.2});const desktopRadius=v.shadowRadiusTarget;light.shadow.mapSize.set(1024,1024);v.set({altitude:60,cloud:.2});assert.equal(v.shadowRadiusTarget,desktopRadius/2,'Mobile keeps the same world-space penumbra');
  apply({altitude:-30});assert(v.top.value.r<daytime.r);assert(light.intensity>.5&&hemi.intensity>1,'Night remains driveable');assert(ocean.brightness.value<.6);

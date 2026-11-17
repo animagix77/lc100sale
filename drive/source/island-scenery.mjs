@@ -1,7 +1,9 @@
 // Judge Dean LLC — planted island groves and a weathered, grounded coastal wreck.
 import * as THREE from 'three/webgpu';
-import {attribute,uniform,positionLocal,positionWorld,vec3,sin,float,smoothstep,texture,uv,vec2,mix,cameraPosition,mx_noise_float} from 'three/tsl';
+import {attribute,uniform,positionLocal,positionWorld,vec3,float,smoothstep,texture,uv,vec2,mix,cameraPosition,mx_noise_float} from 'three/tsl';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {breezeOffset, foliagePhase} from './foliage-breeze.mjs';
+import {grassWindStrength} from './coastal-wind.mjs';
 import {baseHeight} from './terrain.mjs';
 import {inRoadsideClearing} from './roadside-spots.mjs';
 import {ISLANDS,COASTAL_CAMP,BARGE_SITE,islandProfile,coastalRouteDistance} from './coastal-islands.mjs';
@@ -22,24 +24,49 @@ function combine(parts,{flex=false}={}){
  const result=mergeGeometries(clean);for(const g of new Set([...parts,...clean]))g.dispose();
  result.computeBoundingSphere();result.computeBoundingBox();return result;
 }
-function beam(a,b,r,hex,segments=7,ratio=.86){
- const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*ratio,r,p.distanceTo(q),segments,1);
+function beam(a,b,r,hex,segments=7,ratio=.86,open=false){
+ const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),g=new THREE.CylinderGeometry(r*ratio,r,p.distanceTo(q),segments,1,open);
  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up,q.clone().sub(p).normalize()));g.translate(...p.add(q).multiplyScalar(.5).toArray());return paint(g,hex);
 }
 const box=(x,y,z,w,h,d,hex)=>paint(new THREE.BoxGeometry(w,h,d).translate(x,y,z),hex);
-function strip(points,widths,hex,{fold=.1,flex=0}={}){
+function strip(points,widths,hex,{fold=.1,flex=0,baseFlex=0}={}){
  const positions=[],colors=[],uvs=[],indices=[],weights=[],c=new THREE.Color(hex);
  for(let j=0;j<points.length;j++){
   const p=points[j],before=points[Math.max(0,j-1)],after=points[Math.min(points.length-1,j+1)],dx=after[0]-before[0],dz=after[2]-before[2],n=Math.hypot(dx,dz)||1;
   for(let k=-1;k<=1;k++){
    const w=widths[j]*k,shade=k===0?1.1:.89;
    positions.push(p[0]-dz/n*w,p[1]+(k===0?widths[j]*fold:0),p[2]+dx/n*w);
-   colors.push(c.r*shade,c.g*shade,c.b*shade);uvs.push((k+1)*.5,j/(points.length-1));weights.push(flex*(j/(points.length-1)));
+   colors.push(c.r*shade,c.g*shade,c.b*shade);uvs.push((k+1)*.5,j/(points.length-1));const u=j/(points.length-1);weights.push(baseFlex+flex*u*u);
   }
   if(j<points.length-1){const a=j*3;indices.push(a,a+3,a+1,a+1,a+3,a+4,a+1,a+4,a+2,a+2,a+4,a+5)}
  }
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setAttribute('islandFlex',new THREE.Float32BufferAttribute(weights,1));g.setIndex(indices);g.computeVertexNormals();return g;
 }
+
+// Broad scrub leaves need a rounded shoulder. Narrow palm pinnae can describe
+// their curved outline with fewer sections, leaving room for a fuller frond.
+function coastalLeaf(origin,dx,dz,length,{width,profile,arch,drop,hook,twist,baseFlex=0,flex},hex){
+ const positions=[],colors=[],uvs=[],weights=[],indices=[0,2,1],c=new THREE.Color(hex);
+ const add=(u,side,radius)=>{
+  const across=hook*u*u+side*radius;
+  positions.push(origin[0]+dx*length*u-dz*across,origin[1]+arch*Math.sin(Math.PI*u)-drop*u*u+side*radius*twist*u,origin[2]+dz*length*u+dx*across);
+  const light=.82+.20*u+.06*side;
+  colors.push(c.r*light,c.g*light,c.b*light);uvs.push(.5+.5*side,u);weights.push(baseFlex+flex*u*u);
+ };
+ add(0,0,0);
+ for(const [u,w] of profile){
+  const radius=width*w,at=weights.length;
+  add(u,-1,radius);add(u,1,radius);
+  if(at>1)indices.push(at-2,at-1,at,at-1,at+1,at);
+ }
+ const end=weights.length;indices.push(end-2,end-1,end);
+ add(1,0,0);
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setAttribute('islandFlex',new THREE.Float32BufferAttribute(weights,1));
+ g.setIndex(indices);g.computeVertexNormals();return g;
+}
+const pinnaProfile=[[.29,.95],[.68,.64]],scrubLeafProfile=[[.27,.60],[.58,1],[.84,.73]];
 
 /** A continuous bent trunk, with integrated root flare and individual leaf scars. */
 export function islandPalmTrunkGeometry({mobile=false}={}){
@@ -58,38 +85,52 @@ export function islandPalmTrunkGeometry({mobile=false}={}){
 
 /** Separate folded leaflets follow curved rachises, leaving the crown porous. */
 export function islandPalmCrownGeometry({mobile=false}={}){
- const parts=[],fronds=mobile?8:10,pairs=mobile?8:11,root=[.85,7.18,.19],greens=['#61783b','#789148','#526d36','#8c9c51','#687e3d'];
+ const parts=[],fronds=mobile?10:13,root=[.85,7.18,.19],greens=['#576e39','#6f8741','#81944b','#899b51'];
  for(let f=0;f<fronds;f++){
-  const angle=f*2.399+.12,dx=Math.cos(angle),dz=Math.sin(angle),length=2.45+rand(f,3)*1.35,lift=.45+rand(f,4)*.7,droop=.85+rand(f,5)*1.1;
-  const point=t=>[root[0]+dx*length*t,root[1]+lift*Math.sin(t*Math.PI*.88)-droop*t*t,root[2]+dz*length*t];
+  const tier=f/fronds,angle=f*2.399+rand(f,1)*.31,dx=Math.cos(angle),dz=Math.sin(angle);
+  const length=3.75-tier*1.65+rand(f,3)*.54,lift=.42+tier*1.54+rand(f,4)*.37,droop=1.92-tier*1.82+rand(f,5)*.34,curve=(rand(f,7)-.5)*1.5;
+  const point=t=>[root[0]+dx*length*t-dz*curve*t*t,root[1]+lift*Math.sin(t*Math.PI*.75)-droop*t*t,root[2]+dz*length*t+dx*curve*t*t];
   const rachis=Array.from({length:mobile?6:8},(_,i)=>point(i/(mobile?5:7)));
-  parts.push(strip(rachis,rachis.map((_,i)=>.035*(1-i/9)),f%4===0?'#b29d55':'#8e9b50',{fold:.65,flex:.15}));
+  parts.push(strip(rachis,rachis.map((_,i)=>.048*(1-i/rachis.length)),'#9a9654',{fold:.65,flex:.22}));
+  const pairs=(mobile?11:15)-(tier>.69?2:0),tone=greens[Math.floor(tier*greens.length)];
   for(let j=0;j<pairs;j++){
-   const t=.11+j/(pairs-1)*.84,p=point(t),lengthLeaf=(.33+Math.sin(t*Math.PI)*.62)*(1-.22*t),sweep=.10+.20*t;
    for(const side of [-1,1]){
-    const leaf=[];
-    for(let k=0;k<3;k++){const u=k/2,reach=lengthLeaf*u;leaf.push([p[0]-dz*side*reach+dx*sweep*u,p[1]+Math.sin(u*Math.PI)*.06-reach*.34,p[2]+dx*side*reach+dz*sweep*u]);}
-    parts.push(strip(leaf,[.0357,.1309*(1-t*.32),.001],greens[(f+j)%greens.length],{fold:.28,flex:.28+t*.3}));
+    const t=.095+(j+(side>0?.15:0))/(pairs-.80)*.865,along=t*(rachis.length-1),k=Math.floor(along);
+    const p=rachis[k].map((v,index)=>v+(rachis[k+1][index]-v)*(along-k)),reach=(.38+Math.sin(t*Math.PI)*.72)*(1-.20*tier);
+    const direction=angle+Math.atan2(2*curve*t,length)+side*(1.26-.56*t+(rand(j,f+side)-.5)*.13);
+    parts.push(coastalLeaf(p,Math.cos(direction),Math.sin(direction),reach,{
+     width:(.14-.055*t)*(.9+rand(f,j)*.23),profile:pinnaProfile,arch:.09,drop:reach*(.26+.24*t),
+     hook:-side*.16*reach,twist:side*.65,baseFlex:.22*t*t,flex:.27+t*.30
+    },tone));
    }
   }
+  const terminal=angle+Math.atan2(2*curve,length);
+  parts.push(coastalLeaf(rachis.at(-1),Math.cos(terminal),Math.sin(terminal),.28,{
+   width:.049,profile:pinnaProfile,arch:.015,drop:.13,hook:.015,twist:.2,baseFlex:.22,flex:.32
+  },tone));
  }
  // Spear leaves, coconut stems and a few old fibres give the crown a readable heart.
  for(let i=0;i<3;i++){const a=i*2.6,dx=Math.cos(a),dz=Math.sin(a);parts.push(strip([root,[root[0]+dx*.18,7.85,root[2]+dz*.18],[root[0]+dx*.55,8.58,root[2]+dz*.55]],[.045,.09,.003],'#8d9e51',{flex:.2}));}
- for(let i=0;i<5;i++){
+ for(let i=0;i<(mobile?4:5);i++){
   const a=i*2.399,g=paint(new THREE.IcosahedronGeometry(.145,0),i%2?'#897244':'#687341');g.scale(.9,1.25,.85);g.translate(root[0]+Math.cos(a)*.28,6.98-rand(i,6)*.22,root[2]+Math.sin(a)*.28);parts.push(g);
  }
  return combine(parts,{flex:true});
 }
 
 function islandShrubGeometry(mobile){
- const parts=[],branches=mobile?5:7,tones=['#586a39','#748449','#839157','#476239'];
+ const parts=[],branches=mobile?5:7,tones=['#728149','#7f9154','#91a263','#5d7646','#889557'];
  for(let i=0;i<branches;i++){
-  const a=i*2.399,dx=Math.cos(a),dz=Math.sin(a),tip=[dx*(.42+rand(i,10)*.25),.33+rand(i,12)*.52,dz*(.42+rand(i,11)*.25)];
-  parts.push(beam([0,.03,0],tip,.025,'#807351',4));
-  for(let j=0;j<(mobile?3:4);j++){
-   const t=.32+j*.20,origin=[tip[0]*t,tip[1]*t,tip[2]*t],side=j%2?1:-1;
-   const end=[origin[0]+dx*.13-dz*.26*side,origin[1]+.10,origin[2]+dz*.13+dx*.26*side];
-   parts.push(strip([origin,[(origin[0]+end[0])*.5,origin[1]+.1,(origin[2]+end[2])*.5],end],[.005,.115,.003],tones[(i+j)%tones.length],{fold:.2,flex:.05}));
+  const a=i*2.399+rand(i,19)*.32,dx=Math.cos(a),dz=Math.sin(a),reach=.43+rand(i,10)*.44,height=.24+rand(i,12)*.39;
+  const elbow=[dx*reach*.43,height*.89,dz*reach*.43],tip=[dx*reach,height,dz*reach];
+  parts.push(beam([0,0,0],elbow,.028,'#756749',3,.68,true),beam(elbow,tip,.019,'#827550',3,.20,true));
+  const leaves=mobile?6:8;
+  for(let j=0;j<leaves;j++){
+   const t=.05+j/(leaves-1)*.95,origin=elbow.map((v,k)=>v+(tip[k]-v)*t);
+   const side=j%2?1:-1,angle=a+side*(1.22-t*.76+rand(i,j)*.34),length=.25+rand(j+13,i)*.15;
+   parts.push(coastalLeaf(origin,Math.cos(angle),Math.sin(angle),length,{
+    width:length*(.20+rand(i+4,j)*.08),profile:scrubLeafProfile,arch:.065+rand(i,j)*.045,
+    drop:.035+rand(j,i)*.09,hook:side*.046,twist:side*.58,flex:.11+.07*t
+   },tones[(i+j)%tones.length]));
   }
  }
  return combine(parts,{flex:true});
@@ -98,7 +139,7 @@ function islandGrassGeometry(mobile){
  const parts=[];
  for(let i=0;i<(mobile?8:11);i++){
   const a=i*2.399,dx=Math.cos(a),dz=Math.sin(a),root=.03+rand(i,8)*.12,h=.30+rand(i,9)*.43,reach=.17+rand(i,10)*.32;
-  parts.push(strip([[dx*root,0,dz*root],[dx*(root+reach*.25),h*.6,dz*(root+reach*.25)],[dx*(root+reach*.67),h,dz*(root+reach*.67)],[dx*(root+reach),h*.83,dz*(root+reach)]],[.018,.029,.020,.001],['#b6a06a','#a9955e','#8a945a','#c5b67d'][i%4],{fold:.32,flex:.05}));
+  parts.push(strip([[dx*root,0,dz*root],[dx*(root+reach*.25),h*.6,dz*(root+reach*.25)],[dx*(root+reach*.67),h,dz*(root+reach*.67)],[dx*(root+reach),h*.83,dz*(root+reach)]],[.018,.029,.020,.001],['#b6a06a','#a9955e','#8a945a','#c5b67d'][i%4],{fold:.32,flex:.22}));
  }
  return combine(parts,{flex:true});
 }
@@ -206,26 +247,26 @@ function placementClear(x,z,radius,{soft=false}={}){
 export class IslandScenery{
  constructor(scene,{mobile=false,reduced=false}={}){
   Object.assign(this,{scene,mobile,reduced});this.group=new THREE.Group();this.group.name='Coastal island scenery';scene.add(this.group);
-  this.clock=uniform(0);this.wind=uniform(.5);this.anchor=uniform(new THREE.Vector2());this.origin=uniform(new THREE.Vector3());this.geometries=[];this.materials=[];this.meshes=[];this.placements=[];this.stats={palms:0,shrubs:0,grass:0,rocks:0,logs:0,wrack:0,wrecks:1};this.dummy=new THREE.Object3D();
+  this.clock=uniform(0);this.wind=uniform(reduced?0:grassWindStrength(0,8));this.anchor=uniform(new THREE.Vector2());this.origin=uniform(new THREE.Vector3());this.geometries=[];this.materials=[];this.meshes=[];this.placements=[];this.stats={palms:0,shrubs:0,grass:0,rocks:0,logs:0,wrack:0,wrecks:1};this.dummy=new THREE.Object3D();
   const standard=options=>{const m=new THREE.MeshStandardNodeMaterial(options);this.materials.push(m);return m};
   const make=(name,geometry,material,capacity,{solid=false,kind='rock'}={})=>{
    this.geometries.push(geometry);const mesh=new THREE.InstancedMesh(geometry,material,capacity);mesh.name=name;mesh.count=0;mesh.castShadow=solid;mesh.receiveShadow=true;mesh.userData.detailKey='coastal-islands-v1:'+name;mesh.userData.worldCoordinates=true;mesh.userData.obstacleKind=kind;this.group.add(mesh);this.meshes.push(mesh);return mesh;
   };
-  const foliage=(geometry,near,far)=>{
+  const foliage=(near,far)=>{
    const m=standard({vertexColors:true,side:THREE.DoubleSide,roughness:.94,alphaHash:true});
-   const f=attribute('islandFlex','float'),phase=attribute('islandPhase','float'),wave=sin(this.clock.mul(1.12).add(phase)).mul(.65).add(sin(this.clock.mul(2.08).add(phase.mul(1.7))).mul(.19));
-   m.positionNode=positionLocal.add(vec3(wave.mul(f).mul(this.wind),wave.abs().mul(f).mul(-.07),wave.mul(f).mul(this.wind).mul(.35)));
+   const flex=attribute('islandFlex','float'),phase=attribute('islandPhase','float');
+   m.positionNode=positionLocal.add(breezeOffset(this.clock,phase,this.wind,flex));
    m.opacityNode=float(1).sub(smoothstep(near,far,positionWorld.xz.distance(this.anchor)));
    return m;
   };
   const palmCapacity=mobile?108:144,shrubCapacity=mobile?320:480,grassCapacity=mobile?780:1200;
   const trunks=islandPalmTrunkGeometry({mobile}),crown=islandPalmCrownGeometry({mobile});crown.setAttribute('islandPhase',new THREE.InstancedBufferAttribute(new Float32Array(palmCapacity),1));
   this.trunks=make('Island palm trunks',trunks,standard({vertexColors:true,roughness:.97}),palmCapacity,{solid:true,kind:'wood'});
-  this.crowns=make('Island palm fronds',crown,foliage(crown,230,320),palmCapacity);this.crowns.castShadow=!mobile;
+  this.crowns=make('Island palm fronds',crown,foliage(230,320),palmCapacity);this.crowns.castShadow=!mobile;
   const shrubs=islandShrubGeometry(mobile);shrubs.setAttribute('islandPhase',new THREE.InstancedBufferAttribute(new Float32Array(shrubCapacity),1));
-  this.shrubs=make('Coastal broadleaf shrubs',shrubs,foliage(shrubs,80,120),shrubCapacity);
+  this.shrubs=make('Coastal broadleaf shrubs',shrubs,foliage(80,120),shrubCapacity);
   const grass=islandGrassGeometry(mobile);grass.setAttribute('islandPhase',new THREE.InstancedBufferAttribute(new Float32Array(grassCapacity),1));
-  this.grass=make('Island dune sedges',grass,foliage(grass,42,77),grassCapacity);
+  this.grass=make('Island dune sedges',grass,foliage(42,77),grassCapacity);
   this.rocks=make('Island limestone outcrops',islandRockGeometry(),standard({vertexColors:true,roughness:.90}),mobile?94:136,{solid:true});
   this.rocks.material.roughnessNode=mix(float(.38),float(.90),smoothstep(.12,.92,positionWorld.y));
   this.logs=make('Island driftwood',islandLogGeometry(),standard({vertexColors:true,roughness:1}),mobile?28:42,{solid:true,kind:'wood'});
@@ -243,7 +284,7 @@ export class IslandScenery{
  }
  _add(mesh,{x,z,y=baseHeight(x,z),yaw=0,sx=1,sy=sx,sz=sx,kind,tint,tilt=0,bank=0}){
   if(mesh.count>=mesh.instanceMatrix.count)return false;const index=mesh.count++,d=this.dummy;d.position.set(x,y,z);d.rotation.set(tilt,yaw,bank);d.scale.set(sx,sy,sz);d.updateMatrix();mesh.setMatrixAt(index,d.matrix);
-  if(tint)mesh.setColorAt(index,new THREE.Color(tint));const phase=mesh.geometry.attributes.islandPhase;if(phase)phase.setX(index,x*.11+z*.17);
+  if(tint)mesh.setColorAt(index,new THREE.Color(tint));const phase=mesh.geometry.attributes.islandPhase;if(phase)phase.setX(index,foliagePhase(x,z));
   if(kind)this.placements.push({kind,x,z,y,yaw,sx,sy,sz,index,mesh});return true;
  }
  _plant(){
@@ -258,11 +299,13 @@ export class IslandScenery{
    // Mature groves mix several heights; leaning trunks generally follow sea wind.
    const yaw=-1.0+(rand(seed,4)-.5)*1.8,sy=scale*(.94+rand(seed,5)*.17),tint=rand(seed,6)>.7?'#e4d4aa':'#f2eee0';
    this._add(this.trunks,{x,z,y:y-.08,yaw,sx:scale,sy,kind:'palm',tint});
-   // Widen only the crown, about its attachment to the curved trunk. Scaling
-   // the full instance about ground level would detach it from the trunk tip.
-   const spread=.90+rand(seed,7)*.34,dx=.85*scale*(1-spread),dz=.19*scale*(1-spread),c=Math.cos(yaw),s=Math.sin(yaw);
+   // The canopy has its own opening angle and heading. Both transforms meet
+   // at the same point at the top of the curved trunk.
+   const spread=.90+rand(seed,7)*.34,crownScale=spread*scale,crownHeight=sy*(.84+rand(seed,9)*.32),crownYaw=rand(seed,8)*Math.PI*2;
+   const crownOffset=(turn,size)=>[(.85*Math.cos(turn)+.19*Math.sin(turn))*size,(.19*Math.cos(turn)-.85*Math.sin(turn))*size];
+   const [tx,tz]=crownOffset(yaw,scale),[cx,cz]=crownOffset(crownYaw,crownScale);
    this.placements[this.placements.length-1].crownSpread=spread;
-   this._add(this.crowns,{x:x+dx*c+dz*s,z:z-dx*s+dz*c,y:y-.08,yaw,sx:scale*spread,sy,tint});
+   this._add(this.crowns,{x:x+tx-cx,z:z+tz-cz,y:y-.08+7.18*(sy-crownHeight),yaw:crownYaw,sx:crownScale,sy:crownHeight,tint});
   }
   const palms=this.placements.filter(p=>p.kind==='palm');
   for(let attempt=0;attempt<3400&&(this.rocks.count<this.rocks.instanceMatrix.count||this.logs.count<this.logs.instanceMatrix.count);attempt++){
@@ -298,7 +341,7 @@ export class IslandScenery{
   for(let attempt=0;attempt<14000&&(this.shrubs.count<shrubTarget||this.grass.count<grassTarget);attempt++){
    const island=ISLANDS[attempt%ISLANDS.length],seed=attempt+23000,angle=rand(seed,1)*Math.PI*2,radius=Math.sqrt(rand(seed,2))*.98;
    const x=island.x+Math.cos(angle)*island.rx*radius,z=island.z+Math.sin(angle)*island.rz*radius,y=baseHeight(x,z),profile=islandProfile(x,z);
-   if(y<.73||profile.land<.37||profile.rock>.28||!placementClear(x,z,.75,{soft:true}))continue;
+   if(y<.73||profile.land<.37||profile.rock>.28||profile.looseCut>.12||!placementClear(x,z,.75,{soft:true}))continue;
    const patch=Math.sin(x*.15+Math.sin(z*.07)*2)+Math.sin(z*.13+x*.04);if(patch<-.75)continue;
    if(rocks.some(p=>{const dx=x-p.x,dz=z-p.z,c=Math.cos(p.yaw),s=Math.sin(p.yaw);return ((dx*c-dz*s)/(p.sx*1.18+.65))**2+((dx*s+dz*c)/(p.sz*.90+.65))**2<1}))continue;
    const shrub=attempt%3===0&&profile.land>.60&&this.shrubs.count<shrubTarget,mesh=shrub?this.shrubs:this.grass;
@@ -323,7 +366,7 @@ export class IslandScenery{
  }
  update(position,origin={x:0,z:0},time=0,weather={}){
   this.group.position.set(-origin.x,0,-origin.z);this.origin.value.set(origin.x,0,origin.z);this.anchor.value.set(position.x-origin.x,position.z-origin.z);
-  this.clock.value=this.reduced?0:time;this.wind.value=.32+clamp(weather.wind??.4,0,1)*.24;
+  this.clock.value=this.reduced?0:time;this.wind.value=this.reduced?0:grassWindStrength(time,weather.wind);
   this.group.visible=position.x<80&&position.z<-55&&position.z>-560;
   this.group.updateMatrixWorld(true);
  }

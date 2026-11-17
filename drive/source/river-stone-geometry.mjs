@@ -5,7 +5,12 @@ export function riverStoneGeometry(){
  for(let i=0;i<p.count;i++){
   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),wear=.91+.055*Math.sin(x*12+z*8)+.035*Math.cos(y*17-z*6);
   // Broad worn shoulders and shallow fractures stay inside the old obstacle envelope.
-  p.setXYZ(i,x*1.4*wear,y*.7*(.94+.04*Math.sin(x*10-z*9))+.18,z*wear);
+  // Tilted bedding and two worn fracture planes give each rotation a
+  // different shoulder. Intersections only trim the original stone volume.
+  const cap=.32+x*.12-z*.16;
+  const chippedSide=.35-y*.20-z*.26;
+  const clippedX=Math.min(x,chippedSide),clippedY=Math.min(y,cap);
+  p.setXYZ(i,clippedX*1.4*wear,clippedY*.7*(.94+.04*Math.sin(x*10-z*9))+.18,z*wear);
  }
  // Smooth shared positions rather than leaving every source triangle disconnected.
  const groups=new Map(),normal=new THREE.Vector3();g.computeVertexNormals();

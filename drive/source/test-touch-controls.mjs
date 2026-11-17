@@ -89,3 +89,28 @@ assert([...joystick.listeners.values(), ...ebrake.listeners.values(), ...keyboar
 joystick.emit('pointerdown', {clientY: 50}); ebrake.emit('pointerdown'); neutral();
 assert(changes.every(change => Object.keys(change).length === 4));
 console.log('Touch controls passed: analog travel, dead zone, radial limits, direction, multitouch brake, cancellation, keyboard hold, guard, reset and disposal.');
+
+// Judge Dean LLC — independent steering/pedals must not weaken throttle on a
+// turn, fight the service brake, or leave held input after menus/mode changes.
+{
+ const stick=new Element(), knob=new Element({width:60,height:60}), hand=new Element(), gas=new Element({left:0,top:200,width:60,height:100}), brake=new Element({left:70,top:200,width:60,height:100});
+ const doc=new Element(), view=new Element(), root=new Element(), help={textContent:''}, pauseTitle={textContent:''}, pausePedals={textContent:''};doc.defaultView=view;doc.getElementById=id=>id==='game'?root:id==='joystick-help'?help:id==='pause-touch-title'?pauseTitle:id==='pause-touch-pedals-action'?pausePedals:null;
+ for(const e of [stick,hand,gas,brake])e.ownerDocument=doc;
+ const c=createTouchControls({joystick:stick,knob,ebrake:hand,accelerator:gas,serviceBrake:brake});
+ c.setMode('pedals');assert.equal(root.attributes.get('data-touch-mode'),'pedals');assert.equal(stick.attributes.get('aria-label'),'Steering control');assert(help.textContent.includes('right pedals'));assert(pauseTitle.textContent.includes('Right thumb drives'));assert(pausePedals.textContent.includes('BRAKE slows'));
+ stick.emit('pointerdown',{clientX:140,clientY:-900});assert.equal(c.state.turn,-1);assert.equal(c.state.gas,0,'Vertical stick travel cannot accelerate in split mode');
+ gas.emit('pointerdown',{pointerId:2,clientY:200});assert.equal(c.state.gas,1);assert.equal(c.state.turn,-1,'Full throttle and full steering remain independent');
+ gas.emit('pointermove',{pointerId:2,clientY:250});near(c.state.gas,.5);
+ brake.emit('pointerdown',{pointerId:3,clientY:200});assert.equal(c.state.reverse,1);assert.equal(c.state.gas,0,'Foot brake cuts throttle while both pedals are held');
+ brake.emit('pointerup',{pointerId:99});assert.equal(c.state.reverse,1,'Foreign touch cannot release brake');
+ brake.emit('pointerup',{pointerId:3});near(c.state.gas,.5);assert.equal(c.state.reverse,0);
+ stick.emit('pointerup');near(c.state.gas,.5);assert.equal(c.state.turn,0,'Releasing steering preserves held throttle');
+ gas.emit('lostpointercapture',{pointerId:2});assert.equal(c.state.gas,0);
+ gas.emit('keydown',{code:'Space'});assert.equal(c.state.gas,1);assert(doc.emit('keydown',{code:'Space'}).defaultPrevented);
+ gas.emit('pointerdown',{pointerId:4,clientY:230});gas.emit('pointerup',{pointerId:4});assert.equal(c.state.gas,1,'Keyboard hold survives release of the same pedal touch');doc.emit('keyup',{code:'Space'});assert.equal(c.state.gas,0);
+ gas.emit('pointerdown',{pointerId:2,clientY:200});hand.emit('pointerdown',{pointerId:3});view.emit('blur');assert.deepEqual(c.state,{gas:0,reverse:0,turn:0,handbrake:false});assert(!gas.captures.size);
+ gas.emit('pointerdown',{pointerId:2,clientY:200});c.setMode('joystick');assert.equal(c.state.gas,0);assert(!gas.captures.size);assert.equal(root.attributes.get('data-touch-mode'),'joystick');
+ gas.emit('pointerdown',{pointerId:2,clientY:200});assert.equal(c.state.gas,0,'Hidden pedals cannot drive in joystick mode');
+ c.dispose();assert([...gas.listeners.values(),...brake.listeners.values()].every(s=>s.size===0));
+}
+console.log('Split controls passed: independent axes, variable pedal travel, brake priority, foreign touches, mixed keyboard/pointer holds, blur and mode-change release.');

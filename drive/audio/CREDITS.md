@@ -27,3 +27,11 @@ The earlier synthesized instrumental tracks are retained as `radio/*.m4a`, with 
 
 ## Smooth engine drone
 The current engine sound is an original synthesized harmonic drone, replacing the recorded idle/load loops entirely to remove their puttering exhaust texture. Four phase-aligned sine partials follow RPM with smoothed frequency and gain, filtered for a muted petrol-V8 character. No random detuning or rhythmic amplitude modulation. This is a stylized game sound, not an authenticated Toyota recording. Ocean, sand, gulls and water accents remain from the credited recordings above.
+
+## Terrain contact foley — October 21, 2026
+
+Judge Dean LLC. Original synthesized stereo sand shuffle, snow compression/crunch, wet slush and loose-gravel textures supplement the credited sand recording. Irregular overlapping grains use different spectra and envelopes for each material; these are designed game effects, not field recordings or authenticated LC100 tire recordings. Four four-second loops are prepared during loading and reused throughout the drive. Real wheel contact, surface coverage, normal load, relative speed, slip, compaction and wetness control the mix. Recovery boards and solid decks suppress loose-ground layers.
+
+## Ocean surf cycle — October 21, 2026
+
+Judge Dean LLC. The existing credited coastal and wave recordings now form a quiet distant bed, a swelling breaker and a longer soft wash/recession. Two fixed voices reuse the decoded water recordings; no new recordings or remote assets were added. Gain and filtering follow distance to the nearest estimated breaking contour, weather strength and the same phase as the visual swell. Island-source estimates ease between updates to avoid restarting the wave cycle while driving.

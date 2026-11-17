@@ -22,6 +22,24 @@ frame.apply(camera,truck,{width:390,height:710,top:210,bottom:520},1);
 const tight=frame.apply(camera,truck,{width:390,height:710,top:325,bottom:410},1/60);assert(tight.top*710>325&&tight.bottom*710<410);
 console.log(`Mobile camera: ${checks} fits across phone/tablet orientations, altitude, pitch and orbit; expanding overlays and camera-mode restoration passed.`);
 
+// A resize can precede the queued HUD measurement by one animation frame.
+// setViewOffset must never leave that old phone aspect on the desktop camera.
+{
+ const fit=new MobileCameraFrame();fit.setSubject(truck);
+ const camera=new PerspectiveCamera(48,390/844,.1,1500);truck.position.set(0,0,0);truck.rotation.set(0,0,0);camera.position.set(0,5,14);
+ const portrait={width:390,height:844,top:304,bottom:568};
+ fit.apply(camera,truck,portrait,1/60);
+ fit.restore(camera);camera.aspect=1280/800;camera.updateProjectionMatrix();
+ fit.apply(camera,truck,portrait,1/60); // stale queued layout after resize
+ fit.restore(camera);
+ assert.equal(camera.aspect,1280/800,'Portrait fitting must restore the new desktop aspect');
+ const reference=new PerspectiveCamera(camera.fov,1280/800,camera.near,camera.far);
+ assert.deepEqual(camera.projectionMatrix.elements,reference.projectionMatrix.elements,'Desktop projection must have no persistent stretch');
+ fit.apply(camera,truck,{width:844,height:390,top:80,bottom:220},1/60);fit.restore(camera);
+ assert.equal(camera.aspect,1280/800,'Repeated temporary fits retain the actual viewport aspect');
+ console.log('Resize regression: a stale portrait fit restores the exact desktop projection.');
+}
+
 // Judge Dean LLC — stationary scenery must not zoom or translate when a card
 // appears, wraps, collapses or leaves. The same reserve is used when empty.
 {
@@ -49,7 +67,7 @@ console.log(`Mobile camera: ${checks} fits across phone/tablet orientations, alt
  const before=reads;for(let i=0;i<120;i++)subjectFrame.apply(camera,pose,observed.current,1/60);assert.equal(reads,before,'The render loop must not measure DOM text');
  gameRect={left:5,top:10,right:1029,bottom:778};windowRect={left:327,top:90,right:781,bottom:666};media.matches=true;listeners.get('resize')();flush();
  assert.deepEqual(observed.current,{enabled:true,width:1024,height:768,left:322,right:776,top:80,bottom:656},'Orientation changes still update the actual viewport-relative clearance');
- gameRect={left:0,top:0,right:1440,bottom:900};media.matches=false;listeners.get('media')();flush();assert.equal(observed.current.enabled,false,'Desktop keeps the regular chase camera');
+ gameRect={left:0,top:0,right:1440,bottom:900};media.matches=false;listeners.get('media')();assert(frames.size>0);observed.refresh();assert.equal(frames.size,0,'Resize refresh cancels the stale queued measurement');assert.equal(observed.current.width,1440,'Resize reads the new viewport before the next game frame');assert.equal(observed.current.enabled,false,'Desktop keeps the regular chase camera');
  listeners.get('resize')();observed.dispose();assert.equal(frames.size,0);assert.equal(listeners.size,0);assert(observers.every(o=>o.closed));
  console.log('Message stability: nine message states preserve the exact projection and truck position; cached layout, rotation, desktop restore and observer cleanup passed.');
 }

@@ -103,8 +103,8 @@ export function baseHeight(x,z){const h=canyonHeight(x,z,undisturbedHeight(x,z)-
 export function surfaceAt(x,z){
  const island=islandProfile(x,z);
  if(island.influence>0){
-  const {grass,rock,trail,beachDry}=island,compaction=island.compaction||0,soft=(.12+.41*(1-compaction))*(1-rock)*(.55+.45*island.land);
-  return {island:island.influence,compaction,wornRut:island.wornRut,beachDry,coastalRock:rock,canyonRock:0,canyonRiver:0,riverApproach:0,biome:grass>.22?'dunes':'beach',snow:0,mud:0,grass,trail,volcanic:0,river:0,puddle:0,soft,grip:1-rock*.04};
+  const {grass,rock,trail,beachDry}=island,compaction=island.compaction||0,soft=(.12+.41*(1-compaction)+.12*island.looseCut)*(1-rock)*(.55+.45*island.land);
+  return {island:island.influence,looseCut:island.looseCut,compaction,wornRut:island.wornRut,beachDry,coastalRock:rock,canyonRock:0,canyonRiver:0,riverApproach:0,biome:grass>.22?'dunes':'beach',snow:0,mud:0,grass,trail,volcanic:0,river:0,puddle:0,soft,grip:1-rock*.04-.055*island.looseCut};
  }
  const d=x-shore(z),r=routeSample(x,z),inland=smooth(25,70,d)*(1-smooth(110,210,r.distance));
  const w=r.weights,profile=riverProfile(x,z),river=profile.wet,approach=riverApproach(x,z,r,profile);
@@ -136,9 +136,9 @@ export class SandField{
  stamp(x,z,load=1,travel=.17,slip=0,heading=0){this.stamps++;this.clock++;
  const material=surfaceAt(x,z);
  if(material.biome==='beach'&&x-shore(z)<35&&material.snow<.1&&material.mud<.1&&material.river<.1&&material.volcanic<.1){
-  this.stampSand(x,z,load,travel,slip,heading,material.soft);this.trim();return;
+  this.stampSand(x,z,load,travel,slip,heading,material);this.trim();return;
  }
- const ix=Math.round(x*2),iz=Math.round(z*2),surface=surfaceAt(x,z),soft=surface.soft;for(let j=iz-2;j<=iz+2;j++)for(let i=ix-2;i<=ix+2;i++){const r=Math.hypot(i*.5-x,j*.5-z);if(r>1.0)continue;const key=`${i},${j}`,old=this.ruts.get(key)?.depth||0;const energy=clamp(travel/.17,.1,2.5),dig=1+soft*Math.min(3,slip)*.50;
+ const ix=Math.round(x*2),iz=Math.round(z*2),surface=material,soft=surface.soft;for(let j=iz-2;j<=iz+2;j++)for(let i=ix-2;i<=ix+2;i++){const r=Math.hypot(i*.5-x,j*.5-z);if(r>1.0)continue;const key=`${i},${j}`,old=this.ruts.get(key)?.depth||0;const energy=clamp(travel/.17,.1,2.5),dig=1+soft*Math.min(3,slip)*.50;
  const depression=-.025*(1+surface.snow*.9+surface.mud*.7)*(.35+soft)*clamp(load,.25,1.7)*energy*dig*Math.exp(-r*r/.16);
  const berm=r>.44?.010*(1+surface.snow*2.0)*energy*soft*Math.exp(-Math.pow((r-.76)/.19,2)):0;
  // Rolling compacts a shallow track; sustained wheelspin can excavate a deep hole.
@@ -153,14 +153,18 @@ export class SandField{
   this.ruts.set(`${i},${j}`,{depth,t:this.clock});this.deepest=Math.min(this.deepest,depth);
   for(const tx of [Math.floor((i*.5-.001)/32),Math.floor((i*.5+.001)/32)])for(const tz of [Math.floor((j*.5-.001)/32),Math.floor((j*.5+.001)/32)])this.dirty.add(`${tx},${tz}`);
  }
- stampSand(x,z,load,travel,slip,heading,soft){
+ stampSand(x,z,load,travel,slip,heading,material){
   // Firm beach still yields to a 2.5-tonne truck. Deformation is independent
   // of drivetrain softness, so readable ruts do not add artificial drag.
-  const island=islandProfile(x,z),exposed=Math.max(smooth(4,15,x-shore(z)),island.beachDry*island.influence),spin=smooth(.35,2,slip),energy=clamp(travel/.17,.1,2.5),pressure=clamp(load,.25,1.7);
-  const compact=coastalLaneCompaction(x,z);
+  const exposed=Math.max(smooth(4,15,x-shore(z)),(material.beachDry||0)*(material.island||0)),spin=smooth(.35,2,slip),energy=clamp(travel/.17,.1,2.5),pressure=clamp(load,.25,1.7);
+  const compact=material.compaction||0,soft=material.soft;
   const cut=(.036+.030*soft)*exposed*pressure*energy*(1+soft*Math.min(3,slip)*.5)*(1-compact*.58);
   const rollingCap=.14+.14*soft;
-  const cap=(rollingCap*(1-compact)+(.035+.025*soft)*compact+((.04+.52*soft)*(1-compact)+.028*compact)*spin)*(.35+.65*exposed),rimCap=(.085+.075*soft+.055*spin)*exposed*(1-compact*.68);
+  const looseCap=(rollingCap*(1-compact)+(.035+.025*soft)*compact+((.04+.52*soft)*(1-compact)+.028*compact)*spin)*(.35+.65*exposed),rimCap=(.085+.075*soft+.055*spin)*exposed*(1-compact*.68);
+  // A thin windblown layer sits on older packed tidal sand in the cutoffs.
+  // Its thickness bounds how much material a spinning tyre can displace.
+  const packedBed = .16 + .065 * spin;
+  const cap = looseCap - Math.max(0, looseCap - packedBed) * (material.looseCut || 0);
   const ix=Math.round(x*2),iz=Math.round(z*2),cs=Math.cos(heading),sn=Math.sin(heading),shoulders=[],sideWeights=[0,0];let removed=0;
   for(let j=iz-2;j<=iz+2;j++)for(let i=ix-2;i<=ix+2;i++){
    const dx=i*.5-x,dz=j*.5-z,across=dx*cs-dz*sn,along=dx*sn+dz*cs;

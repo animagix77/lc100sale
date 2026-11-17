@@ -34,6 +34,19 @@ assert.equal(riverWidth(riverBounds.maxX),0,'The source closes to a point withou
 for(const x of [520,525,540])assert.equal(riverMask(x,riverZ(x)),0,'No water slab extends beyond the source');
 for(const x of [-55,-48,-40,-32,-28])assert.equal(riverLevel(x),-.18,'The tidal reach meets the ocean mean level');
 assert.equal(riverMouthBlend(-48),0);assert.equal(riverMouthBlend(-28),1);
+// A ripple sampled later should match the water just upstream at the earlier
+// time. Subtract the sloping mean level before comparing displacements.
+let downstreamError=0,upstreamError=0;
+const displacement=(x,z,t)=>riverHeight(x,z,t)-riverLevel(x);
+for(let x=210;x<250;x+=.5){
+ const z=riverZ(x),dt=.18,step=.30;
+ for(let t=0;t<3;t+=dt){
+  const later=displacement(x,z,t+dt);
+  downstreamError+=(later-displacement(x+step,z,t))**2;
+  upstreamError+=(later-displacement(x-step,z,t))**2;
+ }
+}
+assert(downstreamError<upstreamError*.25,'Ford ripples travel down the river gradient');
 for(let x=-60;x<=0;x+=.5){
  const z=riverZ(x),depth=riverLevel(x)-baseHeight(x,z);
  assert(depth>.3,'The mouth has an uninterrupted submerged channel');

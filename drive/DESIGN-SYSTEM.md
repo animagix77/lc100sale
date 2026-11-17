@@ -43,9 +43,9 @@ Secondary actions use a dark teal surface and a pale border. The same hierarchy 
 
 Messages must never reframe the world. The empty `#driving-view-window` element defines the mobile camera's stable clearance in `portrait-hud.css`. Reserve space for advice and status notices before they appear; observe only that box and the game viewport. Do not derive camera zoom or offsets from live text, transient visibility, or animated card bounds. Orientation and viewport changes still update the clearance.
 
-Keep speed and driving controls anchored while advice opens, compacts, expands or closes. Phone advice temporarily replaces the map without moving either instrument; board and water notices occupy reserved space outside the control flow. Bound long messages to their assigned area, preserve keyboard/touch scrolling, and use the shared focus outline. New copy starts at the top; unchanged copy and live water-depth readings preserve the reader's position. Keep the existing 30–45 second reading window. WASD resumes driving from a message; scrolling keys read a focused message instead of orbiting the camera.
+Keep speed and driving controls anchored while advice opens, compacts, expands or closes. Phone advice stays compact below the navigation area while the minimap remains visible. Tapping the advice title opens the full explanation in a paused reading dialog; closing it resumes only when that dialog owned the pause. Camera clearance stays fixed across both states; board and water notices occupy reserved space outside the control flow. Bound long messages to their assigned area, preserve keyboard/touch scrolling, and use the shared focus outline. New copy starts at the top; unchanged copy and live water-depth readings preserve the reader's position. Keep the existing 30–45 second reading window. WASD resumes driving from a message; scrolling keys read a focused message instead of orbiting the camera.
 
-The markup, portrait stylesheet and game bundle form one framing contract; update their cache versions together.
+The markup, portrait stylesheet, usability stylesheet and game bundle form one framing contract; update their cache versions together.
 
 ## Change checklist
 
@@ -58,3 +58,9 @@ World checkpoints use the same orange, dark teal and cream palette as the interf
 Use planted timber posts, dark metal hardware, stitched cloth and small named plaques. The large banner and name sit outside the left shoulder; a smaller opposite marker makes the passage clear. Signs read correctly from both sides, receive scene lighting and use subtle motion only on loose cloth. Reduced motion keeps the cloth still. Avoid floating number panels, glowing road lines, pulsing markers or default icon glyphs. Camp entrance signs stand outside the tent clearing and remain after arrival.
 
 Prepare all route names and state labels in one atlas before driving. Reuse the four marker groups through checkpoint advances and origin shifts. Visual shoulder spacing is separate from the unchanged checkpoint acceptance radius; preserve the narrow bridge's clearance. Cache terrain-aware shoulder placement during startup so plaques stay above slopes without adding terrain probes to checkpoint transitions.
+
+## Driving preferences and utility panels
+
+Menu, radio, weather, settings, and full advice pause vehicle simulation while the soundtrack continues. Opening another utility transfers pause ownership; closing the last one resumes only if driving was active before it opened. Explicit pause, window blur, and route dialogs retain their own pause state.
+
+Mobile players may choose the original joystick or separate steering and pedals in Settings. Both fit within the same stable control footprint and keep 44 px targets. Auto, Smooth, and Detailed graphics adjust rendering resolution only; vehicle physics, terrain contacts, and HUD geometry remain identical. Route cards show an authored path preview, Scenic or Technical character, and measured distance/stops, with a separate orange confirmation action.

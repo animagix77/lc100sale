@@ -2,7 +2,7 @@
 import * as THREE from 'three/webgpu';
 const rand=(a,b)=>{const n=Math.sin(a*127.1+b*311.7)*43758.5453;return n-Math.floor(n)};
 export function woodlandLeafCards(mobile=false){
- const positions=[],normals=[],uvs=[],colors=[],indices=[];
+ const positions=[],normals=[],uvs=[],colors=[],indices=[],narrowOffsets=[],windOffsets=[];
  // Overlapping leafy lobes follow the branching stem. Crossed inclined sprays
  // fill each lobe in depth; upright rings read as thin torn sheets from the road.
  // Desktop folds the same source image, while mobile remains at 30 triangles.
@@ -28,10 +28,21 @@ export function woodlandLeafCards(mobile=false){
    // component avoids the uniformly bright crown caps of an upward-only field.
    const normal=new THREE.Vector3(p.x*.82,.40+(p.y-3.4)*.12,p.z*.82).normalize();
    positions.push(...p.toArray());normals.push(...normal.toArray());uvs.push(card%2===0?u:1-u,card%5===0?1-v:v);colors.push(shade*.93,shade,shade*.87);
+   // Three branch silhouettes share this mesh and its triangle budget: broad,
+   // a narrower upright crown, and branches reaching away from prevailing wind.
+   const upper=Math.max(0,Math.min(1,(limb.y-3.4)/3.1));
+   narrowOffsets.push(-p.x*.31+upper*.20,upper*.36,-p.z*.28);
+   windOffsets.push(upper*.62,-upper*.40,(limbIndex%2?-.18:.14)*(1-upper*.35));
   }
   for(let col=0;col<columns-1;col++){const a=at+col,b=a+1,c=b+columns,d=a+columns;indices.push(a,b,d,b,c,d);}
  }
  const geometry=new THREE.BufferGeometry();
- for(const [name,data,size] of [['position',positions,3],['normal',normals,3],['uv',uvs,2],['color',colors,3]])geometry.setAttribute(name,new THREE.Float32BufferAttribute(data,size));
+ // WebGPU guarantees eight vertex-buffer bindings, independently of its
+ // sixteen-attribute limit. Static leaf channels share one buffer so crown
+ // variants, instance colour and arrival fades stay within both limits.
+ const channels=[['position',positions,3],['normal',normals,3],['uv',uvs,2],['color',colors,3],['crownNarrow',narrowOffsets,3],['crownWind',windOffsets,3]],stride=17,count=positions.length/3,packed=new Float32Array(count*stride);
+ let offset=0;for(const [,data,size] of channels){for(let i=0;i<count;i++)for(let j=0;j<size;j++)packed[i*stride+offset+j]=data[i*size+j];offset+=size;}
+ const buffer=new THREE.InterleavedBuffer(packed,stride);
+ offset=0;for(const [name,,size] of channels){geometry.setAttribute(name,new THREE.InterleavedBufferAttribute(buffer,size,offset));offset+=size;}
  geometry.setIndex(indices);geometry.computeBoundingBox();geometry.computeBoundingSphere();return geometry;
 }

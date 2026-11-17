@@ -8,15 +8,21 @@ export async function loadGroundTextures({mobile=false,loader=new THREE.TextureL
  }));
  if(results.some(r=>r.status==='rejected')){for(const r of results)if(r.status==='fulfilled')r.value.map.dispose();return null;}
  const maps={origin:uniform(new THREE.Vector3()),mobile};for(const r of results){const {name,kind,map}=r.value;maps[name]??={};maps[name][kind]=map;}
+ // Sand is optional so a slow/missing new map cannot discard the existing
+ // forest/stone set. Its paired maps retain the same packed surface contract.
+ const sand=await Promise.allSettled(['color','surface'].map(async kind=>{
+  const map=await loader.loadAsync(`textures/terrain/sand-${kind}${suffix}.jpg`);map.wrapS=map.wrapT=THREE.RepeatWrapping;map.anisotropy=mobile?2:4;map.colorSpace=kind==='color'?THREE.SRGBColorSpace:THREE.NoColorSpace;return {kind,map};
+ }));
+ maps.sand=null;if(sand.every(r=>r.status==='fulfilled'))maps.sand=Object.fromEntries(sand.map(r=>[r.value.kind,r.value.map]));else for(const r of sand)if(r.status==='fulfilled')r.value.map.dispose();
  maps.canopy=await loader.loadAsync(`textures/terrain/riparian-canopy-v1${suffix}.webp`).catch(()=>null);
  if(maps.canopy){maps.canopy.colorSpace=THREE.SRGBColorSpace;maps.canopy.anisotropy=mobile?2:4;maps.canopy.needsUpdate=true;}
  const bark=await Promise.allSettled(['color','surface'].map(async kind=>{
   const map=await loader.loadAsync(`textures/terrain/bark-${kind}${suffix}.jpg`);map.wrapS=map.wrapT=THREE.RepeatWrapping;map.anisotropy=mobile?2:4;map.colorSpace=kind==='color'?THREE.SRGBColorSpace:THREE.NoColorSpace;return {kind,map};
  }));
  maps.bark=null;if(bark.every(r=>r.status==='fulfilled'))maps.bark=Object.fromEntries(bark.map(r=>[r.value.kind,r.value.map]));else for(const r of bark)if(r.status==='fulfilled')r.value.map.dispose();
- maps.dispose=()=>{for(const name of names)for(const kind of ['color','surface'])maps[name][kind].dispose();maps.canopy?.dispose();if(maps.bark)for(const map of Object.values(maps.bark))map.dispose();};return maps;
+ maps.dispose=()=>{for(const name of names)for(const kind of ['color','surface'])maps[name][kind].dispose();maps.canopy?.dispose();if(maps.bark)for(const map of Object.values(maps.bark))map.dispose();if(maps.sand)for(const map of Object.values(maps.sand))map.dispose();};return maps;
 }
-export function groundSurface(maps,name,{scale=1,triplanar=false}={}){
+export function groundSurface(maps,name,{scale=1,triplanar=false,rotated=true}={}){
  const world=positionWorld.add(maps.origin),uv=world.xz.mul(scale);
  const patch=smoothstep(-.28,.28,mx_noise_float(world.mul(.065).add(vec3(13.7,5.1,9.2))));
  // Sample each color/packed surface pair together. Height selects the edges of
@@ -31,7 +37,7 @@ export function groundSurface(maps,name,{scale=1,triplanar=false}={}){
   const weight=smoothstep(.18,.82,patch.add(dataB.r.sub(dataA.r).mul(overlap).mul(.50)));
   return {color:mix(colorA,colorB,weight),data:mix(dataA,dataB,weight)};
  };
- if(!triplanar)return tile(uv);
+ if(!triplanar)return tile(uv,rotated);
  // Geometric normals avoid a dependency cycle with the detail normal below.
  const weights=normalWorldGeometry.abs().pow(4),sum=weights.x.add(weights.y).add(weights.z).max(.001);
  const a=tile(world.zy.mul(scale),!maps.mobile),b=tile(uv,!maps.mobile),c=tile(world.xy.mul(scale),!maps.mobile);

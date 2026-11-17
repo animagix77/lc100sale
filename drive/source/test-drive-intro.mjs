@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 import {createDriveIntro} from './drive-intro.mjs';
 class Element{events={};attributes={};dataset={};style={setProperty:(k,v)=>this.attributes[k]=v};setAttribute(k,v){this.attributes[k]=v}removeAttribute(k){delete this.attributes[k]}addEventListener(t,f){this.events[t]=f}removeEventListener(t){delete this.events[t]}fire(t,e={}){this.events[t]?.(e)}showModal(){this.open=true}close(){this.open=false}}
 function fixture(savedCheckpoint=null){
- const dialog=new Element(),start=new Element(),exit=new Element(),fresh=new Element(),saved=new Element(),status={},label={},meter=new Element();
+ const quip={mounted:true,remove(){this.mounted=false}};
+ const dialog=new Element(),start=new Element(),exit=new Element(),fresh=new Element(),saved=new Element(),status={before(el){this.quip=el}},label={},meter=new Element();
+ dialog.ownerDocument={querySelector:selector=>selector==='lc-loading-quip'?quip:null};
  start.querySelector=()=>label;const elements={'[data-intro-exit]':exit,'[data-intro-progress]':meter,'[data-intro-new]':fresh,'[data-intro-saved]':saved,'[data-intro-status]':status};dialog.querySelector=s=>elements[s];
  let starts=0,continues=0,exits=0;const intro=createDriveIntro(dialog,start,{savedCheckpoint,onStart:()=>starts++,onContinue:()=>continues++,onExit:()=>exits++});
- return {dialog,start,exit,fresh,saved,status,label,meter,intro,counts:()=>({starts,continues,exits})};
+ return {dialog,start,exit,fresh,saved,status,label,meter,intro,quip,counts:()=>({starts,continues,exits})};
 }
 const f=fixture(),{dialog,start,exit,fresh,saved,label,meter,intro}=f;
 assert(dialog.open&&start.disabled);start.fire('click');assert.equal(f.counts().starts,0,'Cannot drive before assets are ready');let prevented=false;dialog.fire('cancel',{preventDefault(){prevented=true}});assert(prevented&&dialog.open,'Escape cannot start gameplay behind the briefing');
@@ -15,3 +19,35 @@ for(const action of ['continue','new']){
 }
 const failed=fixture('Sunset camp');failed.intro.fail();failed.intro.ready();failed.start.fire('click');failed.fresh.fire('click');assert(failed.start.disabled&&failed.fresh.disabled);assert.deepEqual(failed.counts(),{starts:0,continues:0,exits:0});failed.intro.dispose();
 console.log('Briefing: new/continue choices, checkpoint copy, shared load/failure gate, one-shot launch, Escape containment and cleanup passed.');
+
+for(const finish of ['ready','fail','dispose','leave']){
+ const f=fixture();
+ assert.equal(f.status.quip,f.quip);
+ f.intro.progress(40,'Loading the truck');
+ assert(f.quip.mounted);
+ if(finish==='leave')f.exit.fire('click');else f.intro[finish]();
+ assert(!f.quip.mounted,finish+' clears the loading line');
+ f.intro.dispose();
+}
+// The tiny preloader also runs before the game bundle is available.
+const script=readFileSync('../loading-quips.js','utf8');
+let Quip,tick,stopped=false,animations=0;
+const doc={hidden:false};
+runInNewContext(script,{
+ URLSearchParams,location:{search:''},document:doc,HTMLElement:class{},
+ customElements:{define:(_,type)=>{Quip=type}},matchMedia:()=>({matches:false}),queueMicrotask,
+ setInterval(fn,ms){assert(ms>=5500);assert(!tick);tick=fn;return 1},
+ clearInterval(){stopped=true;tick=null}
+});
+const q=new Quip();q.isConnected=true;q.animate=()=>animations++;q.connectedCallback();
+const deckSize=q.remaining.length+1,first=q.textContent,seen=new Set([first]);
+assert(deckSize>=12);
+doc.hidden=true;tick();assert.equal(q.textContent,first);doc.hidden=false;
+q.disconnectedCallback();q.connectedCallback();await Promise.resolve();
+assert.equal(q.textContent,first);assert(!stopped,'Moving into the briefing preserves the timer');
+for(let i=1;i<deckSize;i++){tick();seen.add(q.textContent)}
+assert.equal(seen.size,deckSize);
+const last=q.textContent;tick();assert.notEqual(q.textContent,last);
+q.isConnected=false;q.disconnectedCallback();await Promise.resolve();
+assert(stopped);assert.equal(animations,0,'Reduced motion disables the fade');
+console.log('Loading quotes: shuffle, readable timing, hidden tab, briefing handoff, reduced motion and cleanup passed.');

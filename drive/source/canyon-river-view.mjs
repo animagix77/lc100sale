@@ -68,7 +68,15 @@ export class CanyonRiverView{
   const mat=this.bankMesh.material;mat.vertexColors=false;mat.colorNode=gravel.color.mul(mix(float(.95),float(.58),wet));mat.roughnessNode=mix(gravel.data.g.mul(.3).add(.65),float(.30),wet);mat.aoNode=mix(float(1),gravel.data.b,.4);mat.normalNode=groundNormal(gravel.data.r.mul(.045));mat.opacityNode=float(1).sub(smoothstep(.36,1,attribute('bankBlend','float').add(gravel.data.r.sub(.5).mul(.22))));mat.needsUpdate=true;
  }
  makeRocks(){
-  const geo=new THREE.IcosahedronGeometry(1,1),position=geo.attributes.position;for(let i=0;i<position.count;i++){const x=position.getX(i),y=position.getY(i),z=position.getZ(i),n=1+Math.sin(x*7+y*4+z*9)*.13;position.setXYZ(i,x*n,y*n,z*n)}geo.computeVertexNormals();
+  const geo=new THREE.IcosahedronGeometry(1,1),position=geo.attributes.position;
+  // Flattened bedding and offset fracture faces make a ledge/slab silhouette.
+  // Keep the original closed 80-triangle rock and the same fitted instances.
+  for(let i=0;i<position.count;i++){
+   const x=position.getX(i),y=position.getY(i),z=position.getZ(i),n=1+Math.sin(x*7+y*4+z*9)*.075;
+   const ledge=Math.max(-.64,Math.min(.72,y))+.075*Math.sin(x*3.4+z*1.7);
+   position.setXYZ(i,(Math.sign(x)*Math.pow(Math.abs(x),.78)+y*.12)*n,ledge*n,(Math.sign(z)*Math.pow(Math.abs(z),.86)-y*.08)*n);
+  }
+  geo.computeVertexNormals();
   const mat=new THREE.MeshStandardNodeMaterial({color:'#747b70',roughness:.91});const strata=sin(positionLocal.y.mul(6).add(positionLocal.x.mul(.2))).mul(.05).add(.95);mat.colorNode=color('#747b70').mul(strata);
   const rocks=new THREE.InstancedMesh(geo,mat,this.rocks.length+200),d=new THREE.Object3D(),c=new THREE.Color();let n=0;
   for(const b of this.rocks){d.position.set(b.x,b.y,b.z);d.scale.set(b.sx,b.sy,b.sz);d.rotation.set(random(n+66)*.3,random(n+68)*6.28,random(n+71)*.35);d.updateMatrix();rocks.setMatrixAt(n,d.matrix);rocks.setColorAt(n++,c.set('#bfc7be').multiplyScalar(.64+random(n+5)*.30));}

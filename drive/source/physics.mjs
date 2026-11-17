@@ -14,11 +14,11 @@ export function pedalAmount(value){return value===true?1:typeof value==='number'
 export const wheelLayout=[{name:'FL',x:-.962,z:-1.42,front:true},{name:'FR',x:.962,z:-1.42,front:true},{name:'RL',x:-.962,z:1.43,front:false},{name:'RR',x:.962,z:1.43,front:false}];
 export class DrivePhysics{
  static async create(sand=null){await RAPIER.init();return new DrivePhysics(sand)}
- constructor(sand=null){this.powertrain=new Powertrain();this.fording=new Fording();this.roadsideSafety=new RoadsideSafety();this.feedback=new ContactFeedback();this.soundEvents=[];this.world=new RAPIER.World({x:0,y:-9.81,z:0});this.world.timestep=1/120;this.world.numSolverIterations=8;this.rb=this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,3,0).setLinearDamping(.08).setAngularDamping(.7).setCanSleep(false).setCcdEnabled(true));this.chassis=this.world.createCollider(RAPIER.ColliderDesc.cuboid(.85,.47,2.12).setTranslation(0,.32,0).setMass(VEHICLE_SETUP.massKg).setFriction(.55),this.rb);this.vehicle=this.world.createVehicleController(this.rb);this.vehicle.indexUpAxis=1;this.vehicle.setIndexForwardAxis=2;this.steer=0;this.handbrakeSlip=0;this.speed=0;this.travel=0;this.time=0;this.origin={x:0,z:0};this.sand=sand;this.waterHeight=waterSurfaceHeight;this.controls={};this.lighting={braking:false,reversing:false};this.range='HI';this.centerLocked=false;this.centerTransfer=0;this.axleSlip=0;this.tyres=wheelLayout.map(()=>({omega:0,angle:0,slip:0,depth:0,soft:0,force:0,travel:0,contact:false}));this.marks=[];this.stuckTime=0;this.stuck=false;
+ constructor(sand=null){this.powertrain=new Powertrain();this.fording=new Fording();this.roadsideSafety=new RoadsideSafety();this.feedback=new ContactFeedback();this.soundEvents=[];this.world=new RAPIER.World({x:0,y:-9.81,z:0});this.world.timestep=1/120;this.world.numSolverIterations=8;this.rb=this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,3,0).setLinearDamping(.08).setAngularDamping(.7).setCanSleep(false).setCcdEnabled(true));this.chassis=this.world.createCollider(RAPIER.ColliderDesc.cuboid(.85,.47,2.12).setTranslation(0,.32,0).setMass(VEHICLE_SETUP.massKg).setFriction(.55),this.rb);this.vehicle=this.world.createVehicleController(this.rb);this.vehicle.indexUpAxis=1;this.vehicle.setIndexForwardAxis=2;this.steer=0;this.handbrakeSlip=0;this.speed=0;this.travel=0;this.time=0;this.origin={x:0,z:0};this.sand=sand;this.waterHeight=waterSurfaceHeight;this.controls={};this.lighting={braking:false,reversing:false};this.range='HI';this.centerLocked=false;this.centerTransfer=0;this.axleSlip=0;this.tyres=wheelLayout.map(()=>({omega:0,angle:0,slip:0,depth:0,soft:0,force:0,travel:0,contact:false,audioSurface:{sand:0,snow:0,mud:0,gravel:0,wet:0,compaction:0},audioLoad:0,audioSpeed:0,audioSlip:0}));this.marks=[];this.stuckTime=0;this.stuck=false;
  for(let i=0;i<4;i++){const w=wheelLayout[i];this.vehicle.addWheel({x:w.x,y:.06,z:w.z},{x:0,y:-1,z:0},{x:-1,y:0,z:0},.50,VEHICLE_SETUP.wheelRadius);this.vehicle.setWheelSuspensionStiffness(i,21);this.vehicle.setWheelSuspensionCompression(i,2.6);this.vehicle.setWheelSuspensionRelaxation(i,3.5);this.vehicle.setWheelMaxSuspensionTravel(i,.36);this.vehicle.setWheelMaxSuspensionForce(i,26000);this.vehicle.setWheelFrictionSlip(i,1.75);this.vehicle.setWheelSideFrictionStiffness(i,.85)}
  this.bridge=new CanyonBridge(this);this.dynamicWheelExclusions=new Set();
  }
- reset(x,z,height){this.powertrain.reset();this.fording.reset();this.roadsideSafety.reset();this.feedback.reset(this.time);this.soundEvents=[];this.rb.setTranslation({x:x-this.origin.x,y:height+1.04,z:z-this.origin.z},true);this.rb.setRotation({x:0,y:0,z:0,w:1},true);this.rb.setLinvel({x:0,y:0,z:0},true);this.rb.setAngvel({x:0,y:0,z:0},true);this.rb.resetForces(true);this.rb.resetTorques(true);this.controls={};this.lighting={braking:false,reversing:false};this.speed=this.steer=this.handbrakeSlip=0;this.stuckTime=0;this.stuck=false;this.marks=[];if(this.loosePebbles)this.loosePebbles.snapTyres=true;for(const w of this.tyres)Object.assign(w,{omega:0,angle:0,slip:0,travel:0,depth:0,soft:0,force:0,contact:false})}
+ reset(x,z,height){this.powertrain.reset();this.fording.reset();this.roadsideSafety.reset();this.feedback.reset(this.time);this.soundEvents=[];this.rb.setTranslation({x:x-this.origin.x,y:height+1.04,z:z-this.origin.z},true);this.rb.setRotation({x:0,y:0,z:0,w:1},true);this.rb.setLinvel({x:0,y:0,z:0},true);this.rb.setAngvel({x:0,y:0,z:0},true);this.rb.resetForces(true);this.rb.resetTorques(true);this.controls={};this.lighting={braking:false,reversing:false};this.speed=this.steer=this.handbrakeSlip=0;this.stuckTime=0;this.stuck=false;this.marks=[];if(this.loosePebbles)this.loosePebbles.snapTyres=true;for(const w of this.tyres){Object.assign(w,{omega:0,angle:0,slip:0,travel:0,depth:0,soft:0,force:0,contact:false,audioLoad:0,audioSpeed:0,audioSlip:0});for(const key in w.audioSurface)w.audioSurface[key]=0;}}
  setRange(range,input=this.controls){if(!RANGES[range]||input.gas||input.reverse||input.cruise)return false;this.range=range;return true}
  setCenterLock(locked,input=this.controls){if(input.gas||input.reverse||input.cruise)return false;this.centerLocked=!!locked;return true}
  position(){const p=this.rb.translation();return {x:p.x+this.origin.x,y:p.y,z:p.z+this.origin.z}}
@@ -49,7 +49,11 @@ export class DrivePhysics{
  const contacts=this.tyres.map((w,i)=>{
   const contact=!!this.vehicle.wheelIsInContact(i),c=this.vehicle.wheelContactPoint(i),x=c?c.x+this.origin.x:p.x,z=c?c.z+this.origin.z:p.z;
   const onBoard=this.recovery?.supports(x,z,c?.y),groundObject=this.vehicle.wheelGroundObject(i),onSolid=this.obstacles?.has(groundObject)||this.bridge.has(groundObject);
-  const contactSurface=surfaceAt(x,z),soil=onBoard||onSolid?0:contactSurface.soft,depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
+  const contactSurface=surfaceAt(x,z),depth=onBoard||onSolid?0:this.sand?.depthAt(x,z)||0,load=contact?clamp(this.vehicle.wheelSuspensionForce(i)||6000,500,16000):0;
+  // A tyre that clears the loose cap on an old tidal shortcut finds the
+  // compact substrate. Evaluate it per wheel so straddling the rut matters.
+  const packedBed = (contactSurface.looseCut || 0) * smooth(.09, .19, depth);
+  const soil = onBoard || onSolid ? 0 : contactSurface.soft * (1 - .68 * packedBed);
   // Wheel contact velocity includes chassis yaw/roll and front steering. Thus
   // unequal axle paths in a turn load the center lock through tire scrub.
   const steer=i<2?this.steer:0,cs=Math.cos(steer),sn=Math.sin(steer),direction={x:f.x*cs-right.x*sn,y:f.y*cs-right.y*sn,z:f.z*cs-right.z*sn};
@@ -63,6 +67,19 @@ export class DrivePhysics{
   w.grass=contact&&!onBoard&&!onSolid?contactSurface.grass*(1-contactSurface.trail*.85):0;
   w.rock=contact&&!onBoard&&(groundKind==='rock'||(!onSolid&&contactSurface.river>.3))?1:0;
   w.wet=wet;w.sideSlip=contact?Math.abs(relative.x*(right.x*cs+f.x*sn)+relative.y*(right.y*cs+f.y*sn)+relative.z*(right.z*cs+f.z*sn)):0;
+  // Judge Dean LLC — contact foley reads the existing material sample and
+  // pressure, never changes wheel forces, and never crunches the soil below a
+  // timber bridge, recovery board or embedded solid. Four records are reused.
+  const a=w.audioSurface,looseContact=contact&&!onBoard&&!onSolid;
+  a.snow=looseContact?clamp(contactSurface.snow,0,1):0;
+  a.mud=looseContact?clamp(contactSurface.mud,0,1)*(1-a.snow):0;
+  const remaining=1-a.snow-a.mud,coastal=contactSurface.biome==='beach'||contactSurface.biome==='dunes'||contactSurface.island>0;
+  const mineral=Math.max(contactSurface.coastalRock||0,contactSurface.canyonRock||0,contactSurface.river||0,contactSurface.volcanic||0);
+  a.gravel=looseContact?clamp(Math.max(mineral,coastal?0:contactSurface.trail*.30*(1-contactSurface.grass*.65)),0,1)*remaining:0;
+  a.sand=looseContact&&coastal?Math.max(0,remaining-a.gravel)*(1-contactSurface.grass*.85):0;
+  a.wet=looseContact?clamp(Math.max(wet?1:0,contactSurface.puddle||0),0,1):0;
+  a.compaction=looseContact?clamp(Math.max(contactSurface.compaction||0,packedBed),0,1):0;
+  w.audioLoad=contact?load:0;w.audioSpeed=contact?Math.abs(roadSpeed):0;
   const grip=onBoard?1:onSolid?(wet?.82:1):contactSurface.grip*(wet?.88:1);
   return {heading:Math.atan2(-direction.x,-direction.z),roadSpeed,load,soft:soil,depth:Math.max(0,depth-contactSurface.snow*.34),contact,tractionControl:true,grip,throttle:soilThrottle};
  });
@@ -91,6 +108,7 @@ export class DrivePhysics{
  this.centerTransfer=result.transfer;this.axleSlip=result.axleSlip;
  for(let i=0;i<4;i++){
   const w=this.tyres[i],{soft:soil,depth}=contacts[i];
+  w.audioSlip=contacts[i].contact?Math.abs(w.omega*VEHICLE_SETUP.rollingRadius-contacts[i].roadSpeed):0;
   // Rapier chooses engine force OR brake impulse, never both. Service
   // braking must own this channel; otherwise tyre drag bypasses the brake.
   const wheelBraking=braking;
@@ -137,6 +155,9 @@ export class DrivePhysics{
    hits.push({id:other.handle,source:pebble?'pebble':'chassis',kind:this.bridge.has(other)?'wood':this.obstacles?.kind?.(other)||(pebble?'rock':'suspension'),impulse,closing,pan:(n.x*right.x+n.z*right.z)*sign});
   });
  });
+ // The controller may have just lost a ray contact. Clear stale audio even
+ // before the next physics sample (e.g. leaving a crest or airborne reset).
+ for(let i=0;i<4;i++)if(!this.vehicle.wheelIsInContact(i)){const w=this.tyres[i];w.audioLoad=w.audioSpeed=w.audioSlip=0;for(const key in w.audioSurface)w.audioSurface[key]=0;}
  const wheelSounds=wheelLayout.map((_,i)=>({contact:!!this.vehicle.wheelIsInContact(i),length:this.vehicle.wheelSuspensionLength(i),kind:(this.bridge.has(this.vehicle.wheelGroundObject(i))?'wood':this.obstacles?.kind?.(this.vehicle.wheelGroundObject(i)))||'sand'}));
  this.soundEvents.push(...this.feedback.sample(this.time,dt,wheelSounds,this.speed,v.y,hits));if(this.soundEvents.length>8)this.soundEvents.splice(0,this.soundEvents.length-8);
 

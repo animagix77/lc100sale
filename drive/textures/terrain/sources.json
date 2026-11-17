@@ -72,5 +72,24 @@
       "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_rough_1k.jpg",
       "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_01/bark_brown_01_ao_1k.jpg"
     ]
+  },
+  {
+    "asset": "sand_03",
+    "name": "sand",
+    "authors": {
+      "Charlotte Baglioni": "All"
+    },
+    "dimensions": [
+      2000,
+      2000
+    ],
+    "source": "https://polyhaven.com/a/sand_03",
+    "license": "CC0",
+    "downloadSources": [
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_diff_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_disp_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_rough_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_ao_1k.jpg"
+    ]
   }
 ]

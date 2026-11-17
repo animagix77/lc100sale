@@ -1,3 +1,5 @@
+import {buildOceanWaveProfile,oceanWavePhase} from './ocean-wave-profile.mjs';
+import {OceanGridStream} from './ocean-grid-stream.mjs';
 import {waterExists,COASTAL_WATER_EXTENT} from './expedition.mjs';
 import * as THREE from 'three/webgpu';
 import {Fn,uniform,positionGeometry,positionWorld,cameraPosition,vec2,vec3,float,color,mix,sin,cos,pow,abs,max,normalize,dot,reflect,smoothstep,length,fract,mx_noise_float,texture,attribute} from 'three/tsl';
@@ -16,6 +18,7 @@ export class Ocean{
   this.islandBedTexture=new THREE.DataTexture(islandPixels,grid.width,grid.height,THREE.RedFormat,THREE.HalfFloatType);
   this.islandBedTexture.minFilter=this.islandBedTexture.magFilter=THREE.LinearFilter;this.islandBedTexture.generateMipmaps=false;this.islandBedTexture.needsUpdate=true;
   this.skyTop=uniform(new THREE.Color('#46576c'));this.skyHorizon=uniform(new THREE.Color('#b58073'));this.sunColor=uniform(new THREE.Color('#ffe2af'));this.sunDirection=uniform(new THREE.Vector3(-430,105,-650).normalize());this.brightness=uniform(1);this.waveScale=uniform(1);
+  this.cloudColor=uniform(new THREE.Color('#d9c0aa'));this.cloudCover=uniform(.2);
   this.vehicleLights=Array.from({length:4},()=>({position:uniform(new THREE.Vector3()),direction:uniform(new THREE.Vector3(0,0,-1)),radiance:uniform(new THREE.Color(0,0,0)),cone:uniform(new THREE.Vector4(.9,.96,48,1.45))}));this.lightTarget=new THREE.Vector3();
   this.wheelFoam=Array.from({length:4},()=>uniform(new THREE.Vector4()));
   this.clock=uniform(0);this.origin=uniform(new THREE.Vector2());this.center=this.focus=Infinity;this.originKey='';this.bedRows=new Map();this.mobile=mobile;this.nx=mobile?96:128;this.nz=mobile?176:256;this.nearX=mobile?64:80;this.shoreColumns=mobile?8:12;this.focusStep=mobile?10:8;
@@ -34,14 +37,11 @@ export class Ocean{
    return islandRegion(x,z).greaterThan(0).select(texture(this.islandBedTexture,uv).level(0).r,fallback);
   });
   this.islandBedNode=bedAt;
-  const surface=Fn(([x,z,ground])=>{
-   const d=x.sub(coast(z)),offshore=float(1).sub(smoothstep(-25,2,d));
-   const phase=d.mul(.30).sub(z.mul(.025)).add(sin(z.mul(.071)).mul(1.2)).add(sin(z.mul(.13)).mul(.3)).sub(t.mul(1.35));
-   const swell=sin(phase).mul(.36).add(sin(d.mul(.14).add(z.mul(.046)).sub(t.mul(.78))).mul(.20));
-   const cross=sin(x.mul(.41).add(z.mul(.23)).sub(t.mul(1.05))).mul(.065);
-   const attenuation=float(1).sub(islandRegion(x,z).mul(float(1).sub(smoothstep(.05,2.6,float(-.18).sub(bedAt(x,z,ground))))));
-   return float(-.18).add(swell.add(cross).mul(offshore).add(sin(t.mul(.8).sub(z.mul(.026))).mul(.075).mul(float(1).sub(offshore))).mul(this.waveScale).mul(attenuation));
-  });
+  // One formula builds both CPU contact heights and these shader nodes.
+  // Existing bed data also resolves the low, rutted mainland foreshore.
+  const nodeMath={add:(a,b)=>float(a).add(b),sub:(a,b)=>float(a).sub(b),mul:(a,b)=>float(a).mul(b),sin,cos,smooth:smoothstep,max,min:(a,b)=>float(a).min(b)};
+  const profileAt=(x,z,ground)=>buildOceanWaveProfile(nodeMath,{d:x.sub(coast(z)),z,time:t,depth:float(-.18).sub(bedAt(x,z,ground)),scale:this.waveScale});
+  const surface=Fn(([x,z,ground])=>profileAt(x,z,ground).height);
   // The estuary reuses the swell function with its own riverBed attribute.
   // Pass the bed explicitly so shared shader nodes never require an attribute
   // that exists only on a different mesh's geometry.
@@ -56,7 +56,7 @@ export class Ocean{
   this.coastalWakeNode=coastalWake;this.coastalWakeGainNode=coastalGain;
   const material=new THREE.MeshBasicNodeMaterial({transparent:true,depthWrite:false,side:THREE.FrontSide});
   material.positionNode=Fn(()=>{const world=positionGeometry.xz.add(origin);return vec3(positionGeometry.x,height(world.x,world.y).add(coastalWake(height(world.x,world.y).sub(bedAt(world.x,world.y,bed)),wakeAt(world.x,world.y).r)),positionGeometry.z)})();
-  const world=positionWorld.xz.add(origin),x=world.x,z=world.y,d=x.sub(coast(z));
+  const world=positionWorld.xz.add(origin),x=world.x,z=world.y,d=x.sub(coast(z)),profile=profileAt(x,z,bed);
   const wake=wakeAt(x,z),base=height(x,z),depth=max(base.sub(bedAt(x,z,bed)),0),offset=coastalWake(depth,wake.r),h=base.add(offset),detail=float(1).sub(smoothstep(30,150,length(cameraPosition.sub(positionWorld)))),fineA=mx_noise_float(vec3(x.mul(.65).add(t.mul(.18)),z.mul(.65),t.mul(.12))).mul(detail),fineB=mx_noise_float(vec3(x.mul(.75),z.mul(.75).sub(t.mul(.2)),float(17))).mul(detail);
   // The derivative of the same soft saturation damps wake normals; the
   // existing analytic swells keep the distant sea smooth at every mesh LOD.
@@ -65,23 +65,31 @@ export class Ocean{
   const n=normalize(vec3(height(x.sub(.14),z).sub(height(x.add(.14),z)).add(fineA.mul(.055)).sub(wake.g.mul(slopeGain).mul(.28)),float(.28),height(x,z.sub(.14)).sub(height(x,z.add(.14))).add(fineB.mul(.055)).sub(wake.b.mul(slopeGain).mul(.28))));
   const eye=normalize(cameraPosition.sub(positionWorld)),fresnel=pow(float(1).sub(max(dot(eye,n),0)),4).mul(.60).add(.04);
   const skyRay=reflect(eye.negate(),n);
-  const reflectedSky=mix(this.skyHorizon,this.skyTop,smoothstep(.025,.60,skyRay.y));
+  // Distant water receives the same sky and cloud palette as the atmosphere.
+  // Keep this in the existing surface pass; no scene reflection is rendered.
+  const reflectedSky=mix(mix(this.skyHorizon,this.skyTop,smoothstep(.025,.60,skyRay.y)),this.cloudColor,this.cloudCover.mul(.32).mul(float(1).sub(smoothstep(.04,.72,skyRay.y))));
   const islands=islandRegion(x,z),lagoon=mix(mix(color('#75c9b2'),color('#216f82'),smoothstep(.2,4,depth)),color('#153b53'),smoothstep(4,28,depth));
   const deep=mix(mix(color('#327e79'),color('#153b53'),smoothstep(2,100,d.negate())),lagoon,islands);
-  const scatter=color('#45a399').mul(smoothstep(-.15,.35,h)).mul(.24);
+  const scatter=color('#4b9d8d').mul(profile.crest).mul(profile.energy).mul(.16);
   const sunDirection=this.sunDirection;
   const alignment=max(dot(eye,reflect(sunDirection.negate(),n)),0);
-  const glitter=pow(alignment,120).mul(.12).add(pow(alignment,550).mul(.75));
+  const glitter=pow(alignment,120).mul(.12).add(pow(alignment,550).mul(.75)).add(pow(alignment,18).mul(.055));
   const reflected=reflectedSky.add(this.sunColor.mul(glitter));
-  const waterColor=mix(deep.add(scatter),reflected,fresnel);
-  // Broken crest foam and a separate wash front replace the previous straight stripes.
-  const foamNoise=mx_noise_float(vec3(x.mul(.82).add(t.mul(.12)),z.mul(.82),t.mul(.20))).mul(.5).add(.5);
-  const breakZone=smoothstep(-38,-17,d).mul(float(1).sub(smoothstep(-4,3,d)));
-  const crestFoam=smoothstep(.12,.34,h).mul(breakZone).mul(smoothstep(.32,.68,foamNoise));
-  const washPhase=sin(t.mul(.8).sub(z.mul(.026)).add(sin(z.mul(.16)).mul(.22)));
-  const front=washPhase.mul(4.8).add(1.0).add(sin(z.mul(.46).add(t.mul(.35))).mul(.42));
-  const wash=float(1).sub(smoothstep(.25,1.7,abs(d.sub(front)))).mul(smoothstep(.27,.62,foamNoise)).mul(.78);
-  const lace=float(1).sub(smoothstep(.1,.65,abs(d.sub(front).add(2.2)))).mul(smoothstep(.55,.78,foamNoise)).mul(.3);
+  // Water's body colour responds to available daylight as well as its depth.
+  // Fixed turquoise formerly looked self-lit against the mauve coastal dusk.
+  const ambient=mix(this.skyTop,this.skyHorizon,.62).mul(.60).add(this.sunColor.mul(.34)).add(.18).clamp(.18,1);
+  const waterColor=mix(deep.add(scatter).mul(ambient),reflected,fresnel);
+  // Foam travels with the wave that produced it. Depth, not a straight
+  // shoreline stripe, determines where a crest breaks around reefs and islands.
+  const foamNoise=mx_noise_float(vec3(x.sub(t.mul(.72)).mul(.48),z.mul(.64),float(4))).mul(.5).add(.5);
+  const bubbles=mx_noise_float(vec3(x.sub(t.mul(.58)).mul(2.3),z.mul(2.0),t.mul(.08))).mul(.5).add(.5);
+  const ragged=smoothstep(.26,.63,foamNoise),holes=mix(float(.60),smoothstep(.24,.62,bubbles),detail);
+  const crestFoam=profile.breaker.mul(mix(float(.55),float(1),ragged)).mul(holes).mul(.90);
+  const trailingFoam=profile.foamTrail.mul(smoothstep(.38,.72,foamNoise)).mul(holes).mul(.47);
+  const wetFront=float(1).sub(smoothstep(.05,.34,depth));
+  const wash=profile.wash.mul(wetFront).mul(ragged).mul(.66);
+  const lace=wetFront.mul(profile.foamTrail.add(profile.wash).min(1)).mul(smoothstep(.56,.78,bubbles)).mul(.24);
+  const whitecaps=profile.crest.mul(smoothstep(1.05,1.5,this.waveScale)).mul(smoothstep(2.0,6.0,depth)).mul(smoothstep(.66,.82,foamNoise)).mul(.52);
   // Tire-scale foam lives on the displaced water itself, so it cannot float above waves.
   // Two broken expanding arcs per wheel stay small; the existing wake carries foam away.
   let tireFoam=float(0);
@@ -97,8 +105,8 @@ export class Ocean{
   this.tireFoamNode=tireFoam;
 // Foam marks turbulent water, independently of the shallow-depth geometry limiter.
   // Multiplying by wakeGain hid the wake precisely where tyres churn the shallows.
-  const islandWash=islands.mul(float(1).sub(smoothstep(.05,.7,depth))).mul(smoothstep(.01,.10,depth)).mul(smoothstep(.32,.63,foamNoise)).mul(.70);
-  const foam=max(max(max(max(crestFoam, wash.add(lace)),islandWash),wake.a.mul(smoothstep(.015,.12,depth)).mul(1.65).min(.92).mul(smoothstep(.12,.52,foamNoise))),tireFoam);
+  const naturalFoam=max(max(crestFoam,trailingFoam),wash.add(lace)).max(whitecaps).mul(smoothstep(.008,.09,depth));
+  const foam=max(max(naturalFoam,wake.a.mul(smoothstep(.015,.12,depth)).mul(1.65).min(.92).mul(smoothstep(.12,.52,foamNoise))),tireFoam).min(.96);
   // The custom water shader must explicitly receive the vehicle's local lights.
   // Wave/wake normals break the reflection into moving highlights (GGX specular).
   let vehicleSheen=vec3(0);
@@ -112,7 +120,8 @@ export class Ocean{
    const response=spec.mul(2.6).add(nl.mul(.018).add(foam.mul(nl).mul(.10)));
    vehicleSheen=vehicleSheen.add(light.radiance.mul(attenuation).mul(response));
   }
-  material.colorNode=mix(waterColor,color('#f5dec0'),foam).mul(this.brightness).add(vehicleSheen);
+  const foamColor=mix(color('#e8efed'),this.cloudColor,.22).mul(ambient.mul(.40).add(.60));
+  material.colorNode=mix(waterColor,foamColor,foam).mul(this.brightness).add(vehicleSheen);
 
   // The old +12m cutoff crossed submerged sand. Let actual depth feather the
   // moving shoreline, suppressing nearly coplanar water/sand flicker. The mesh
@@ -130,40 +139,40 @@ export class Ocean{
   for(let j=0;j<=this.nz;j++)this.rowOffsets[j]=j<outerZ?-640+j*(592/outerZ):j<=outerZ+nearZ?-48+(j-outerZ)*96/nearZ:48+(j-outerZ-nearZ)*592/outerZ;
   let k=0;for(let j=0;j<=this.nz;j++)for(let i=0;i<=this.nx;i++){const a=j*(this.nx+1)+i;normals[a*3+1]=1;if(i<this.nx&&j<this.nz){const b=a+1,c=a+this.nx+1;indices.set([a,b,c,b,c+1,c],k);k+=6}}
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));geometry.setAttribute('oceanBed',new THREE.BufferAttribute(beds,1).setUsage(THREE.DynamicDrawUsage));geometry.setIndex(new THREE.BufferAttribute(indices,1));
+  this.surfDistance=1000;this.surfPhase=0;this.surfPoint={x:0,z:0};this.surfTarget={x:0,z:0};this.surfFrameTime=0;this.surfSample={time:-Infinity,x:Infinity,z:Infinity};
   this.material=material;this.mesh=new THREE.Mesh(geometry,material);this.mesh.renderOrder=1;this.mesh.frustumCulled=false;scene.add(this.mesh);
  }
- update(p,time,origin){
+ update(p,time,origin,{budgetMs=Infinity}={}){
   this.wake.move(p.x??shore(p.z),p.z);this.wake.step(Math.max(0,time-this.lastTime));this.lastTime=time;
   const values=this.wake.pack();for(let i=0;i<values.length;i++)this.wakePixels[i]=THREE.DataUtils.toHalfFloat(values[i]);this.wakeTexture.needsUpdate=true;this.wakeOrigin.value.set(this.wake.x,this.wake.z);
-  this.clock.value=time;this.origin.value.set(origin.x,origin.z);
-  // Integer fine-cell shifts preserve the exact local triangles and wave
-  // samples during streaming, including the tablet's .625m by .75m cells.
-  const center=Math.floor(p.z/6)*6,focus=Math.min(-8,-8+this.focusStep*Math.round(((p.x??shore(p.z))-shore(p.z)+8)/this.focusStep)),key=`${origin.x},${origin.z}`;
-  if(center===this.center&&focus===this.focus&&key===this.originKey)return;
-  if(focus!==this.focus)this.bedRows.clear();
-  this.center=center;this.focus=focus;this.originKey=key;
-  // Keep the original shoreline detail while driving on the beach. Offshore,
-  // reserve columns back to shore and retain tyre-scale spacing locally. On
-  // the beach, concentrate those extra columns around the shallow wet margin.
-  const shoreColumns=this.shoreColumns,nearX=this.nearX,right=focus+20,left=focus-20,far=Math.min(-1200,left-256);
-  for(let i=0;i<=this.nx;i++)this.columnOffsets[i]=i<shoreColumns?right+(COASTAL_WATER_EXTENT-right)*Math.pow(1-i/shoreColumns,focus===-8?2:1):i<=shoreColumns+nearX?right-(i-shoreColumns)*40/nearX:left-(left-far)*Math.pow((i-shoreColumns-nearX)/(this.nx-shoreColumns-nearX),1.55);
-  // The old offshore shortcut applies outside the archipelago. At the islands
-  // render water samples the same actual bed as tyres; dry sand cannot flood.
-  const positions=this.mesh.geometry.attributes.position,beds=this.mesh.geometry.attributes.oceanBed,nextBedRows=new Map();
-  // Fine rows overlap when the grid moves. Reuse their actual sand heights so
-  // depth-correct shoreline shading adds no repeated terrain sampling there.
-  for(let j=0;j<=this.nz;j++){
-   const z=center+this.rowOffsets[j],coast=shore(z)-origin.x,estuary=Math.abs(z+340)<=55,cached=this.bedRows.get(z),row=cached??new Float32Array(this.nx+1);nextBedRows.set(z,row);
-   for(let i=0;i<=this.nx;i++){
-    const index=j*(this.nx+1)+i,x=coast+this.columnOffsets[i],worldX=x+origin.x;positions.setXYZ(index,x,-.18,z-origin.z);
-    let bed;
-    if(cached)bed=cached[i];
-    else if(archipelagoRegion(worldX,z)>0)bed=islandOceanBed(worldX,z,baseHeight);
-    else bed=estuary&&worldX>=-72?baseHeight(worldX,z):this.columnOffsets[i]<0?-.4+this.columnOffsets[i]*.075:baseHeight(worldX,z);
-    row[i]=bed;beds.setX(index,bed);
-   }
+  this.clock.value=time;this.origin.value.set(origin.x,origin.z);this.updateSurf(p,time);
+  this.gridStream??=new OceanGridStream(this);
+  this.gridStream.update(p,origin,budgetMs);
+ }
+
+ // A nearby -1m contour is a useful surf source, including on island
+ // shores. Sampling at 2.5Hz keeps terrain work out of the audio render path.
+ updateSurf(p,time){
+  const x=p.x??shore(p.z),z=p.z,last=this.surfSample,dt=Math.max(0,Math.min(.1,time-this.surfFrameTime)),snap=!Number.isFinite(last.time)||time<last.time||Math.hypot(x-last.x,z-last.z)>20;this.surfFrameTime=time;
+  if(time-last.time>=.4||snap){
+   const region=archipelagoRegion(x,z);
+   if(region>.01){
+    const sample=(a,b)=>islandOceanBed(a,b,baseHeight),bed=sample(x,z),gx=(sample(x+3,z)-sample(x-3,z))/6,gz=(sample(x,z+3)-sample(x,z-3))/6;
+    const slope=Math.hypot(gx,gz),distance=Math.min(300,Math.abs(bed+1)/Math.max(.035,slope)),factor=Math.max(-60,Math.min(60,(-1-bed)/Math.max(.035,slope)));
+    const islandDistance=distance,mainlandDistance=Math.abs(x-shore(z)+8);
+    this.surfDistance=mainlandDistance*(1-region)+islandDistance*region;
+    this.surfTarget.x=(shore(z)-8)*(1-region)+(x+gx/Math.max(.001,slope)*factor)*region;
+    this.surfTarget.z=z+gz/Math.max(.001,slope)*factor*region;
+   }else{this.surfDistance=Math.abs(x-shore(z)+8);this.surfTarget.x=shore(z)-8;this.surfTarget.z=z;}
+   Object.assign(last,{time,x,z});
   }
-  this.bedRows=nextBedRows;positions.needsUpdate=beds.needsUpdate=true;
+  // Irregular shelves can move the estimated contour between samples. Ease
+  // the sound source, so a new estimate cannot restart a breaking-wave cycle.
+  if(snap){Object.assign(this.surfPoint,this.surfTarget);}else{
+   const dx=this.surfTarget.x-this.surfPoint.x,dz=this.surfTarget.z-this.surfPoint.z,k=Math.min(1-Math.exp(-dt*2),4*dt/Math.max(.0001,Math.hypot(dx,dz)));
+   this.surfPoint.x+=dx*k;this.surfPoint.z+=dz*k;
+  }
+  this.surfPhase=oceanWavePhase(this.surfPoint.x-shore(this.surfPoint.z),this.surfPoint.z,time);
  }
  updateWheelFoam(dt,physics,time){
   const velocity=physics.rb?.linvel(),speed=velocity?Math.hypot(velocity.x,velocity.z):Math.abs(physics.speed);
@@ -191,5 +200,5 @@ export class Ocean{
   this.lastDisturbance[wheel]=time;return true;
  }
  clear(){this.wake.clear();this.lastDisturbance.fill(-Infinity);this.wheelFoam.forEach((slot,i)=>slot.value.set(0,0,0,i*.21))}
- dispose(){this.bedRows.clear();this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose();this.islandBedTexture.dispose()}
+ dispose(){this.gridStream?.dispose();this.bedRows.clear();this.mesh.geometry.dispose();this.material.dispose();this.wakeTexture.dispose();this.islandBedTexture.dispose()}
 }

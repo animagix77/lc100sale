@@ -1,14 +1,11 @@
 import {waterExists,riverProfile,riverHeight,riverMouthBlend} from './expedition.mjs';
 import {shore,smooth,baseHeight} from './terrain.mjs';
-import {archipelagoRegion,islandWaveAttenuation,islandOceanBed} from './coastal-islands.mjs';
+import {archipelagoRegion,islandOceanBed} from './coastal-islands.mjs';
+import {oceanWaveProfile} from './ocean-wave-profile.mjs';
 // CPU counterpart to Ocean's displacement, for tire/water interaction positions.
 export function oceanHeight(x,z,time,scale=1){
- const d=x-shore(z),offshore=1-smooth(-25,2,d);
- const phase=d*.30-z*.025+Math.sin(z*.071)*1.2+Math.sin(z*.13)*.3-time*1.35;
- const swell=Math.sin(phase)*.36+Math.sin(d*.14+z*.046-time*.78)*.20;
- const cross=Math.sin(x*.41+z*.23-time*1.05)*.065;
- const attenuation=archipelagoRegion(x,z)>0?islandWaveAttenuation(x,z,islandOceanBed(x,z,baseHeight)):1;
- return -.18+((swell+cross)*offshore+Math.sin(time*.8-z*.026)*.075*(1-offshore))*scale*attenuation;
+ const d=x-shore(z),bed=archipelagoRegion(x,z)>0?islandOceanBed(x,z,baseHeight):baseHeight(x,z),depth=-.18-bed;
+ return oceanWaveProfile(d,z,time,depth,scale).height;
 }
 
 // Coastal tyre wakes must not excavate the foreshore. A smooth saturation

@@ -21,3 +21,15 @@ assert.equal(writes,0,'Ordinary frames cannot recreate text or reset reading pos
 setMessageText(region,'Boards down. Ease forward.');assert.equal(writes,1);assert.equal(region.scrollTop,0,'A replacement instruction starts at its beginning');
 region.scrollTop=18;setMessageText(region,'WATER 0.23 m · Slow, steady throttle',{resetScroll:false});assert.equal(region.scrollTop,18,'Live measurements can update without interrupting reading');
 console.log('Message reading: unchanged copy preserves DOM/scroll position; new instructions start at the top; live numeric updates can retain scroll.');
+
+// Mobile checkpoint/narration copy stays quiet even when it was deferred
+// behind recovery advice. The existing HUD carries progress independently.
+messages.say('Deep water ahead.', 1);
+messages.say('Flag 02 reached.', 2, {defer:true, mobile:'quiet'});
+assert.equal(messages.mobile, 'notice');
+assert.equal(messages.update(31), true);
+assert.equal(messages.mobile, 'quiet');
+messages.say('The truck recovered to the bank.', 32);
+assert.equal(messages.mobile, 'notice', 'Recovery immediately breaks through quiet narration');
+messages.clear();
+assert.equal(messages.mobile, 'quiet');

@@ -2,9 +2,10 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {DrivePhysics} from './physics.mjs';
-import {SandField,clamp} from './terrain.mjs';
+import {SandField,clamp,surfaceAt} from './terrain.mjs';
 import {TerrainView} from './terrain-view.mjs';
 import {COASTAL_LANDMARKS} from './coastal-islands.mjs';
+import {WaypointRoute} from './waypoints.mjs';
 import {oceanHeight} from './ocean-height.mjs';
 import {VEHICLE_SETUP} from './vehicle-spec.mjs';
 
@@ -66,6 +67,43 @@ for(const index of [1,2,3,4]){
    test.verify(state);
   }
  }finally{test.dispose();}
+}
+
+// Drive both inside lines using the real truck, mutable contact mesh and flag
+// acceptance. The center of each cut should feel and deform like loose sand.
+for (const [gate, a, b] of [
+ [3, {x:-42.28,z:-160.56}, {x:-87.51,z:-200.29}],
+ [4, {x:-119.25,z:-216.78}, {x:-156.28,z:-220.68}]
+]) {
+ const test = await fixture();
+ try {
+  const length = Math.hypot(b.x-a.x,b.z-a.z);
+  const segment = {a,b,length,dx:(b.x-a.x)/length,dz:(b.z-a.z)/length};
+  const mid = {x:(a.x+b.x)/2,z:(a.z+b.z)/2};
+  const flag = COASTAL_LANDMARKS[gate], route = new WaypointRoute();
+  route.choose('dunes','islands');
+  route.next = route.passed = gate-1;
+  const cut = surfaceAt(mid.x,mid.z), packed = surfaceAt(flag.x,flag.z);
+  assert(cut.soft > packed.soft+.35 && cut.compaction < packed.compaction-.7);
+  const field = new SandField();
+  for (const spot of [mid,flag]) {
+   for(let i=0;i<16;i++)field.stamp(spot.x,spot.z,1,.17,1);
+  }
+  assert(field.depthAt(mid.x,mid.z) > 2 * field.depthAt(flag.x,flag.z) && field.deepest > -.23,
+   'The same tyre work excavates more sand on the inside line');
+  const state={...test.spawn(segment,1),minUp:1,maxLift:0,maxSpeed:0,crossTrack:0};
+  let progress=1,seconds=0;
+  while(progress<length-1 && seconds<35){
+   test.step({gas:test.physics.speed<4.5,turn:test.steering(segment)});
+   progress=test.measure(segment,state);
+   const p=test.physics.position();
+   route.update(p,{grounded:test.physics.tyres.filter(w=>w.contact).length>=2,groundHeight:test.field.height(p.x,p.z)});
+   seconds+=dt;
+  }
+  assert(progress>=length-1 && route.passed===gate,'Cutoff reaches the next gate in unlocked 4HI');
+  test.verify(state);
+  console.log('Inside line drive',{gate,seconds,packedSoft:packed.soft,cutSoft:cut.soft,maxLift:state.maxLift});
+ } finally {test.dispose();}
 }
 
 const braking=[];

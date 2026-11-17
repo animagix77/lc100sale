@@ -11,8 +11,8 @@ function loader(fail=''){
 }
 for(const mobile of [false,true]){
  const source=loader(),maps=await loadGroundTextures({mobile,loader:source});
- assert.equal(source.loaded.length,9);assert.equal(maps.canopy.colorSpace,THREE.SRGBColorSpace);
- for(const name of ['forest','gravel','stone']){
+ assert.equal(source.loaded.length,11);assert.equal(maps.canopy.colorSpace,THREE.SRGBColorSpace);
+ for(const name of ['forest','gravel','stone','sand']){
   assert.equal(maps[name].color.colorSpace,THREE.SRGBColorSpace);assert.equal(maps[name].surface.colorSpace,THREE.NoColorSpace);
   assert.equal(maps[name].surface.wrapS,THREE.RepeatWrapping);
   assert.equal(maps[name].color.name.includes('-512'),mobile,'Device tier selects the intended texture size');
@@ -23,7 +23,7 @@ for(const mobile of [false,true]){
  const nodes=new Set(),visit=node=>{if(!node?.isNode||nodes.has(node))return;nodes.add(node);for(const child of node.getChildren())visit(child)};
  for(const channel of ['colorNode','normalNode','roughnessNode','aoNode'])visit(photo.material[channel]);
  const samples=[...nodes].filter(n=>n.isTextureNode);assert.equal(samples.length,mobile?14:20,'Sharper height blends reuse the original texture-fetch budget');
- assert.equal(new Set(samples.map(n=>n.value)).size,6,'All surface detail comes from the six startup-loaded terrain maps');
+ assert.equal(new Set(samples.map(n=>n.value)).size,8,'Sand joins the startup-loaded maps without increasing texture samples');
  assert.equal(photo.material.positionNode,null,'Shading relief never changes the route silhouette or wheel support');
  const a=photo.geometry(-2,-32,8,4),b=plain.geometry(-2,-32,8,4);
  assert.deepEqual(a.index.array,b.index.array);for(const key of Object.keys(a.attributes))assert.deepEqual(a.attributes[key].array,b.attributes[key].array,`Material quality leaves ${key} geometry unchanged`);
@@ -41,10 +41,15 @@ for(const mobile of [false,true]){
  for(const a of Object.values(g.attributes))assert([...a.array].every(Number.isFinite));
  assert(g.boundingBox.min.y>2&&g.boundingBox.min.y<3&&g.boundingBox.max.y<9,'Foliage stays attached above the tree trunk');
  life.refresh({x:255,z:-365},{x:512,z:-512});assert(life.crowns.count>20);
- life.dispose();assert.equal(scene.children.length,0);maps.dispose();assert.equal(source.disposed.length,9);
+ const shape=life.crowns.geometry.attributes.crownShape,variants=new Set();
+ for(let i=0;i<life.crowns.count;i++){variants.add(shape.getW(i));assert(shape.getX(i)>0&&shape.getY(i)>0&&shape.getZ(i)>0);}
+ assert.equal(variants.size,3,'Rebased foliage retains broad, narrow and wind-shaped crowns within one instanced mesh');
+ assert(life.crowns.material.positionNode&&life.crowns.userData.sceneryGhost.material.positionNode,'Both arrival and solid foliage use the same silhouette variation');
+ life.dispose();assert.equal(scene.children.length,0);maps.dispose();assert.equal(source.disposed.length,11);
 }
 const failure=loader('gravel-surface');assert.equal(await loadGroundTextures({loader:failure}),null);assert.equal(failure.disposed.length,5,'Partial ground load releases all successful textures');
-const optional=loader('canopy'),fallback=await loadGroundTextures({loader:optional});assert(fallback);assert.equal(fallback.canopy,null,'A failed foliage image retains photographed ground and procedural trees');fallback.dispose();assert.equal(optional.disposed.length,8);
+const optional=loader('canopy'),fallback=await loadGroundTextures({loader:optional});assert(fallback);assert.equal(fallback.canopy,null,'A failed foliage image retains photographed ground and procedural trees');fallback.dispose();assert.equal(optional.disposed.length,10);
+const missingSand=loader('sand-surface'),sandFallback=await loadGroundTextures({loader:missingSand});assert(sandFallback&&!sandFallback.sand,'Sand asset failure preserves all existing ground materials');assert(missingSand.disposed.includes('textures/terrain/sand-color.jpg'));sandFallback.dispose();assert.equal(missingSand.disposed.length,10,'An incomplete sand pair is fully released');
 const rock=riverStoneGeometry(),p=rock.attributes.position,n=rock.attributes.normal;
 for(let i=0;i<p.count;i++){
  assert(Math.abs(p.getX(i))<=.56&&Math.abs(p.getZ(i))<=.4&&p.getY(i)>=-.10&&p.getY(i)<=.46,'Stone stays within the existing collider envelope');
@@ -52,4 +57,4 @@ for(let i=0;i<p.count;i++){
 }
 rock.dispose();console.log('Ground assets: device sizes, linear surface data, failure cleanup, cutout streaming and bounded stone colliders passed.');
 
-const missingBark=loader('bark-surface'),groundOnly=await loadGroundTextures({loader:missingBark});assert(groundOnly&&!groundOnly.bark,'Bark load failure leaves existing terrain and canopy usable');assert(missingBark.disposed.includes('textures/terrain/bark-color.jpg'));groundOnly.dispose();assert.equal(missingBark.disposed.length,8);
+const missingBark=loader('bark-surface'),groundOnly=await loadGroundTextures({loader:missingBark});assert(groundOnly&&!groundOnly.bark,'Bark load failure leaves existing terrain and canopy usable');assert(missingBark.disposed.includes('textures/terrain/bark-color.jpg'));groundOnly.dispose();assert.equal(missingBark.disposed.length,10);

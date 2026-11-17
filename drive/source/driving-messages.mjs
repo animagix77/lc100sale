@@ -9,12 +9,33 @@ export function setMessageText(element,text,{resetScroll=true}={}){
  const value=String(text);if(element.textContent===value)return false;
  element.textContent=value;if(resetScroll)element.scrollTop=0;return true;
 }
-export class DrivingMessages{
- constructor(){this.text='';this.until=0;this.pending=null}
- say(text,now,{defer=false}={}){
-  if(defer&&now<this.until){this.pending=text;return false}
-  this.text=text;this.until=now+readingSeconds(text);this.pending=null;return true;
+export class DrivingMessages {
+ constructor() {
+  this.text = '';
+  this.clear();
  }
- update(now){if(this.pending&&now>=this.until)return this.say(this.pending,now);return false}
- clear(){this.pending=null;this.until=0}
+
+ say(text, now, {defer = false, mobile = 'notice'} = {}) {
+  if (defer && now < this.until) {
+   this.pending = {text, mobile};
+   return false;
+  }
+  this.text = text;
+  this.mobile = mobile;
+  this.until = now + readingSeconds(text);
+  this.pending = null;
+  return true;
+ }
+
+ update(now) {
+  if (now < this.until) return false;
+  if (this.pending) return this.say(this.pending.text, now, {mobile:this.pending.mobile});
+  return false;
+ }
+
+ clear() {
+  this.pending = null;
+  this.until = 0;
+  this.mobile = 'quiet';
+ }
 }

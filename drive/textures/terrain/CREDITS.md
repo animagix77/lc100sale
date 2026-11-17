@@ -7,6 +7,7 @@ Photographed texture sources from Poly Haven, released under [CC0](https://polyh
 - [Forest Floor](https://polyhaven.com/a/forest_floor) — eye-candy.xyz.
 - [Rocky Gravel](https://polyhaven.com/a/rocky_gravel) — photography by Dimitrios Savva; processing by Dario Barresi.
 - [Rock Boulder Dry](https://polyhaven.com/a/rock_boulder_dry) — photography by Dimitrios Savva; processing by Rico Cilliers.
+- [Sand 03](https://polyhaven.com/a/sand_03) — Charlotte Baglioni. Its photographed grains and shell fragments support dry, damp and compacted sand shading; the original terrain heights are unchanged.
 
 Color images use sRGB. Packed surface images contain linear height (R), roughness (G), and ambient occlusion (B). 1024px textures serve desktop; 512px variants serve the touch/mobile rendering tier. The maps add shading detail without changing terrain elevation, water level, sand deformation or route geometry. `sources.json` records original download URLs and asset metadata.
 

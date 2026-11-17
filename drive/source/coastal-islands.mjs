@@ -16,8 +16,8 @@ export const COASTAL_LANDMARKS=Object.freeze([
  {x:-14,z:0,height:.36,name:'Base camp'},
  {x:-18,z:-60,height:.61,name:'The shoreline'},
  {x:-21,z:-130,height:1.32,name:'Coastal sands'},
- {x:-60,z:-186,height:.72,name:'Low-tide crossing'},
- {x:-137,z:-226,height:1.5,name:'Palm cay'},
+ {x:-60,z:-186,height:.72,name:'Low-tide crossing',signOffset:11.5},
+ {x:-137,z:-226,height:1.5,name:'Palm cay',signOffset:13.5},
  {x:-195,z:-210,height:1.15,name:'Barge bay'},
  {x:-239,z:-251,height:.70,name:'Lagoon sandbar'},
  {x:-300,z:-303,height:1.8,name:'Driftwood island'},
@@ -40,6 +40,43 @@ function closest(x,z,segments){
  for(const s of segments){const t=clamp(((x-s.a.x)*s.dx+(z-s.a.z)*s.dz)/s.length2,0,1),qx=s.a.x+t*s.dx,qz=s.a.z+t*s.dz,d2=(x-qx)**2+(z-qz)**2;if(d2<distance2){distance2=d2;found=s;along=t;px=qx;pz=qz}}
  return {distance:Math.sqrt(distance2),segment:found,t:along,x:px,z:pz};
 }
+// Drivers have cut the inside of two bends on the way to Barge bay. Each
+// chord rejoins the packed route and passes within reach of the existing flag.
+const insideLines = [[3, 31], [4, 20]].map(([corner, reach]) => {
+ const point = COASTAL_LANDMARKS[corner];
+ const endpoint = neighbour => {
+  const length = Math.hypot(neighbour.x - point.x, neighbour.z - point.z);
+  return {
+   x: point.x + reach * (neighbour.x - point.x) / length,
+   z: point.z + reach * (neighbour.z - point.z) / length,
+   height: point.height + reach * (neighbour.height - point.height) / length
+  };
+ };
+ const start = endpoint(COASTAL_LANDMARKS[corner - 1]);
+ const end = endpoint(COASTAL_LANDMARKS[corner + 1]);
+ const line = segment(start, end);
+ return {...line, length: Math.sqrt(line.length2)};
+});
+
+function insideLineSample(x, z, route) {
+ if (x < -161 || x > -31 || z < -238 || z > -152 || route.distance < 2.5) return null;
+ for (const line of insideLines) {
+  const px = x - line.a.x, pz = z - line.a.z;
+  const t = (px * line.dx + pz * line.dz) / line.length2;
+  if (t <= 0 || t >= 1) continue;
+  const bow = Math.sin(Math.PI * t);
+  const across = (px * line.dz - pz * line.dx) / line.length - .55 * bow * bow;
+  if (Math.abs(across) >= 6) continue;
+  const blend = smooth(2.5, 5, route.distance) * (1 - smooth(2.4, 6, Math.abs(across)));
+  const tyre = Math.abs(across) - .96;
+  const rut = -.12 * Math.exp(-((tyre / .60) ** 2));
+  const lip = .042 * Math.exp(-(((tyre - .80) / .48) ** 2));
+  return {blend, rut: (rut + lip) * (.72 + .28 * bow),
+   height: line.a.height + t * (line.b.height - line.a.height) + .06 * bow};
+ }
+ return null;
+}
+
 export function coastalRouteSample(x,z){const q=closest(x,z,routeSegments),s=q.segment;return {...q,signedDistance:((x-q.x)*s.dz-(z-q.z)*s.dx)/Math.sqrt(s.length2),height:s.a.height+(s.b.height-s.a.height)*q.t,index:s.index}}
 export function coastalRouteDistance(x,z){return closest(x,z,routeSegments).distance}
 // Judge Dean LLC — weathered paired traffic lines on the complete coastal route.
@@ -74,10 +111,12 @@ export function coastalEntryProfile(x,z){
  const route=coastalRouteSample(x,z),blend=(1-smooth(4.5,11,route.distance))*(1-smooth(-2,12,z))*smooth(-44,-32,x);
  return {blend,height:blend?coastalLaneHeight(x,z,route):0};
 }
-export function coastalLaneCompaction(x,z,route=null){
+export function coastalLaneCompaction(x,z,route=null,insideLine){
  if(x> -7||x< -480||z>12||z< -380)return 0;
  const q=route||coastalRouteSample(x,z);
- return (1-smooth(3.6,7,q.distance))*(1-smooth(-2,12,z));
+ const cut = insideLine === undefined ? insideLineSample(x, z, q) : insideLine;
+ const packed = (1-smooth(3.6,7,q.distance))*(1-smooth(-2,12,z));
+ return packed * (1 - .88 * (cut?.blend || 0));
 }
 // A cheap spatial gate protects the entire mainland (x >= -25) exactly and
 // prevents island noise/route work from running across the rest of the world.
@@ -123,10 +162,18 @@ export function islandProfile(x,z){
  // tactile without adding a sharp berm or a deep trench at island boundaries.
  const wornRut=coastalWornRuts(x,z,route),laneHeight=coastalLaneHeight(x,z,route,wornRut);
  h+=(laneHeight-h)*trail;
+ const cut = insideLineSample(x, z, route);
+ let physicalRut = wornRut * trail;
+ if (cut) {
+  // Shape a low shelf through the wind-deposited shoulder. Both the contact
+  // field and the rendered terrain carry the shallow wheel cuts and outer lip.
+  h += cut.blend * (cut.height + cut.rut - h);
+  physicalRut += cut.blend * (cut.rut - physicalRut);
+ }
  const camp=1-smooth(COASTAL_CAMP.radius,COASTAL_CAMP.radius+10,Math.hypot(x-COASTAL_CAMP.x,z-COASTAL_CAMP.z));
  h+=(COASTAL_CAMP.height-h)*camp;
- const land=smooth(-.10,.75,h),grass=land*interior*(1-trail*.96)*(1-rock)*(1-camp)*(.50+.50*noise(x*.07,z*.065));
- return {influence:influence*region,height:h,land,beach:land*(1-grass)*(1-rock),beachDry:smooth(.03,.68,h),grass,rock:rock*(1-trail)*(1-camp),trail,compaction:coastalLaneCompaction(x,z,route),wornRut:wornRut*(1-camp),sandbar:barSupport*(1-interior),island:region};
+ const land=smooth(-.10,.75,h),grass=land*interior*(1-Math.max(trail,cut?.blend||0)*.96)*(1-rock)*(1-camp)*(.50+.50*noise(x*.07,z*.065));
+ return {influence:influence*region,height:h,land,beach:land*(1-grass)*(1-rock),beachDry:smooth(.03,.68,h),grass,rock:rock*(1-trail)*(1-camp),trail,looseCut:cut?.blend||0,compaction:coastalLaneCompaction(x,z,route,cut),wornRut:physicalRut*(1-camp),sandbar:barSupport*(1-interior),island:region};
 }
 export function islandTerrainHeight(x,z,original){const p=islandProfile(x,z);return original+(p.height-original)*p.influence}
 // Match the ocean shader: an offshore swell loses energy over the same shallow

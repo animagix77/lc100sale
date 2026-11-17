@@ -9,6 +9,7 @@ import {sceneryFade,stageSceneryArrival,syncSceneryFade,disposeSceneryFade} from
 import {GrassTracks} from './grass-tracks.mjs';
 import {routeSample,riverMask,riverZ,riverGreenery,riverApproach,CAMP} from './expedition.mjs';
 import {riverRocksNearSteps} from './river-rocks.mjs';
+import {breezeOffset, foliagePhase} from './foliage-breeze.mjs';
 import {grassWindStrength} from './coastal-wind.mjs';
 import * as THREE from 'three/webgpu';
 import {positionLocal,attribute,uniform,sin,cos,vec3,vec2,float,texture,uv,mix,smoothstep,positionWorld,cameraPosition,normalViewGeometry} from 'three/tsl';
@@ -122,16 +123,23 @@ function commitMesh(mesh,staged){
 const SCENERY_MESHES=['grass','logs','wrack','rocks','trunks','crowns','shrubs'];
 export class BeachLife{
  constructor(scene,{mobile=false,reduced=false}={}){
-  this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.placementCaches={grass:new Map(),woodland:new Map(),debris:new Map()};this.time=uniform(0);this.fadeAnchor=uniform(new THREE.Vector2());this.windStrength=uniform(.4);this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,rocks:0,boats:5};
+  this.scene=scene;this.mobile=mobile;this.reduced=reduced;this.key='';this.placementCaches={grass:new Map(),woodland:new Map(),debris:new Map()};this.time=uniform(0);this.fadeAnchor=uniform(new THREE.Vector2());this.windStrength=uniform(reduced?0:grassWindStrength(0,8));this.dummy=new THREE.Object3D();this.materials=[];this.geometries=[];this.stats={grass:0,logs:0,wrack:0,rocks:0,boats:5};
   const make=(geometry,material,count)=>{this.geometries.push(geometry);this.materials.push(material);const m=new THREE.InstancedMesh(geometry,material,count);m.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(count*3).fill(1),3);m.frustumCulled=false;m.count=0;scene.add(m);return m};
   const geometry=grassGeometry(),grassMat=new THREE.MeshStandardNodeMaterial({color:'#ffffff',vertexColors:true,side:THREE.DoubleSide,roughness:1});
   const phase=attribute('windPhase','float'),height=attribute('position','vec3').y;
-  const wind=sin(this.time.mul(1.15).sub(phase)).mul(.25).add(sin(this.time.mul(.48).sub(phase.mul(.43))).mul(.18)).add(sin(this.time.mul(2.7).add(phase.mul(2.1))).mul(.045));
+  const scaleY=attribute('grassScaleY','float');
   const bend=attribute('grassBend','vec3');
-  // Orient gusts consistently in world space despite randomly rotated tufts.
-  const yaw=attribute('grassYaw','float'),standing=float(1).sub(bend.y.mul(.98)),sway=wind.mul(this.windStrength).mul(height.pow(2)).mul(standing);
-  grassMat.positionNode=positionLocal.add(vec3(bend.x.mul(height),bend.y.mul(height).mul(-.98),bend.z.mul(height))).add(vec3(sway.mul(cos(yaw).sub(sin(yaw).mul(.4))),sway.abs().mul(-.12),sway.mul(sin(yaw).add(cos(yaw).mul(.4)))));
-  const capacity=mobile?14000:22000;this.tracks=new GrassTracks();this.grassData=[];this.bendAttribute=new THREE.InstancedBufferAttribute(new Float32Array(capacity*3),3);geometry.setAttribute('grassBend',this.bendAttribute);geometry.setAttribute('windPhase',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));geometry.setAttribute('grassYaw',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
+  const bladeHeight=height.mul(scaleY);
+  const standing=float(1).sub(bend.y.mul(.98));
+  const contact=vec3(bend.x,bend.y.mul(-.98),bend.z).mul(bladeHeight);
+  const flex=height.mul(bladeHeight).mul(.49).mul(standing);
+  grassMat.positionNode=positionLocal.add(contact).add(breezeOffset(this.time,phase,this.windStrength,flex));
+  const capacity=mobile?14000:22000;
+  this.tracks=new GrassTracks();this.grassData=[];
+  this.bendAttribute=new THREE.InstancedBufferAttribute(new Float32Array(capacity*3),3);
+  geometry.setAttribute('grassBend',this.bendAttribute);
+  geometry.setAttribute('windPhase',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
+  geometry.setAttribute('grassScaleY',new THREE.InstancedBufferAttribute(new Float32Array(capacity),1));
   this.grass=make(geometry,grassMat,capacity);this.grass.receiveShadow=true;
   this.logs=make(logGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),180);
   this.wrack=make(wrackGeometry(),new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1}),300);
@@ -139,15 +147,21 @@ export class BeachLife{
   const treeCount=mobile?180:300;
   this.trunks=make(woodlandTrunkGeometry(mobile),new THREE.MeshStandardNodeMaterial({color:'#534d3d',roughness:1}),treeCount);
   const crowns=woodlandCrownGeometry(mobile);
+  crowns.setAttribute('crownShape',new THREE.InstancedBufferAttribute(new Float32Array(treeCount*4),4));
+  crowns.setAttribute('crownYawPhase',new THREE.InstancedBufferAttribute(new Float32Array(treeCount*2),2));
+  const crownHeight=attribute('position','vec3').y.sub(3).max(0);
+  const crownPhase=attribute('crownYawPhase','vec2').y;
+  this.crownBreeze=breezeOffset(this.time,crownPhase,this.windStrength,crownHeight.mul(crownHeight).mul(.012));
   const leaves=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:1});
+  leaves.positionNode=positionLocal.add(this.crownBreeze);
   this.crowns=make(crowns,leaves,treeCount);this.crowns.castShadow=true;this.crowns.receiveShadow=true;this.trunks.castShadow=true;this.trunks.receiveShadow=true;
   const fern=fernGeometry(mobile),fernCount=mobile?360:600,fernMat=new THREE.MeshStandardNodeMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:1});
   // Custom positionNode runs after instancing: positionLocal includes bank elevation.
   // Bend from intrinsic blade height so roots stay planted at every world height.
   const fernHeight=attribute('position','vec3').y.sub(.035).max(0);
-  const fernPhase=attribute('fernPhase','float'),fernYaw=attribute('fernYaw','float'),flutter=sin(this.time.mul(1.4).add(fernPhase)).mul(.075).add(sin(this.time.mul(2.4).sub(fernPhase)).mul(.025)).mul(fernHeight.pow(2)).mul(this.windStrength);
-  fernMat.positionNode=positionLocal.add(vec3(flutter.mul(cos(fernYaw)),flutter.abs().mul(-.30),flutter.mul(sin(fernYaw))));
-  fern.setAttribute('fernPhase',new THREE.InstancedBufferAttribute(new Float32Array(fernCount),1));fern.setAttribute('fernYaw',new THREE.InstancedBufferAttribute(new Float32Array(fernCount),1));
+  const fernPhase=attribute('fernPhase','float');
+  fernMat.positionNode=positionLocal.add(breezeOffset(this.time,fernPhase,this.windStrength,fernHeight.mul(fernHeight).mul(.095)));
+  fern.setAttribute('fernPhase',new THREE.InstancedBufferAttribute(new Float32Array(fernCount),1));
   this.shrubs=make(fern,fernMat,fernCount);this.shrubs.receiveShadow=true;
   for(const name of SCENERY_MESHES){const grass=name==='grass',small=name==='wrack'||name==='shrubs';sceneryFade(this[name],{anchor:this.fadeAnchor,clock:this.time,near:grass?30:small?34:58,far:grass?48:small?57:94,arrival:!grass,solidNear:name==='trunks'||name==='crowns'});}
   this.boats=[];const bg=boatGeometry(),bm=new THREE.MeshStandardNodeMaterial({vertexColors:true,roughness:.7});this.geometries.push(bg);this.materials.push(bm);
@@ -166,11 +180,14 @@ export class BeachLife{
   const old=this.crowns.geometry,geometry=woodlandLeafCards(this.mobile),ghost=this.crowns.userData.sceneryGhost;
   for(const [name,a] of Object.entries(old.attributes))if(a.isInstancedBufferAttribute)geometry.setAttribute(name,a);
   this.crowns.geometry=geometry;if(ghost)ghost.geometry=geometry;
+  const shape=attribute('crownShape','vec4'),yaw=attribute('crownYawPhase','vec2').x;
+  const offset=attribute('crownNarrow','vec3').mul(shape.w.equal(1).select(1,0)).add(attribute('crownWind','vec3').mul(shape.w.equal(2).select(1,0))).mul(shape.xyz);
+  const formed=positionLocal.add(vec3(offset.x.mul(cos(yaw)).add(offset.z.mul(sin(yaw))),offset.y,offset.z.mul(cos(yaw)).sub(offset.x.mul(sin(yaw)))));
   for(const material of [this.crowns.material,ghost?.material].filter(Boolean)){
    material.map=map;material.side=THREE.DoubleSide;
    // These normals describe the crown, not a sheet of paper. Default DoubleSide
    // lighting flips them on back-facing cards, producing black/cream patches.
-   material.normalNode=normalViewGeometry;material.needsUpdate=true;
+   material.normalNode=normalViewGeometry;material.positionNode=formed.add(this.crownBreeze);material.needsUpdate=true;
   }
   this.geometries[this.geometries.indexOf(old)]=geometry;old.dispose();
  }
@@ -214,8 +231,8 @@ export class BeachLife{
   if(this._pending?.key!==key){const queued=this._pending?.key.split(',').map(Number),target=key.split(',').map(Number);if(!queued||queued[2]!==target[2]||queued[3]!==target[3]||Math.max(Math.abs(queued[0]-target[0]),Math.abs(queued[1]-target[1]))>4)this._begin(p,origin,key);}
   const deadline=performance.now()+budgetMs;do{if(this._pending.iterator.next().done){this._commit();return true}}while(performance.now()<deadline);return false;
  }
- _grass(i,x,z,yaw){
-  const g=this.grassPool[i]??{};Object.assign(g,{x,z,yaw,c:Math.cos(yaw),s:Math.sin(yaw),bx:0,by:0,bz:0,fresh:true});this.grassData[i]=g;
+ _grass(i,x,z){
+  const g=this.grassPool[i]??{};Object.assign(g,{x,z,bx:0,by:0,bz:0,fresh:true});this.grassData[i]=g;
   const key=`${Math.floor(x/8)},${Math.floor(z/8)}`,bucket=this.grassBuckets.get(key)??[];bucket.push(i);this.grassBuckets.set(key,bucket);
  }
  *_build(p,origin,key){
@@ -230,7 +247,7 @@ export class BeachLife{
     if(Math.hypot(x-centerX,z-centerZ)>76)continue;
     const place=remembered(this.placementCaches.grass,`b${tx},${tz},${i}`,()=>{if(inRoadsideClearing(x,z)||canyonRockMask(x,z)>.08)return null;const surface=surfaceAt(x,z),meadow=surface.grass>.22;if(meadow||coast<29||surface.riverApproach>.18||riverMask(x,z)>.05||surface.snow>.3||surface.mud>.4||coast>155||patch<.42||rand(seed,i*3+2)>smooth(28,43,coast)*.95)return null;if(rockFormationMask(x,z)>.4)return null;return {meadow,y:baseHeight(x,z)}},40000);
     if(!place||gi>=Math.floor(this.grass.instanceMatrix.count*.30))continue;const {meadow}=place;
-    d.position.set(x-origin.x,place.y-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=meadow?1.05+rand(seed,i+700)*.65:.5+rand(seed,i+700)*.85;d.scale.set(meadow?1.5:scale,scale*(meadow?1.15:1),meadow?1.5:scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.copy(plantTint[meadow?'#718e4b':'#819366']).lerp(plantTint[meadow?'#b1b774':'#c4ba87'],rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
+    d.position.set(x-origin.x,place.y-.025,z-origin.z);d.rotation.set(0,rand(seed,i+900)*6.28,0);const scale=meadow?1.05+rand(seed,i+700)*.65:.5+rand(seed,i+700)*.85;d.scale.set(meadow?1.5:scale,scale*(meadow?1.15:1),meadow?1.5:scale);d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);c.copy(plantTint[meadow?'#718e4b':'#819366']).lerp(plantTint[meadow?'#b1b774':'#c4ba87'],rand(seed,i+180));this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,foliagePhase(x,z));this.grass.geometry.attributes.grassScaleY.setX(gi,d.scale.y);this._grass(gi,x,z);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
    }
    for(let i=0;i<24;i++){
     if(i%8===0)yield;
@@ -277,6 +294,8 @@ export class BeachLife{
     c.copy(plantTint['#c3c0b3']).lerp(plantTint['#ffffff'],rand(ix+3,iz));this.trunks.setColorAt(ti,c);
     const crown=young?.64+rand(ix+8,iz)*.35:tall?.85+rand(ix+8,iz)*.35:1.15+rand(ix+8,iz)*.55;
     d.scale.set(crown*(.85+rand(ix+9,iz)*.30),height,crown*(.85+rand(ix+10,iz)*.30));d.updateMatrix();this.crowns.setMatrixAt(ti,d.matrix);
+    this.crowns.geometry.attributes.crownShape.setXYZW(ti,d.scale.x,d.scale.y,d.scale.z,Math.floor(rand(ix+42,iz+8)*3));
+    this.crowns.geometry.attributes.crownYawPhase.setXY(ti,d.rotation.y,foliagePhase(x,z));
     c.copy(plantTint[young?'#a8c887':'#8ab282']).lerp(plantTint[tall?'#adc69c':'#c2d2ac'],rand(ix+17,iz));this.crowns.setColorAt(ti,c);ti++;
    }
    const fernX=x+1.9,fernZ=z-1.5;
@@ -286,10 +305,10 @@ export class BeachLife{
     const broad=grove>.48,spread=broad?1.50+rand(ix+2,iz)*.8:.85+rand(ix+2,iz)*.55;
     const clearance=Math.max(.8,(routeSample(fernX,fernZ).distance-4.9)/1.2),width=Math.min(spread,clearance);
     d.position.set(fernX-origin.x,fernY,fernZ-origin.z);d.rotation.set(0,rand(ix,iz)*6.28,0);d.scale.set(width,broad?.55+rand(ix+3,iz)*.5:1.0+rand(ix+3,iz)*.65,width*(.8+rand(ix+4,iz)*.3));d.updateMatrix();this.shrubs.setMatrixAt(si,d.matrix);
-    c.copy(plantTint['#96b186']).lerp(plantTint['#d1ce9a'],grove*.5+rand(ix+6,iz)*.35);this.shrubs.setColorAt(si,c);this.shrubs.geometry.attributes.fernPhase.setX(si,x*.2+z*.11);this.shrubs.geometry.attributes.fernYaw.setX(si,d.rotation.y);si++;
+    c.copy(plantTint['#96b186']).lerp(plantTint['#d1ce9a'],grove*.5+rand(ix+6,iz)*.35);this.shrubs.setColorAt(si,c);this.shrubs.geometry.attributes.fernPhase.setX(si,foliagePhase(fernX,fernZ));si++;
    }
   }
-  for(const [mesh,count] of [[this.trunks,ti],[this.crowns,ti],[this.shrubs,si]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}this.shrubs.geometry.attributes.fernPhase.needsUpdate=true;this.shrubs.geometry.attributes.fernYaw.needsUpdate=true;if(this.shrubs.instanceColor)this.shrubs.instanceColor.needsUpdate=true;
+  for(const [mesh,count] of [[this.trunks,ti],[this.crowns,ti],[this.shrubs,si]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}this.crowns.geometry.attributes.crownShape.needsUpdate=true;this.crowns.geometry.attributes.crownYawPhase.needsUpdate=true;this.shrubs.geometry.attributes.fernPhase.needsUpdate=true;if(this.shrubs.instanceColor)this.shrubs.instanceColor.needsUpdate=true;
   // The same stable, world-space rock bed supplies rendering and rigid collision.
   const nearbyRiverRocks=yield*riverRocksNearSteps(cx*64+32,cz*64+32,132);let rockBatch=0;for(const rock of nearbyRiverRocks){
    if(rockBatch++%16===0)yield;
@@ -308,10 +327,10 @@ export class BeachLife{
    // Vary footprint and height independently instead of a uniform grass carpet.
    const broad=(trail?1.0:1.05+patch*1.65)*(.85+rand(ix+9,iz)*.3),spread=riparian?Math.min(broad,Math.max(1,(clearance-3.1)/.85)):broad,height=riparian?(trail?.23:.40+patch*.62)+rand(ix,iz+2)*.26:.68+patch*1.13+rand(ix,iz+2)*.38;
    d.scale.set(spread,height,spread*(.85+rand(ix+10,iz)*.3));d.updateMatrix();this.grass.setMatrixAt(gi,d.matrix);
-   c.copy(plantTint[riparian?'#395e3d':'#647749']).lerp(plantTint[riparian?'#94a664':'#b4aa70'],patch*.35+rand(ix,iz+4)*.5);this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,x*.14+z*.09);this.grass.geometry.attributes.grassYaw.setX(gi,d.rotation.y);
-   this._grass(gi,x,z,d.rotation.y);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
+   c.copy(plantTint[riparian?'#395e3d':'#647749']).lerp(plantTint[riparian?'#94a664':'#b4aa70'],patch*.35+rand(ix,iz+4)*.5);this.grass.setColorAt(gi,c);this.grass.geometry.attributes.windPhase.setX(gi,foliagePhase(x,z));this.grass.geometry.attributes.grassScaleY.setX(gi,d.scale.y);
+   this._grass(gi,x,z);this.bendAttribute.setXYZ(gi,0,0,0);gi++;
   }
-  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.rocks.instanceColor)this.rocks.instanceColor.needsUpdate=true;if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;this.grass.geometry.attributes.grassYaw.needsUpdate=true;this.bendAttribute.needsUpdate=true;
+  for(const [mesh,count] of [[this.grass,gi],[this.logs,li],[this.wrack,wi],[this.rocks,ri]]){mesh.count=count;mesh.instanceMatrix.needsUpdate=true}if(this.rocks.instanceColor)this.rocks.instanceColor.needsUpdate=true;if(this.grass.instanceColor)this.grass.instanceColor.needsUpdate=true;this.grass.geometry.attributes.windPhase.needsUpdate=true;this.grass.geometry.attributes.grassScaleY.needsUpdate=true;this.bendAttribute.needsUpdate=true;
   this.grassData.length=gi;Object.assign(this.stats,{grass:gi,logs:li,wrack:wi,rocks:ri,trees:ti,shrubs:si});
  }
  update(p,time,origin,weather={wind:8},heading=0,refresh=true){
@@ -326,7 +345,7 @@ export class BeachLife{
   const sweep=Math.min(this.grassData.length,256);for(let n=0;n<sweep;n++){this._bendCursor=((this._bendCursor??-1)+1)%this.grassData.length;indices.add(this._bendCursor)}
   let dirty=false;this.bendAttribute.clearUpdateRanges();if(this._bendFullUpload&&this.grass.count)this.bendAttribute.addUpdateRange(0,this.grass.count*3);
   for(const i of indices){
-   const g=this.grassData[i],track=this.tracks.sample(g.x,g.z,time),bx=(track.dx*g.c-track.dz*g.s)*1.12,bz=(track.dx*g.s+track.dz*g.c)*1.12;
+   const g=this.grassData[i],track=this.tracks.sample(g.x,g.z,time),bx=track.dx*1.12,bz=track.dz*1.12;
    const blend=g.fresh?1:Math.hypot(g.x-p.x,g.z-p.z)>12?1:k;g.fresh=false;
    const nx=g.bx+(bx-g.bx)*blend,nz=g.bz+(bz-g.bz)*blend,ny=g.by+(track.amount-g.by)*blend;
    if(Math.abs(nx-g.bx)+Math.abs(nz-g.bz)+Math.abs(ny-g.by)<.0001)continue;

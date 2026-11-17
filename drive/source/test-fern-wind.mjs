@@ -1,4 +1,4 @@
-// Judge Dean LLC — evaluate the actual fern vertex expression after instancing.
+// Judge Dean LLC — evaluate the actual foliage vertex displacement after instancing.
 import assert from 'node:assert/strict';
 import * as THREE from 'three/webgpu';
 import {BeachLife} from './beach-life.mjs';
@@ -26,7 +26,7 @@ for(const mobile of [false,true]){
  for(const altitude of [0,14.2,26,108])for(const time of [0,.4,1.3,3,7]){
   life.time.value=time;
   for(let i=0;i<positions.count;i+=4){
-   const vertex=[positions.getX(i),positions.getY(i),positions.getZ(i)],world=[248+vertex[0],altitude+vertex[1]*1.6,-336+vertex[2]],attrs={position:vertex,fernPhase:1.7,fernYaw:.8};
+   const vertex=[positions.getX(i),positions.getY(i),positions.getZ(i)],world=[248+vertex[0],altitude+vertex[1]*1.6,-336+vertex[2]],attrs={position:vertex,fernPhase:1.7};
    const result=evaluate(mesh.material.positionNode,attrs,world),motion=Math.hypot(...result.map((v,j)=>v-world[j]));maxMotion=Math.max(maxMotion,motion);
    if(vertex[1]<.035001){roots++;assert(motion<1e-6,'Fern roots must stay planted at every riverbank elevation')}
    assert(motion<.05,'Wind moves fronds by centimetres, never airborne metres');
@@ -35,6 +35,25 @@ for(const mobile of [false,true]){
   }
  }
  assert(roots>50&&maxMotion>.001,'Both anchored roots and moving fronds were exercised');
- life.windStrength.value=0;assert.deepEqual(evaluate(mesh.material.positionNode,{position:[.2,.6,.1],fernPhase:1,fernYaw:2},[248,15,-336]),[248,15,-336],'Reduced motion keeps the complete fern stationary');
+ life.windStrength.value=0;assert.deepEqual(evaluate(mesh.material.positionNode,{position:[.2,.6,.1],fernPhase:1},[248,15,-336]),[248,15,-336],'Reduced motion keeps the complete fern stationary');
+ // A tall rotated meadow tuft must flatten along the tire's WORLD direction,
+ // by its scaled height. The custom position node runs after instancing.
+ const grassNode=life.grass.material.positionNode;
+ const world=[20,13.2,-9],attrs={position:[.1,.6,.22],grassBend:[0,1,-1],grassScaleY:2,windPhase:.8};
+ const crushed=evaluate(grassNode,attrs,world);
+ assert(Math.abs(crushed[2]-world[2]+1.2)<1e-7);
+ assert(Math.abs(crushed[1]-12.024)<1e-7);
+ life.windStrength.value=.3;
+ for(const t of [0,2,6]){
+  life.time.value=t;
+  const root=evaluate(grassNode,{...attrs,position:[.1,0,.22]},world);
+  assert.deepEqual(root,world,'Contact and wind both leave grass roots anchored');
+  const grass=evaluate(grassNode,{...attrs,grassBend:[0,0,0]},world);
+  const fern=evaluate(mesh.material.positionNode,{position:attrs.position,fernPhase:attrs.windPhase},world);
+  for(const point of [grass,fern]){
+   const x=point[0]-world[0],z=point[2]-world[2];
+   assert(x>0&&Math.abs(z/x-.32)<1e-7,'Nearby sedges and fern fronds bend along the same prevailing breeze');
+  }
+ }
  life.dispose();console.log({mobile,roots,maxMotion});
 }

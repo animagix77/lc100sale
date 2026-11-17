@@ -62,7 +62,11 @@ for(const p of scenery.placements){
  const ground=baseHeight(p.x,p.z);
  assert(p.y<=ground+.001,'Scenery roots do not float above their actual collision terrain');
  if(p.kind==='palm'){assert(Math.abs(p.y-ground+.08)<.00001);assert(islandProfile(p.x,p.z).rock<=.32,'Palm roots belong to soil, not exposed headland stone');}
- if(p.kind==='grass'||p.kind==='shrub'){assert(Math.abs(p.y-ground+.035)<.00001);assert(ground>.72);assert(islandProfile(p.x,p.z).rock<=.28);}
+ if(p.kind==='grass'||p.kind==='shrub'){
+  const profile=islandProfile(p.x,p.z);
+  assert(Math.abs(p.y-ground+.035)<.00001);assert(ground>.72);assert(profile.rock<=.28);
+  assert(!(profile.looseCut>.12),'The Palm Cay shortcut stays clear of rooted vegetation');
+ }
 }
 
 // Wind changes a uniform only: no instance buffers, cells or geometry regenerate
@@ -75,11 +79,34 @@ assert(vertex.distanceTo(before)<.0001,'A rebase moves rendering without shiftin
 for(const {mesh,array,version} of buffers){assert.equal(mesh.instanceMatrix.version,version,'Driving does not upload scenery instance transforms');assert.deepEqual(mesh.instanceMatrix.array,array);}
 assert.equal(scenery.clock.value,20);scenery.update({x:500,z:-500},{x:0,z:0},21);assert(!scenery.group.visible,'Remote mainland driving does not draw island geometry');
 
+scenery.update({x:-145,z:-220},{x:0,z:0},5,{wind:3});
+const lightBreeze=scenery.wind.value;
+scenery.update({x:-145,z:-220},{x:0,z:0},5,{wind:24});
+assert(scenery.wind.value>lightBreeze,'Moderate island weather has stronger frond movement than a light breeze');
+scenery.reduced=true;
+scenery.update({x:-145,z:-220},{x:0,z:0},20,{wind:60});
+assert.equal(scenery.wind.value,0,'Reduced motion disables displacement including the vertical flex component');
 const mobileCrown=islandPalmCrownGeometry({mobile:true});
 assert(mobileCrown.attributes.islandFlex.count===mobileCrown.attributes.position.count);
 assert(mobileCrown.attributes.position.count/3<1400,'Individually folded palm leaflets remain economical on phones');
 assert(mobileCrown.boundingBox.max.y-mobileCrown.boundingBox.min.y>2.8,'Fronds arch above and droop below their crown, rather than forming a flat fan');
 assert([...mobileCrown.attributes.islandFlex.array].some(v=>v>.4),'Leaflet tips have flexible wind response');
+const {position:crownPositions,islandFlex:crownFlex}=mobileCrown.attributes;
+let highPinnae=0,lowPinnae=0;
+for(let i=0;i<crownPositions.count;i++){
+ vertex.fromBufferAttribute(crownPositions,i);
+ if(crownFlex.getX(i)<.3||Math.hypot(vertex.x-.85,vertex.z-.19)<1.1)continue;
+ if(vertex.y>7.18+.85)highPinnae++;
+ if(vertex.y<7.18-.85)lowPinnae++;
+}
+assert(highPinnae>=12&&lowPinnae>=12,'Long flexible leaflets fill both the upright crown and the hanging skirt');
+const scrub=scenery.shrubs.geometry,scrubSize=scrub.boundingBox.getSize(new THREE.Vector3()),leafSections=new Set();
+for(let i=0;i<scrub.attributes.uv.count;i++){
+ const v=scrub.attributes.uv.getY(i);
+ if(v>0&&v<1&&scrub.attributes.islandFlex.getX(i)>0)leafSections.add(v);
+}
+assert(Math.min(scrubSize.x,scrubSize.z)>2*scrubSize.y,'Beach scrub sprawls over the sand');
+assert(leafSections.size>=3,'Beach scrub blades have shoulders and a rounded taper along their silhouettes');
 mobileCrown.dispose();
 
 // The wheelhouse uses actual holes: a ray passes through an open side window,

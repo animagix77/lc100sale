@@ -127,7 +127,7 @@ for(const mobile of [false,true])for(const {View,names} of configs){
    const actual=cached[name],expected=reference[name];assert.equal(actual.count,expected.count,'Cached placement never changes draw counts');
    for(let i=0;i<actual.count*16;i++)assert(Math.abs(actual.instanceMatrix.array[i]-expected.instanceMatrix.array[i])<.0001,`${View.name}.${name}: cached transforms equal fresh generation across rebase`);
    if(actual.count&&actual.instanceColor)assert.deepEqual(actual.instanceColor.array.slice(0,actual.count*3),expected.instanceColor.array.slice(0,expected.count*3),'Cached colors equal fresh generation');
-   for(const attribute of ['windPhase','grassYaw','fernPhase','fernYaw'])if(actual.geometry.attributes[attribute])assert.deepEqual(actual.geometry.attributes[attribute].array.slice(0,actual.count),expected.geometry.attributes[attribute].array.slice(0,expected.count),'Wind seeds remain deterministic with cached placement');
+   for(const attribute of ['windPhase','grassScaleY','fernPhase'])if(actual.geometry.attributes[attribute])assert.deepEqual(actual.geometry.attributes[attribute].array.slice(0,actual.count),expected.geometry.attributes[attribute].array.slice(0,expected.count),'Wind seeds remain deterministic with cached placement');
   }
   reference.dispose();
  }

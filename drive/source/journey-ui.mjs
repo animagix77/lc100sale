@@ -1,6 +1,7 @@
 // Judge Dean LLC — route planning, saved checkpoints and a placeable camp.
 import {ROUTE_FORKS,LEGACY_SHELF} from './expedition.mjs';
 import {setMessageText} from './driving-messages.mjs';
+import {expeditionChoiceInfo,routePreviewSvg} from './route-choice-info.mjs';
 const KEY='com.judgedeanllc.lc100.expedition.v1';
 export function readJourney(){try{return JSON.parse(localStorage.getItem(KEY))}catch{return null}}
 export function saveJourney(route,camp){try{localStorage.setItem(KEY,JSON.stringify({route:route.snapshot(),camp:camp.snapshot()}));return true}catch{return false}}
@@ -31,6 +32,7 @@ export function engineReadout(physics){return `${physics.range} · ${physics.lig
 export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onConfirm,onCancel,onRotate,onFire,onCamera,onRestart,onCampView=()=>{},onDrive=()=>{},context=()=>({paused:false,camp:{ready:true,near:true,reason:''}})}){
  const panel=document.createElement('section');panel.id='journey-controls';panel.innerHTML='<button id="journey-plan">Routes & camp</button><button id="hood-camera" aria-pressed="false">Hood view</button><button id="camp-drive">Return to driving</button><span id="engine-readout"></span><span id="ford-status" tabindex="0" data-scroll-message aria-label="Water crossing status" role="status"></span><span id="camp-objective" role="status"></span>';
  (document.getElementById('driving-hud')||document.getElementById('game')).append(panel);
+ const progress=document.createElement('span');progress.id='journey-progress';progress.setAttribute('aria-label','Expedition progress');document.getElementById('waypoint-distance')?.parentElement?.append(progress);
  const dialog=document.createElement('dialog');dialog.id='journey-dialog';dialog.setAttribute('aria-label','Expedition routes and camp');document.body.append(dialog);
  const placement=document.createElement('section');placement.id='camp-placement';placement.hidden=true;placement.setAttribute('aria-label','Choose your tent spot');placement.innerHTML='<span class="camp-eyebrow">01 / SHELTER</span><strong>Choose your tent spot</strong><p>Tap open ground to move the preview. Fine-tune below.</p><p id="camp-placement-status" role="status"></p><div class="camp-adjust"><button data-move="-1,0" aria-label="Move tent left">Left</button><button data-move="0,-1" aria-label="Move tent farther">Away</button><button data-move="0,1" aria-label="Move tent nearer">Closer</button><button data-move="1,0" aria-label="Move tent right">Right</button><button id="camp-rotate">Rotate</button></div><div class="camp-placement-actions"><button id="camp-cancel">Back</button><button id="camp-confirm">Pitch shelter</button></div>';
  document.getElementById('game').append(placement);
@@ -42,7 +44,8 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
  function routes(parent,forks,{heading=true}={}){
   for(const f of forks){if(heading)parent.append(element('h3',f.title));const selected=f.id==='dunes'&&route.choices.dunes==='shelf'?'saddle':route.choices[f.id]||f.options[0].id;
    parent.append(element('p',route.next>f.at?'Route travelled':'Select a route below.'));if(f.id==='dunes'&&route.choices.dunes==='shelf')parent.append(element('p','Your saved Coastal shelf detour continues into the mountain expedition. Select Coastal islands to start the new beach itinerary.'));
-   for(const o of f.options){const active=selected===o.id;const b=button('',()=>{route.choose(f.id,o.id);onSave();render();dialog.querySelector(`[data-route="${f.id}:${o.id}"]`)?.focus();},route.next>f.at);b.dataset.route=`${f.id}:${o.id}`;b.className='journey-route';b.setAttribute('aria-pressed',String(active));const title=element('strong',o.name),description=element('span',o.description),state=element('span',active?'Selected':'Select');description.className='journey-route-description';state.className='journey-route-state';b.append(title,state,description);parent.append(b);}
+   for(const o of f.options){const active=selected===o.id;const b=button('',()=>{route.choose(f.id,o.id);onSave();render();dialog.querySelector(`[data-route="${f.id}:${o.id}"]`)?.focus();},route.next>f.at);b.dataset.route=`${f.id}:${o.id}`;b.className='journey-route';b.setAttribute('aria-pressed',String(active));const title=element('strong',o.name),description=element('span',o.description),state=element('span',active?'Selected':'Select');description.className='journey-route-description';state.className='journey-route-state';
+    const info=expeditionChoiceInfo(o.id);if(info){const preview=element('span','');preview.className='route-preview';preview.innerHTML=routePreviewSvg(info.points);const meta=element('span',`${info.label} · ${info.distance} · ${info.stops} stops`);meta.className='journey-route-meta';b.className+=' has-preview';b.append(preview,title,state,meta,description);}else b.append(title,state,description);parent.append(b);}
   }
  }
 
@@ -90,7 +93,8 @@ export function createJourneyUI({route,camp,onPause,onResume,onSave,onPlace,onCo
   text('journey-plan',route.complete?(camp.tent?'Camp':'Set up camp'):'Routes & camp');
   const state=context();if(typeof state.hood==='boolean'&&state.hood!==hood){hood=state.hood;const b=document.getElementById('hood-camera');b.setAttribute('aria-pressed',String(hood));text('hood-camera',hood?'Chase view':'Hood view');}
   text('engine-readout',engineReadout(physics));text('camp-objective',state.camp.objective||'');
+  const progressText=`${route.coastal?'Coast':'Mountains'} · ${Math.min(route.next,route.count)} / ${route.count} stops`;if(progress.textContent!==progressText)progress.textContent=progressText;
   const f=physics.fording,notice=document.getElementById('ford-status'),waterMessage=f.stalled?'ENGINE STALLED · Recovering to checkpoint':f.exposure>.2?'DEEP WATER · Back out now':f.depth>.15?`WATER ${f.depth.toFixed(2)} m · Slow, steady throttle`:'';
   setMessageText(notice,waterMessage,{resetScroll:!(waterMessage.startsWith('WATER ')&&notice.textContent.startsWith('WATER '))});
- },dispose(){dialog.remove();panel.remove();placement.remove();}};
+ },dispose(){dialog.remove();panel.remove();placement.remove();progress.remove();}};
 }

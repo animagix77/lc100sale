@@ -10,7 +10,7 @@ export class MobileCameraFrame{
   this.corners=[];
   for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z])this.corners.push(subject.worldToLocal(new Vector3(x,y,z)));
  }
- restore(camera){if(!this.applied)return;camera.clearViewOffset();camera.zoom=1;camera.updateProjectionMatrix();this.applied=false;}
+ restore(camera){if(!this.applied)return;camera.clearViewOffset();camera.aspect=this.aspect;camera.zoom=1;camera.updateProjectionMatrix();this.applied=false;}
  bounds(camera,subject){
   subject.updateWorldMatrix(true,false);camera.updateMatrixWorld();
   const bounds={left:Infinity,right:-Infinity,top:Infinity,bottom:-Infinity};
@@ -20,6 +20,9 @@ export class MobileCameraFrame{
  apply(camera,subject,{width,height,left=14,right=width-14,top=80,bottom=height-180},dt){
   if(!this.corners.length||right<=left||bottom<=top)return;
   this.restore(camera);
+  // Three's setViewOffset also changes aspect. Restore the underlying viewport
+  // after this temporary fit, including a frame using pre-resize HUD bounds.
+  this.aspect=camera.aspect;
   this.center.set(0,0,0);for(const p of this.corners)this.center.add(p);this.center.multiplyScalar(1/8);subject.localToWorld(this.center);
   // Altitude and steep slopes must never send the aim above the vehicle.
   camera.lookAt(this.center);
@@ -52,5 +55,5 @@ export function observeMobileCameraWindow(doc=document,view=window){
  const schedule=()=>{if(!pending)pending=view.requestAnimationFrame(measure);};
  const resize=new view.ResizeObserver(schedule);resize.observe(game);if(clearance)resize.observe(clearance);
  coarse.addEventListener('change',schedule);view.addEventListener('resize',schedule);measure();
- return {get current(){return current;},dispose(){resize.disconnect();coarse.removeEventListener('change',schedule);view.removeEventListener('resize',schedule);if(pending)view.cancelAnimationFrame(pending);}};
+ return {get current(){return current;},refresh(){if(pending)view.cancelAnimationFrame(pending);measure();},dispose(){resize.disconnect();coarse.removeEventListener('change',schedule);view.removeEventListener('resize',schedule);if(pending)view.cancelAnimationFrame(pending);}};
 }

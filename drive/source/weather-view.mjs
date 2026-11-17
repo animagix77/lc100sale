@@ -73,6 +73,7 @@ export class WeatherView{
   this.light.position.set(p.x+this.direction.x*.10,p.y+Math.max(20-14*this.haloStrength.value,y*.12),p.z+this.direction.z*.10);this.light.target.position.set(p.x,p.y,p.z);
   this.clouds.mesh.material.color.lerp(this.colors.cloud,k);this.cloudCover??=s.cloud;this.cloudCover+=(s.cloud-this.cloudCover)*k;this.clouds.setCover(this.cloudCover);this.clouds.wind=1+s.wind/15;
   this.ocean.skyTop.value.copy(this.top.value);this.ocean.skyHorizon.value.copy(this.horizon.value);this.ocean.sunColor.value.copy(this.colors.light).multiplyScalar((1-s.cloud)*this.day);
+  this.ocean.cloudColor.value.copy(this.clouds.mesh.material.color);this.ocean.cloudCover.value=this.cloudCover;
   this.ocean.sunDirection.value.copy(this.direction).normalize();this.ocean.brightness.value+=(this.brightness-this.ocean.brightness.value)*k;this.ocean.waveScale.value+=((.8+Math.min(s.wind,60)/60*.7)-this.ocean.waveScale.value)*k;
   this.precip.visible=s.rain>.01&&!this.reduced;this.snowflakes.visible=s.snow>.01&&!this.reduced;
   // The volume follows the camera, but its particles retain their world motion.

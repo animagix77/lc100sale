@@ -1,7 +1,7 @@
 import {createFrequencyRoll,createTuningSweep,TUNING_MS} from './radio-tuning.mjs';
 import {STATIONS} from './stations.mjs';
 // One opt-in media element: selecting a preset while off does not download it.
-export function createMusic(button,focus,{onPower=()=>{}}={}){
+export function createMusic(button,focus,{onPower=()=>{},onPanelChange=()=>{}}={}){
  const $=id=>document.getElementById(id),panel=$('radio-panel'),power=$('radio-power'),volume=$('radio-volume'),presets=$('radio-presets');
  const media=document.createElement('audio');media.id='soundtrack';media.preload='none';media.loop=true;media.hidden=true;document.body.append(media);
  let ctx,gain,on=false,paused=!!document.hidden,disposed=false,version=0,timer,loadTimer,effectsOn=false,engineLoad=0,selected=0,userVolume=.7,needsReload=false,status='POWER OFF';
@@ -42,7 +42,7 @@ export function createMusic(button,focus,{onPower=()=>{}}={}){
   if(on&&!paused)void play({animate:true});else{ramp(0,.055);motor();timer=setTimeout(()=>media.pause(),220)}
  }
  function tune(i){if(disposed)return;const next=(i+STATIONS.length)%STATIONS.length;if(next===selected)return;const direction=Number(STATIONS[next].frequency)>=Number(STATIONS[selected].frequency)?1:-1;selected=next;render();if(on&&!paused)void play({retune:true,direction})}
- function open(value){panel.hidden=!value;button.setAttribute('aria-expanded',String(value));if(value)power.focus({preventScroll:true});else focus()}
+ function open(value,{focus:moveFocus=true,notify=true}={}){const changed=panel.hidden===value;panel.hidden=!value;button.setAttribute('aria-expanded',String(value));if(changed&&notify)onPanelChange(value);if(moveFocus){if(value)power.focus({preventScroll:true});else focus()}}
  button.removeAttribute('aria-pressed');button.setAttribute('aria-controls','radio-panel');button.setAttribute('aria-expanded','false');
  listen(button,'click',()=>open(panel.hidden));listen($('radio-close'),'click',()=>open(false));listen(power,'click',turnPower);
  listen($('radio-prev'),'click',()=>tune(selected-1));listen($('radio-next'),'click',()=>tune(selected+1));
@@ -53,5 +53,5 @@ export function createMusic(button,focus,{onPower=()=>{}}={}){
  function suspend(value){if(paused===value||disposed)return;paused=value;version++;sweep?.stop();tuning=false;clearTimeout(timer);clearTimeout(loadTimer);stopMotor();if(value){media.pause();ramp(0);status=on?'PAUSED':'POWER OFF';render()}else if(on)void play()}
  listen(document,'visibilitychange',()=>suspend(document.hidden));
  listen(media,'error',()=>{if(on)fail(version)});render();
- return {get powered(){return on},get station(){return STATIONS[selected]},setEffectsMix(enabled,load){effectsOn=enabled;engineLoad=load;if(ctx&&on&&!paused&&!disposed&&!tuning)ramp(targetGain(),.3)},pause:suspend,dispose(){disposed=true;version++;sweep?.stop();frequency.dispose();clearTimeout(timer);clearTimeout(loadTimer);stopMotor();listeners.forEach(off=>off());media.pause();media.removeAttribute('src');media.load();media.remove();ctx?.close().catch(()=>{})}};
+ return {get powered(){return on},get station(){return STATIONS[selected]},closePanel:options=>open(false,options),setEffectsMix(enabled,load){effectsOn=enabled;engineLoad=load;if(ctx&&on&&!paused&&!disposed&&!tuning)ramp(targetGain(),.3)},pause:suspend,dispose(){disposed=true;version++;sweep?.stop();frequency.dispose();clearTimeout(timer);clearTimeout(loadTimer);stopMotor();listeners.forEach(off=>off());media.pause();media.removeAttribute('src');media.load();media.remove();ctx?.close().catch(()=>{})}};
 }

@@ -72,7 +72,7 @@ export function riverApproach(x,z,route=routeSample(x,z),profile=riverProfile(x,
 }
 export function riverMask(x,z){return riverProfile(x,z).wet}
 export function riverRippleScale(x,z){return smooth(0,.25,Math.max(0,riverProfile(x,z).depth))}
-export function riverHeight(x,z,time=0){return riverLevel(x)+(Math.sin(x*.9+z*1.8-time*2.2)*.012+Math.sin(x*2.3+time*3.1)*.006)*riverRippleScale(x,z)}
+export function riverHeight(x,z,time=0){return riverLevel(x)+(Math.sin(x*.9+z*1.8+time*2.2)*.012+Math.sin(x*2.3+time*3.1)*.006)*riverRippleScale(x,z)}
 export function biomeWeather(x,z){const b=routeSample(x,z),w=b.weights;
  if(x<-25&&islandProfile(x,z).influence>0)return {mode:'expedition',live:false,label:'COASTAL ISLANDS',archipelago:1,canyon:0,volcanic:0,altitude:9-5*smooth(-100,-420,x),cloud:.25,wind:8,rain:0,snow:0,fog:false,storm:false};
  const canyon=(1-smooth(75,145,Math.abs(x-665)))*(1-smooth(65,120,Math.abs(z+470)));
