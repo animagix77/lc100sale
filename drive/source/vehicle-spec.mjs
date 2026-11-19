@@ -9,4 +9,11 @@ export const LC100=Object.freeze({
 // 11-inch section width, 627 rev/mile at 45 mph. Rolling radius is distinct
 // from the unloaded outer radius; pressure/load variation is not simulated.
 export const FITTED_TYRE=Object.freeze({name:'BFGoodrich Mud-Terrain T/A KM3',size:'LT275/70R18',diameter:33.2*.0254,width:11*.0254,revsPerMile:627});
-export const VEHICLE_SETUP=Object.freeze({massKg:2450,wheelRadius:FITTED_TYRE.diameter/2,rollingRadius:1609.344/(FITTED_TYRE.revsPerMile*2*Math.PI),wheelWidth:FITTED_TYRE.width});
+// The approved lifted model has its own tire envelope. Keep the road tire's
+// loaded-to-unloaded radius ratio for gearing and tire slip in the expedition.
+const modelRadius=.47813;
+const referenceRollingRadius=1609.344/(2*Math.PI*FITTED_TYRE.revsPerMile);
+export const VEHICLE_SETUP=Object.freeze({
+ massKg:2450,wheelRadius:modelRadius,wheelWidth:.345,
+ rollingRadius:referenceRollingRadius*modelRadius/(FITTED_TYRE.diameter/2),
+});

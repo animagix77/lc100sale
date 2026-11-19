@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import {positionLocal,texture,uniform,float,smoothstep,cameraPosition,modelWorldMatrixInverse,vec4,sin,viewportDepthTexture,perspectiveDepthToViewZ,cameraNear,cameraFar,cameraViewMatrix,modelWorldMatrix} from 'three/tsl';
+import {positionLocal,normalLocal,texture,uniform,float,smoothstep,cameraPosition,modelWorldMatrixInverse,vec4,sin,viewportDepthTexture,perspectiveDepthToViewZ,cameraNear,cameraFar,cameraViewMatrix,modelWorldMatrix} from 'three/tsl';
 
 export function lampState(altitude,wasDark,{braking=false,reversing=false}={}){
  const dark=Number.isFinite(altitude)?(wasDark?altitude<16:altitude<12):wasDark;
@@ -12,19 +12,43 @@ export class VehicleLights{
   this.head=uniform(0);this.tail=uniform(0);this.stop=uniform(0);this.reverse=uniform(0);this.materials=[];
   const p=positionLocal,x=p.x.abs(),y=p.y,z=p.z;
   const band=(v,lo,hi)=>smoothstep(lo,lo+.025,v).mul(float(1).sub(smoothstep(hi-.025,hi,v)));
-  truck.getObjectByName('Body')?.traverse(mesh=>{
-   if(!mesh.isMesh||!mesh.material.map)return;
-   const original=mesh.material,mat=new THREE.MeshStandardNodeMaterial();mat.copy(original);
-   const tex=texture(original.map),red=smoothstep(.04,.15,tex.r.sub(tex.g.mul(1.4)).sub(tex.b.mul(.15))),white=smoothstep(.24,.52,tex.r.min(tex.g).min(tex.b));
-   const front=band(x,.49,.94).mul(band(y,.94,1.19)).mul(float(1).sub(smoothstep(-2.02,-1.95,z))).mul(white);
-   const rear=band(x,.64,1.04).mul(band(y,.89,1.32)).mul(smoothstep(2.05,2.16,z));
-   const high=band(x,0,.48).mul(band(y,1.76,1.96)).mul(smoothstep(1.90,2.05,z)).mul(red);
-   mat.emissiveNode=uniform(new THREE.Color('#ffe3ac')).mul(front).mul(this.head)
-    .add(uniform(new THREE.Color('#ff0000')).mul(rear.mul(red)).mul(this.tail))
-    .add(uniform(new THREE.Color('#ff0000')).mul(high).mul(this.stop))
-    .add(uniform(new THREE.Color('#ecf4ff')).mul(rear.mul(white)).mul(this.reverse));
+  const surfaces=[];
+  truck.getObjectByName('Body')?.traverse(mesh=>{if(mesh.isMesh)surfaces.push(mesh)});
+  const molded=surfaces.some(mesh=>mesh.material.name==='Rear lamps / ruby reflector cells');
+  const beamColor=uniform(new THREE.Color('#ffe3ac')),redColor=uniform(new THREE.Color('#ff0000')),reverseColor=uniform(new THREE.Color('#ecf4ff'));
+  for(const mesh of surfaces){
+   const original=mesh.material;
+   let emission;
+   if(molded){
+    // Clear indicator and reversing strips share an optical material. Their
+    // individual mesh names identify the actual circuit on the molded housing.
+    if(original.name==='Astra • faceted headlight reflector'){
+     const facets=normalLocal.z.abs().pow(4).mul(.62).add(.18);
+     emission=beamColor.mul(facets).mul(this.head);
+    }else if(original.name==='Rear lamps / ruby reflector cells'){
+     const prisms=texture(original.map).r.mul(.75).add(.25);
+     emission=redColor.mul(prisms).mul(this.tail);
+    }else if(original.name==='Rear lamps / clear reflector cells' && /reverse/i.test(mesh.name)){
+     const prisms=texture(original.map).r.mul(.70).add(.30);
+     emission=reverseColor.mul(prisms).mul(this.reverse);
+    }else if(original.name==='V5 / rear detail v6 / red prism edges'){
+     // This material also appears on the two passive bumper reflectors.
+     emission=redColor.mul(smoothstep(1.85,1.91,y)).mul(this.stop);
+    }
+   }else if(original.map){
+    const tex=texture(original.map),red=smoothstep(.04,.15,tex.r.sub(tex.g.mul(1.4)).sub(tex.b.mul(.15))),white=smoothstep(.24,.52,tex.r.min(tex.g).min(tex.b));
+    const front=band(x,.49,.94).mul(band(y,.94,1.19)).mul(float(1).sub(smoothstep(-2.02,-1.95,z))).mul(white);
+    const rear=band(x,.64,1.04).mul(band(y,.89,1.32)).mul(smoothstep(2.05,2.16,z));
+    const high=band(x,0,.48).mul(band(y,1.76,1.96)).mul(smoothstep(1.90,2.05,z)).mul(red);
+    emission=beamColor.mul(front).mul(this.head)
+     .add(redColor.mul(rear.mul(red)).mul(this.tail))
+     .add(redColor.mul(high).mul(this.stop))
+     .add(reverseColor.mul(rear.mul(white)).mul(this.reverse));
+   }
+   if(!emission)continue;
+   const mat=new THREE.MeshStandardNodeMaterial();mat.copy(original);mat.emissiveNode=emission;
    mesh.material=mat;this.materials.push({mesh,original,mat});
-  });
+  }
   const spot=(color,position,target,distance,angle,decay)=>{
    const light=new THREE.SpotLight(color,0,distance,angle,.72,decay);light.position.set(...position);light.target.position.set(...target);this.group.add(light,light.target);return light;
   };

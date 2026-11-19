@@ -34,7 +34,10 @@ export class Powertrain{
   const canPullNext=this.gear<5&&(!governed||capacity(this.gear+1)>resistanceForce*1.15);
   if(range==='HI'&&!reverse&&!this.hold){
    const up=[0,5.2,9.2,14,19][this.gear]??Infinity;
-   if(this.gear<5&&canPullNext&&Math.abs(speed)>up&&coupled>(governed?1900:3000+throttle*1700)){
+   // At the governor, upshift when the next gear clears the 1100 RPM
+   // downshift threshold with headroom and has enough torque to hold speed.
+   const upshiftRpm=governed?shaft*AUTO_RATIOS[this.gear]>1300:coupled>3000+throttle*1700;
+   if(this.gear<5&&canPullNext&&Math.abs(speed)>up&&upshiftRpm){
     this.gear++;this.shiftTime=this.shiftDuration=.24;this.shiftDirection=1;this.hold=1.2;this.shifts++;
    }else if(this.gear>1&&(coupled<(governed?1100:1350+throttle*700)||(governed&&capacity(this.gear)<resistanceForce*.98))&&shaft*AUTO_RATIOS[this.gear-2]<4300){
     this.gear--;this.shiftTime=this.shiftDuration=.18;this.shiftDirection=-1;this.hold=.9;this.shifts++;

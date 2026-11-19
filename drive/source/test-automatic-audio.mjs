@@ -7,8 +7,11 @@ import {drivingMix,engineVoice} from './sound.mjs';
 import {VEHICLE_SETUP,FITTED_TYRE} from './vehicle-spec.mjs';
 import {fitTyreVisual} from './tyre-fit.mjs';
 const dt=1/120,trace=[],shifts=[],p=await DrivePhysics.create();
-assert.equal(FITTED_TYRE.size,'LT275/70R18');assert(Math.abs(VEHICLE_SETUP.wheelRadius-.42164)<1e-10);
-assert(Math.abs(1609.344/(2*Math.PI*VEHICLE_SETUP.rollingRadius)-627)<1e-8);
+assert.equal(FITTED_TYRE.size,'LT275/70R18');
+assert(Math.abs(FITTED_TYRE.diameter/2-.42164)<1e-10);
+assert.equal(VEHICLE_SETUP.wheelRadius,.47813);
+const referenceRevPerMile=1609.344/(2*Math.PI*VEHICLE_SETUP.rollingRadius)*VEHICLE_SETUP.wheelRadius/(FITTED_TYRE.diameter/2);
+assert(Math.abs(referenceRevPerMile-FITTED_TYRE.revsPerMile)<1e-8);
 p.waterHeight=()=>-Infinity;p.world.createCollider(RAPIER.ColliderDesc.cuboid(500,.1,1500).setTranslation(-20,-.1,0));p.reset(-20,0,0);
 for(let i=0;i<240;i++)p.step(dt,{brake:true});let prior=1;
 for(let i=0;i<40*120;i++){
@@ -37,6 +40,14 @@ const full=engineVoice({rpm:3000,load:1}),shift=engineVoice({rpm:3000,load:1,shi
 assert(shift.gains[0]<full.gains[0]&&shift.gains[0]>full.gains[0]*.5,'Shift briefly unloads the exhaust without muting or a bang');
 for(const args of [{range:'LO',speed:3,wheelSpeed:3},{reverse:true,speed:-2,wheelSpeed:-2},{speed:0,wheelSpeed:15}]){const e=new Powertrain();for(let i=0;i<1200;i++)e.update(dt,{...args,throttle:1});assert.equal(e.gear,1,'Crawl, reverse and stationary wheelspin do not fake upshift sounds');}
 const parent=new THREE.Group(),roll=new THREE.Group(),mesh=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,.4,64),new THREE.MeshBasicMaterial());mesh.rotation.z=Math.PI/2;roll.add(mesh);parent.add(roll);parent.rotation.set(.2,.3,.1);fitTyreVisual(roll);const scale=roll.scale.clone();fitTyreVisual(roll);assert(roll.scale.distanceTo(scale)<1e-8,'Runtime tire fit is repeat-safe');assert(Math.abs(roll.scale.y*.5-VEHICLE_SETUP.wheelRadius)<1e-6);assert(Math.abs(roll.scale.x*.4-VEHICLE_SETUP.wheelWidth)<1e-6);
+// A projecting lug must not narrow the tire. The exported casing can contain
+// more than one material primitive beneath its tagged GLTF node.
+const casing=new THREE.Group();casing.userData.lc100_v5_tire=true;
+roll.add(casing);casing.add(mesh);
+const lug=new THREE.Mesh(new THREE.BoxGeometry(.1,.02,.02),mesh.material);lug.position.x=.25;roll.add(lug);
+fitTyreVisual(roll);
+assert(roll.scale.distanceTo(scale)<1e-8,'Casing dimensions set wheel width independently of projecting wheel hardware');
+lug.geometry.dispose();
 mesh.geometry.dispose();mesh.material.dispose();p.dispose();
 if(process.env.LC100_AUDIO_TRACE){const {writeFileSync}=await import('node:fs');writeFileSync(process.env.LC100_AUDIO_TRACE,JSON.stringify({sampleHz:120,trace,shifts}));}
 console.log('Automatic engine audio: acceleration, shift drops, kickdown, overdrive, crawl/reverse/spin, tire size and runtime fit passed.');

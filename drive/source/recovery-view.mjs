@@ -1,12 +1,17 @@
 import * as THREE from 'three/webgpu';
 export class RecoveryView{
  constructor(scene,truck,model,recovery){this.truck=truck;this.recovery=recovery;this.models=[];this.mounts=[];this.a=new THREE.Vector3();this.b=new THREE.Vector3();this.q=new THREE.Quaternion();
+  // Crossbar top centers measured on the game model at the board mounting points.
+  const front={z:.597,height:2.1072},rear={z:1.542,height:2.1372};
   for(let i=0;i<2;i++){
-   const mount=new THREE.Object3D();mount.position.set(i===0?-.29:.29,2.045,.92);truck.add(mount);this.mounts.push(mount);
+   const mount=new THREE.Object3D();
+   mount.position.set(i===0?-.29:.29,(front.height+rear.height)/2,(front.z+rear.z)/2);
+   mount.rotation.x=-Math.atan2(rear.height-front.height,rear.z-front.z);
+   truck.add(mount);this.mounts.push(mount);
    // Two dark straps anchor each board to the rack while stowed.
    const straps=new THREE.Group();for(const z of [-.36,.36]){const strap=new THREE.Mesh(new THREE.BoxGeometry(.35,.016,.035),new THREE.MeshStandardMaterial({color:'#24272a',roughness:.8}));strap.position.set(0,.055,z);straps.add(strap)}mount.add(straps);mount.userData.straps=straps;
   }
-  // Center both mounts between the rack crossbars (z approx .2 and 1.6). Extra boards split from those positions
+  // Extra boards split from the two rack positions
   // for four-wheel recovery and disappear back into the same stowed silhouette.
   for(let i=0;i<4;i++){const board=model.clone(true);board.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true});board.visible=i<2;scene.add(board);this.models.push(board)}
  }

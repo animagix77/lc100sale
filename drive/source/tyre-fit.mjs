@@ -1,4 +1,4 @@
-// Judge Dean LLC — fit existing wheel meshes to the confirmed KM3 dimensions.
+// Judge Dean LLC — fit the tire envelope to the wheel contact dimensions.
 import {Matrix4,Vector3} from 'three';
 import {VEHICLE_SETUP} from './vehicle-spec.mjs';
 export function fitTyreVisual(roll){
@@ -6,7 +6,9 @@ export function fitTyreVisual(roll){
  // including child transforms; steering and suspension must not affect size.
  roll.scale.set(1,1,1);roll.updateWorldMatrix(true,true);
  const inverse=roll.matrixWorld.clone().invert(),matrix=new Matrix4(),v=new Vector3();let radius=0,minX=Infinity,maxX=-Infinity;
- roll.traverse(mesh=>{const positions=mesh.geometry?.attributes.position;if(!positions)return;matrix.multiplyMatrices(inverse,mesh.matrixWorld);for(let i=0;i<positions.count;i++){v.fromBufferAttribute(positions,i).applyMatrix4(matrix);radius=Math.max(radius,Math.hypot(v.y,v.z));minX=Math.min(minX,v.x);maxX=Math.max(maxX,v.x);}});
+ // Hardware can project beyond the sidewall. Use the marked casing when available.
+ const casing=roll.children.find(part=>part.userData.lc100_v5_tire)??roll;
+ casing.traverse(mesh=>{const positions=mesh.geometry?.attributes.position;if(!positions)return;matrix.multiplyMatrices(inverse,mesh.matrixWorld);for(let i=0;i<positions.count;i++){v.fromBufferAttribute(positions,i).applyMatrix4(matrix);radius=Math.max(radius,Math.hypot(v.y,v.z));minX=Math.min(minX,v.x);maxX=Math.max(maxX,v.x);}});
  if(radius>0&&maxX>minX)roll.scale.set(VEHICLE_SETUP.wheelWidth/(maxX-minX),VEHICLE_SETUP.wheelRadius/radius,VEHICLE_SETUP.wheelRadius/radius);
  return roll.scale;
 }

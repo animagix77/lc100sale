@@ -11,7 +11,9 @@ export class VehicleSnow {
   this.material.positionNode=positionLocal.add(normalLocal.mul(this.amount.mul(.014).add(.003)));
   const body=truck.getObjectByName('Body');
   const sources=[];body?.traverse(mesh=>{if(mesh.isMesh)sources.push(mesh)});
-  for(const source of sources){
+  // The detailed model has a separate paint material. Older single-atlas models use the height mask alone.
+  const paint=sources.filter(mesh=>/^V5 \/ graphite metallic paint(?: \/ wet coat)?$/i.test(mesh.material.name));
+  for(const source of paint.length?paint:sources){
    const g=source.geometry,p=g.getAttribute('position'),n=g.getAttribute('normal');if(!p||!n)continue;
    const positions=[],normals=[],index=g.index;
    for(let t=0;t<(index?index.count:p.count);t+=3){

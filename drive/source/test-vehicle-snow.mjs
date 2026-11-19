@@ -16,4 +16,12 @@ const dryMelt=1-snow.amount.value;snow.amount.value=1;snow.update(10,{snow:0,rai
 snow.update(1000,{snow:0});assert.equal(snow.amount.value,0);
 for(const mesh of snow.meshes){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;for(let i=0;i<p.count;i++)assert(n.getY(i)>.5&&p.getY(i)>1.15,'Snow stays on upper upward-facing surfaces');}
 snow.dispose();assert.equal(shell.children.length,0);assert.equal(shell.material,paint);
+paint.name='V5 / graphite metallic paint / wet coat';
+for(const name of ['Windshield glass','Rear lamps / ruby reflector cells']){
+ const material=new THREE.MeshStandardNodeMaterial();material.name=name;
+ body.add(new THREE.Mesh(geometry,material));
+}
+const detailedSnow=new VehicleSnow(truck);
+assert.deepEqual(detailedSnow.meshes.map(cover=>cover.parent),[shell],'Only graphite paint gathers snow on the detailed model');
+detailedSnow.dispose();
 console.log('Vehicle snow: gradual dusting, bounded accumulation, pause, dry/rain melt, upper surfaces and material preservation passed.');
