@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {BoxGeometry, Group, Mesh, MeshStandardMaterial, Texture, Vector3} from 'three/webgpu';
 import {mergeRigid} from './vehicle-batching.mjs';
+import {VehicleDamage} from './vehicle-damage.mjs';
+import {VehicleDamageView} from './vehicle-damage-view.mjs';
 
 const body = new Group();
 body.position.set(14, 0, -8);
@@ -35,3 +37,80 @@ assert.deepEqual(batch.geometry.boundingBox.getCenter(new Vector3()).toArray(), 
 for (const part of [left,right,indicator,reverse]) assert.equal(part.parent,body);
 assert.ok(body.getObjectByName(named.name));
 console.log('Vehicle batching preserves mapped surfaces, separate panes and independently lit lenses.');
+
+// The paint is shared everywhere on the truck. Each closure still needs an
+// independent transform after batching, including its glazing and inner trim.
+const truck=new Group(), coachwork=new Group();
+coachwork.name='Body';
+truck.add(coachwork);
+const paint=new MeshStandardMaterial(), pane=new MeshStandardMaterial({transparent:true});
+const closure=(id,hinge)=>{
+  const group=new Group();
+  group.userData.damage_panel=id;
+  group.userData.damage_hinge=hinge;
+  group.add(new Mesh(new BoxGeometry(),paint),new Mesh(new BoxGeometry(),pane));
+  coachwork.add(group);
+  return group;
+};
+const door=closure('leftFrontDoor',[-.965,.74,-.72]);
+const opposite=closure('rightFrontDoor',[.965,.74,-.72]);
+const hood=closure('hood',[0,1.378,-.966]);
+const gate=closure('tailgate',[0,.85035,2.42251]);
+const reverseLamp=new Mesh(new BoxGeometry(),paint);
+reverseLamp.name='Rear_lamps__left_reverse_gate';
+gate.add(reverseLamp);
+coachwork.add(new Mesh(new BoxGeometry(),paint));
+const view=new VehicleDamageView(truck), damage=new VehicleDamage();
+mergeRigid(coachwork);
+const whole=coachwork.children.find(part=>part.name.startsWith('Intact body /'));
+assert(whole?.visible,'Closed truck should render one shared paint batch');
+assert.equal(whole.geometry.index.count,5*36);
+assert(whole.castShadow && whole.receiveShadow);
+const closedGeometry=whole.geometry;
+assert.equal(gate.children.length,3);
+assert.equal(reverseLamp.parent,gate);
+for(const group of [door,opposite,hood,gate]){
+  assert.equal(group.children.filter(part=>part.material===paint && part!==reverseLamp).length,1);
+  assert.equal(group.children.filter(part=>part.material===pane).length,1);
+}
+const zero=new Vector3();
+view.update(1/60,damage,zero);
+const strike={severity:1,point:{x:-1,z:0},normal:{x:-1,y:0,z:0}};
+damage.hit({...strike,severity:.35});
+view.update(1/60,damage,zero);
+assert(whole.visible,'Minor wear should keep closed batching active');
+damage.hit(strike);
+view.update(1/60,damage,zero);
+assert(!whole.visible);
+assert(door.children.find(part=>part.material===paint).visible);
+assert(door.rotation.y<0,'The driver door should open outwards');
+assert.equal(opposite.rotation.y,0);
+const hinge=new Vector3(...door.userData.damage_hinge);
+assert(door.localToWorld(hinge.clone()).distanceTo(hinge)<1e-8);
+damage.hit(strike);
+const moving=new Vector3();
+let max=0;
+for(let frame=0;frame<250;frame++){
+  moving.x=frame<48?frame/12:(96-frame)/12;
+  view.update(1/60,damage,moving);
+  max=Math.max(max,-door.rotation.y);
+}
+assert(max>.107 && max<=.651,'A failed latch allows a larger, bounded swing');
+damage.restore({hood:100,tailgate:100});
+view.reset();
+view.update(1/60,damage,zero);
+assert(hood.rotation.x>0 && gate.rotation.x>0);
+assert.equal(door.rotation.y,0);
+const accessible=new VehicleDamageView(truck,{reduced:true});
+accessible.update(1/60,damage,moving);
+const resting=gate.rotation.x;
+moving.z=-18;
+accessible.update(1/60,damage,moving);
+assert.equal(gate.rotation.x,resting,'Reduced motion keeps a visible, stable damaged pose');
+damage.reset();
+accessible.update(1/60,damage,zero);
+assert(gate.position.length()<1e-10 && Math.abs(gate.rotation.x)<1e-10);
+assert(whole.visible && whole.geometry===closedGeometry);
+assert(!door.children.find(part=>part.material===paint).visible);
+view.dispose();
+console.log('Damage checks passed for per-panel batches, hinge placement, inertia, repair and reduced motion.');

@@ -4,7 +4,7 @@ import {setMessageText} from './driving-messages.mjs';
 import {expeditionChoiceInfo,routePreviewSvg} from './route-choice-info.mjs';
 const KEY='com.judgedeanllc.lc100.expedition.v1';
 export function readJourney(){try{return JSON.parse(localStorage.getItem(KEY))}catch{return null}}
-export function saveJourney(route,camp){try{localStorage.setItem(KEY,JSON.stringify({route:route.snapshot(),camp:camp.snapshot()}));return true}catch{return false}}
+export function saveJourney(route,camp,damage){try{localStorage.setItem(KEY,JSON.stringify({route:route.snapshot(),camp:camp.snapshot(),damage:damage?.snapshot()}));return true}catch{return false}}
 
 // A modal may resume only the drive it paused. Blur/hidden state revokes that intent.
 export class JourneyPauseIntent{

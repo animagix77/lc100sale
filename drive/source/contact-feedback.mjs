@@ -1,4 +1,28 @@
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// A hard strike can load several adjacent triangles over successive steps.
+// Latch the struck collider until the truck has actually moved away from it.
+export class BodyImpactContacts{
+ static minImpulse=1000;
+ constructor(){this.reset(0)}
+ reset(time){this.latched=new Map();this.availableAt=time+.75;}
+ sample(time,hits){
+  for(const [id,lastTouch] of this.latched)if(time-lastTouch>.30)this.latched.delete(id);
+  let strongest=null;
+  for(const hit of hits){
+   if(!hit.touching)continue;
+   if(this.latched.has(hit.id)){this.latched.set(hit.id,time);continue;}
+   const {point,normal,impactSpeed:closing,impulse}=hit;
+   if(!point||normal.y<-.65||closing<2.6||impulse<BodyImpactContacts.minImpulse)continue;
+   const severity=clamp(.18+(closing-2.6)*.045+(impulse-BodyImpactContacts.minImpulse)/24000,.18,1);
+   if(!strongest||severity>strongest.severity)strongest={id:hit.id,point,normal,closing,impulse,severity};
+  }
+  if(!strongest)return null;
+  this.latched.set(strongest.id,time);
+  if(time<this.availableAt)return null;
+  this.availableAt=time+.22;
+  return strongest;
+ }
+}
 // Physics-time triggers prevent frame-rate-dependent chatter and repeated parked impacts.
 export class ContactFeedback{
  constructor(){this.reset(0)}

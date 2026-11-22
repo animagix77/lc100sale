@@ -4,7 +4,7 @@ import {VEHICLE_SETUP} from './vehicle-spec.mjs';
 import {Fording,riverCurrent} from './fording.mjs';
 import {RoadsideSafety} from './roadside-safety.mjs';
 import {waterSurfaceHeight} from './ocean-height.mjs';
-import {ContactFeedback} from './contact-feedback.mjs';
+import {BodyImpactContacts,ContactFeedback} from './contact-feedback.mjs';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {clamp,smooth,softnessAt,surfaceAt} from './terrain.mjs';
 import {RANGES,stepDriveline} from './drivetrain.mjs';
@@ -12,13 +12,40 @@ export {RAPIER};
 // Keyboard buttons remain full travel; touch pedals supply bounded analog values.
 export function pedalAmount(value){return value===true?1:typeof value==='number'&&Number.isFinite(value)?clamp(value,0,1):0;}
 export const wheelLayout=[{name:'FL',x:-.962,z:-1.42,front:true},{name:'FR',x:.962,z:-1.42,front:true},{name:'RL',x:-.962,z:1.43,front:false},{name:'RR',x:.962,z:1.43,front:false}];
+
+// Use the impulse-weighted contact patch rather than the obstacle's origin.
+// Rapier can enumerate either collider first; read the point on the truck in
+// both cases. Its cuboid is aligned to the rigid body with an offset center.
+function localImpact(manifold,flipped,chassis){
+ const point={x:0,y:0,z:0};
+ let weight=0;
+ for(let i=0;i<manifold.numContacts();i++){
+  const impulse=manifold.contactImpulse(i);
+  if(impulse<=0)continue;
+  const p=flipped?manifold.localContactPoint2(i):manifold.localContactPoint1(i);
+  if(!p)continue;
+  point.x+=p.x*impulse;point.y+=p.y*impulse;point.z+=p.z*impulse;weight+=impulse;
+ }
+ if(!weight)return null;
+ const offset=chassis.translationWrtParent();
+ point.x=point.x/weight+offset.x;point.y=point.y/weight+offset.y;point.z=point.z/weight+offset.z;
+ return {point,normal:flipped?manifold.localNormal2():manifold.localNormal1()};
+}
+
+function normalSpeed(linear,angular,center,point,normal){
+ const x=point.x-center.x,y=point.y-center.y,z=point.z-center.z;
+ return (linear.x+angular.y*z-angular.z*y)*normal.x+
+        (linear.y+angular.z*x-angular.x*z)*normal.y+
+        (linear.z+angular.x*y-angular.y*x)*normal.z;
+}
 export class DrivePhysics{
  static async create(sand=null){await RAPIER.init();return new DrivePhysics(sand)}
  constructor(sand=null){this.powertrain=new Powertrain();this.fording=new Fording();this.roadsideSafety=new RoadsideSafety();this.feedback=new ContactFeedback();this.soundEvents=[];this.world=new RAPIER.World({x:0,y:-9.81,z:0});this.world.timestep=1/120;this.world.numSolverIterations=8;this.rb=this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,3,0).setLinearDamping(.08).setAngularDamping(.7).setCanSleep(false).setCcdEnabled(true));this.chassis=this.world.createCollider(RAPIER.ColliderDesc.cuboid(.85,.47,2.12).setTranslation(0,.32,0).setMass(VEHICLE_SETUP.massKg).setFriction(.55),this.rb);this.vehicle=this.world.createVehicleController(this.rb);this.vehicle.indexUpAxis=1;this.vehicle.setIndexForwardAxis=2;this.steer=0;this.handbrakeSlip=0;this.speed=0;this.travel=0;this.time=0;this.origin={x:0,z:0};this.sand=sand;this.waterHeight=waterSurfaceHeight;this.controls={};this.lighting={braking:false,reversing:false};this.range='HI';this.centerLocked=false;this.centerTransfer=0;this.axleSlip=0;this.tyres=wheelLayout.map(()=>({omega:0,angle:0,slip:0,depth:0,soft:0,force:0,travel:0,contact:false,audioSurface:{sand:0,snow:0,mud:0,gravel:0,wet:0,compaction:0},audioLoad:0,audioSpeed:0,audioSlip:0}));this.marks=[];this.stuckTime=0;this.stuck=false;
  for(let i=0;i<4;i++){const w=wheelLayout[i];this.vehicle.addWheel({x:w.x,y:.06,z:w.z},{x:0,y:-1,z:0},{x:-1,y:0,z:0},.50,VEHICLE_SETUP.wheelRadius);this.vehicle.setWheelSuspensionStiffness(i,21);this.vehicle.setWheelSuspensionCompression(i,2.6);this.vehicle.setWheelSuspensionRelaxation(i,3.5);this.vehicle.setWheelMaxSuspensionTravel(i,.36);this.vehicle.setWheelMaxSuspensionForce(i,26000);this.vehicle.setWheelFrictionSlip(i,1.75);this.vehicle.setWheelSideFrictionStiffness(i,.85)}
  this.bridge=new CanyonBridge(this);this.dynamicWheelExclusions=new Set();
+ this.damageContacts=new BodyImpactContacts();this.damageEvents=[];this.incomingBodies=new Map();
  }
- reset(x,z,height){this.powertrain.reset();this.fording.reset();this.roadsideSafety.reset();this.feedback.reset(this.time);this.soundEvents=[];this.rb.setTranslation({x:x-this.origin.x,y:height+1.04,z:z-this.origin.z},true);this.rb.setRotation({x:0,y:0,z:0,w:1},true);this.rb.setLinvel({x:0,y:0,z:0},true);this.rb.setAngvel({x:0,y:0,z:0},true);this.rb.resetForces(true);this.rb.resetTorques(true);this.controls={};this.lighting={braking:false,reversing:false};this.speed=this.steer=this.handbrakeSlip=0;this.stuckTime=0;this.stuck=false;this.marks=[];if(this.loosePebbles)this.loosePebbles.snapTyres=true;for(const w of this.tyres){Object.assign(w,{omega:0,angle:0,slip:0,travel:0,depth:0,soft:0,force:0,contact:false,audioLoad:0,audioSpeed:0,audioSlip:0});for(const key in w.audioSurface)w.audioSurface[key]=0;}}
+ reset(x,z,height){this.powertrain.reset();this.fording.reset();this.roadsideSafety.reset();this.feedback.reset(this.time);this.damageContacts.reset(this.time);this.damageEvents.length=0;this.soundEvents=[];this.rb.setTranslation({x:x-this.origin.x,y:height+1.04,z:z-this.origin.z},true);this.rb.setRotation({x:0,y:0,z:0,w:1},true);this.rb.setLinvel({x:0,y:0,z:0},true);this.rb.setAngvel({x:0,y:0,z:0},true);this.rb.resetForces(true);this.rb.resetTorques(true);this.controls={};this.lighting={braking:false,reversing:false};this.speed=this.steer=this.handbrakeSlip=0;this.stuckTime=0;this.stuck=false;this.marks=[];if(this.loosePebbles)this.loosePebbles.snapTyres=true;for(const w of this.tyres){Object.assign(w,{omega:0,angle:0,slip:0,travel:0,depth:0,soft:0,force:0,contact:false,audioLoad:0,audioSpeed:0,audioSlip:0});for(const key in w.audioSurface)w.audioSurface[key]=0;}}
  setRange(range,input=this.controls){if(!RANGES[range]||input.gas||input.reverse||input.cruise)return false;this.range=range;return true}
  setCenterLock(locked,input=this.controls){if(input.gas||input.reverse||input.cruise)return false;this.centerLocked=!!locked;return true}
  position(){const p=this.rb.translation();return {x:p.x+this.origin.x,y:p.y,z:p.z+this.origin.z}}
@@ -141,7 +168,19 @@ export class DrivePhysics{
  }
  this.bridge.beforeStep(dt);
  // Rapier filter callbacks cannot reborrow body state while the controller runs.
- const excluded=this.dynamicWheelExclusions;excluded.clear();this.world.forEachRigidBody(body=>{if(body.isDynamic())for(let i=0;i<body.numColliders();i++){const c=body.collider(i);if(!this.bridge.has(c))excluded.add(c.handle)}});
+ const excluded=this.dynamicWheelExclusions;excluded.clear();this.incomingBodies.clear();
+ this.world.forEachRigidBody(body=>{
+  if(!body.isDynamic())return;
+  for(let i=0;i<body.numColliders();i++){
+   const c=body.collider(i);
+   if(this.bridge.has(c))continue;
+   excluded.add(c.handle);
+   // A falling boulder may already have bounced away by the time its manifold
+   // can be inspected. Save its incoming motion while its velocity is intact.
+   if(c.handle===this.chassis.handle||this.loosePebbles?.stones.has(c.handle)||!body.isEnabled()||body.isSleeping())continue;
+   this.incomingBodies.set(c.handle,{linear:body.linvel(),angular:body.angvel(),center:body.worldCom()});
+  }
+ });
  this.vehicle.updateVehicle(dt,0,undefined,c=>!excluded.has(c.handle)&&!this.loosePebbles?.handles.has(c.handle));this.bridge.applyWheelLoads(dt);this.loosePebbles?.beforeStep();this.world.step();this.bridge.afterStep(dt);this.loosePebbles?.afterStep(dt);
  const protectedMotion=this.roadsideSafety.constrain(p,this.position(),this.rb.linvel());
  if(protectedMotion){const a=protectedMotion.position;this.rb.setTranslation({x:a.x-this.origin.x,y:a.y,z:a.z-this.origin.z},true);this.rb.setLinvel(protectedMotion.velocity,true);this.lighting.braking=true;}
@@ -152,7 +191,19 @@ export class DrivePhysics{
    const n=m.normal(),sign=flipped?-1:1,ov=other.parent()?.linvel()||{x:0,y:0,z:0};
    const closing=Math.max(0,((v.x-ov.x)*n.x+(v.y-ov.y)*n.y+(v.z-ov.z)*n.z)*sign);
    const pebble=this.loosePebbles?.stones.has(other.handle);
-   hits.push({id:other.handle,source:pebble?'pebble':'chassis',kind:this.bridge.has(other)?'wood':this.obstacles?.kind?.(other)||(pebble?'rock':'suspension'),impulse,closing,pan:(n.x*right.x+n.z*right.z)*sign});
+   const hit={id:other.handle,source:pebble?'pebble':'chassis',kind:this.bridge.has(other)?'wood':this.obstacles?.kind?.(other)||(pebble?'rock':'suspension'),impulse,closing,pan:(n.x*right.x+n.z*right.z)*sign};
+   hit.touching=m.numSolverContacts()>0;
+   if(hit.touching&&impulse>=BodyImpactContacts.minImpulse&&!pebble&&!this.recovery?.boards?.some(b=>b.collider?.handle===other.handle)){
+    const patch=localImpact(m,flipped,this.chassis);
+    if(patch){
+     const worldPoint=m.solverContactPoint(0);
+     const mover=this.incomingBodies.get(other.handle);
+     const otherVelocity=mover?normalSpeed(mover.linear,mover.angular,mover.center,worldPoint,n):ov.x*n.x+ov.y*n.y+ov.z*n.z;
+     hit.impactSpeed=(normalSpeed(v,omega,this.rb.worldCom(),worldPoint,n)-otherVelocity)*sign;
+     Object.assign(hit,patch);
+    }
+   }
+   hits.push(hit);
   });
  });
  // The controller may have just lost a ray contact. Clear stale audio even
@@ -160,6 +211,8 @@ export class DrivePhysics{
  for(let i=0;i<4;i++)if(!this.vehicle.wheelIsInContact(i)){const w=this.tyres[i];w.audioLoad=w.audioSpeed=w.audioSlip=0;for(const key in w.audioSurface)w.audioSurface[key]=0;}
  const wheelSounds=wheelLayout.map((_,i)=>({contact:!!this.vehicle.wheelIsInContact(i),length:this.vehicle.wheelSuspensionLength(i),kind:(this.bridge.has(this.vehicle.wheelGroundObject(i))?'wood':this.obstacles?.kind?.(this.vehicle.wheelGroundObject(i)))||'sand'}));
  this.soundEvents.push(...this.feedback.sample(this.time,dt,wheelSounds,this.speed,v.y,hits));if(this.soundEvents.length>8)this.soundEvents.splice(0,this.soundEvents.length-8);
+ const damage=this.damageContacts.sample(this.time,hits);
+ if(damage){this.damageEvents.push(damage);if(this.damageEvents.length>8)this.damageEvents.shift();}
 
  // Powder beneath the chassis yields under contact, unlike rocks or hard ground.
  if(this.sand?.compactSnow&&surfaceAt(p.x,p.z).snow>.15&&Math.round(this.time/dt)%12===0){

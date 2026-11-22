@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {ContactFeedback} from './contact-feedback.mjs';
+import {BodyImpactContacts,ContactFeedback} from './contact-feedback.mjs';
 import {impactPCM} from './impact-audio.mjs';
 import {contactImpactMix} from './sound.mjs';
 const f=new ContactFeedback(),hit={id:1,source:'chassis',kind:'rock',impulse:3200,closing:5,pan:-.5};
@@ -21,4 +21,20 @@ for(const sr of [24000,48000]){
 }
 const crashMix=contactImpactMix({...hit,crash:true,energy:1}),pebbleMix=contactImpactMix({...hit,source:'pebble',energy:1});
 assert.equal(crashMix.kind,'crash');assert(crashMix.volume<=.56&&crashMix.cutoff<=1800);assert(pebbleMix.volume<=.095);assert(crashMix.volume>pebbleMix.volume*4);
+
+const contacts=new BodyImpactContacts();
+const sideHit={id:7,touching:true,point:{x:-.85,y:.35,z:-.3},normal:{x:-1,y:0,z:0},impactSpeed:5,impulse:11000};
+assert.equal(contacts.sample(.1,[sideHit]),null,'Reset settling cannot damage a panel');
+contacts.sample(.7,[]);
+const first=contacts.sample(1,[sideHit]);
+assert(first.severity>.6&&first.severity<.8);
+for(let step=1;step<200;step++){
+ assert.equal(contacts.sample(1+step/120,[sideHit]),null,'One continuous scrape is one hit, even when the impulse spikes again');
+}
+contacts.sample(3.1,[]);
+assert(contacts.sample(3.2,[sideHit]),'Hitting the same obstacle after separation registers again');
+contacts.reset(5);
+for(const patch of [{impactSpeed:0},{impactSpeed:1.6},{impulse:200},{touching:false},{normal:{x:0,y:-1,z:0}}]){
+ assert.equal(contacts.sample(6,[{...sideHit,...patch}]),null);
+}
 console.log('Crash feedback: actual severity thresholds, reset/parked silence, independent cooldown, bounded cache, finite original audio and quiet pebbles passed.');

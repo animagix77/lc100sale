@@ -20,6 +20,49 @@ for(const sr of [24000,48000])for(const kind of ['wood','rock','suspension']){
  console.log('Muffled contact spectrum',{kind,sr,trebleRatio:treble/low});
 }
 async function crossing(obstacle){const p=await DrivePhysics.create();p.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(0,-.1,0));if(obstacle){const c=p.world.createCollider(RAPIER.ColliderDesc.cuboid(1.4,obstacle==='wall'?1.5:.15,.45).setTranslation(0,obstacle==='wall'?1.5:.15,-8));p.obstacles={has:o=>o?.handle===c.handle,kind:o=>o?.handle===c.handle?'wood':undefined}}
-p.reset(0,0,0);for(let i=0;i<360;i++)p.step(1/120,{brake:true});p.soundEvents=[];const events=[];for(let i=0;i<1400;i++){p.step(1/120,{cruise:true});events.push(...p.soundEvents.splice(0));}const out={obstacle,events:events.length,wood:events.filter(e=>e.kind==='wood').length,crashes:events.filter(e=>e.crash).length};console.log(out);p.dispose();return out}
+p.reset(0,0,0);for(let i=0;i<360;i++)p.step(1/120,{brake:true});p.soundEvents=[];const events=[];for(let i=0;i<1400;i++){p.step(1/120,{cruise:true});events.push(...p.soundEvents.splice(0));}const out={obstacle,events:events.length,wood:events.filter(e=>e.kind==='wood').length,crashes:events.filter(e=>e.crash).length,bodyHits:p.damageEvents.length};console.log(out);p.dispose();return out}
 const flat=await crossing(null),log=await crossing('log'),wall=await crossing('wall');assert.equal(flat.events,0,'Steady flat driving stays quiet');assert(log.wood>0,'Rolling across a log triggers wooden impacts');assert(wall.wood>0,'Chassis hits trigger collision foley');assert(wall.crashes>0,'A real chassis collision triggers the crash voice');assert.equal(flat.crashes,0);assert.equal(log.crashes,0);assert(wall.events<25,'Holding against a wall must not chatter every frame');
+assert.deepEqual([flat.bodyHits,log.bodyHits,wall.bodyHits],[0,0,1],'Ordinary terrain or tire strikes never loosen panels; prolonged wall contact counts once');
 console.log('Contact sounds: real wheel/body impacts, quiet coasting, cooldowns, stereo side and bounded original foley passed.');
+
+// Strike an isolated post at a door. Vary the chassis heading, initial speed
+// and world origin so an impact cannot be assigned using world coordinates.
+async function sideStrike(side,speed,yaw,board=false){
+ const p=await DrivePhysics.create(),dt=1/120;
+ p.waterHeight=()=>-10;
+ p.reset(512,512,0);p.rebase(512,512);
+ p.world.createCollider(RAPIER.ColliderDesc.cuboid(30,.1,30).setTranslation(0,-.1,0));
+ for(let i=0;i<140;i++)p.step(dt,{brake:true});
+ const truck=p.rb.translation(),x=side*1.17,z=side<0?-.27:.86,cs=Math.cos(yaw),sn=Math.sin(yaw);
+ p.rb.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
+ const post=p.world.createCollider(RAPIER.ColliderDesc.cuboid(.25,.45,.25)
+   .setTranslation(truck.x+x*cs+z*sn,truck.y+.33,truck.z+z*cs-x*sn));
+ if(board)p.recovery={boards:[{collider:post}],step(){},supports(){return false}};
+ p.rb.setLinvel({x:side*speed*cs,y:0,z:-side*speed*sn},true);
+ for(let i=0;i<180;i++)p.step(dt,{brake:true});
+ const events=p.damageEvents.slice();
+ p.reset(512,512,0);assert.equal(p.damageEvents.length,0);
+ p.dispose();return events;
+}
+const [leftImpact]=await sideStrike(-1,4,Math.PI/2);
+const medium=await sideStrike(1,6,0);
+assert.equal(medium.length,1);
+assert(leftImpact.normal.x<-.9&&leftImpact.point.z<0&&Math.abs(leftImpact.point.x+.85)<.01);
+assert(medium[0].normal.x>.9&&medium[0].point.z>.45&&Math.abs(medium[0].point.x-.85)<.01);
+assert(medium[0].severity>leftImpact.severity);
+assert.equal((await sideStrike(1,1,0)).length,0,'Parking-speed nudges stay cosmetic');
+assert.equal((await sideStrike(1,6,0,true)).length,0,'Recovery supports cannot damage doors');
+
+const parked=await DrivePhysics.create();
+parked.reset(0,0,0);parked.waterHeight=()=>-10;
+parked.world.createCollider(RAPIER.ColliderDesc.cuboid(30,.1,30).setTranslation(0,-.1,0));
+for(let i=0;i<150;i++)parked.step(1/120,{brake:true});
+const target=parked.rb.translation();
+const boulder=parked.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic()
+ .setTranslation(target.x-2.6,target.y+.32,target.z+.88).setLinvel(16,0,0).setCcdEnabled(true));
+parked.world.createCollider(RAPIER.ColliderDesc.ball(.34).setMass(180),boulder);
+for(let i=0;i<160;i++)parked.step(1/120,{brake:true});
+assert.equal(parked.damageEvents.length,1);
+assert(parked.damageEvents[0].normal.x<-.9&&parked.damageEvents[0].closing>12,'A parked truck can be hit by a moving rock');
+parked.dispose();
+console.log('Panel impacts: localized Rapier patches, distinct strikes, moving rocks, rebase, reset, speed and recovery-board exclusions passed.');
