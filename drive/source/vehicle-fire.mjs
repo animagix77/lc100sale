@@ -15,19 +15,26 @@ export class VehicleFire{
    const mesh=new THREE.InstancedMesh(g,m,count);mesh.count=0;mesh.visible=false;mesh.frustumCulled=false;mesh.renderOrder=smoke?5:4;scene.add(mesh);this.meshes.push(mesh);
   }
  }
- update(age,physics,camera){
+ update(age,physics,camera,crashSmoke=0){
   if(age===null){this.clear();return}
+  const wind=crashSmoke?physics.rb.linvel():null;
   const pos=physics.rb.translation(),q=physics.rb.rotation(),growth=Math.min(1,age/.4+.18),d=this.dummy;
   this.meshes.forEach((mesh,kind)=>{
-   const smoke=kind===1,count=smoke?this.smokeCount:this.flameCount;mesh.count=count;mesh.visible=true;
+   const smoke=kind===1,count=smoke?this.smokeCount:this.flameCount;if(crashSmoke&&!smoke){mesh.count=0;mesh.visible=false;return}
+   mesh.count=count;mesh.visible=true;
    for(let i=0;i<count;i++){
     const phase=(age*(this.reduced?.32:smoke?.42:1.1)+rand(i+kind*80))%1;
     const x=(rand(i+12)-.5)*1.9,z=(rand(i+31)-.5)*4.1;
-    this.point.set(x,.15,z).applyQuaternion(q).add(pos);d.position.copy(this.point);
+    this.point.set(crashSmoke?x*.28:x,crashSmoke?.66:.15,crashSmoke?-1.46+z*.13:z).applyQuaternion(q).add(pos);d.position.copy(this.point);
     d.position.y+=(smoke?.8:0)+phase*(smoke?4.5:2.2);d.position.x+=Math.sin(i+phase*4)*phase*(smoke?.7:.17);
-    d.quaternion.copy(camera.quaternion);const size=(smoke?.8+phase*1.8:.65+rand(i+42)*.4)*(smoke?1:growth);
+    if(wind){
+     const trail=phase*Math.min(.32,3.4/Math.max(1,Math.hypot(wind.x,wind.z)));
+     d.position.x-=wind.x*trail;d.position.z-=wind.z*trail;
+     d.position.y-=.65+phase*2.6;
+    }
+    d.quaternion.copy(camera.quaternion);const size=(smoke?.8+phase*1.8:.65+rand(i+42)*.4)*(crashSmoke?.56:smoke?1:growth);
     d.scale.set(size,smoke?size:size*(1.6+phase),1);d.updateMatrix();mesh.setMatrixAt(i,d.matrix);
-    mesh.geometry.attributes.fireAlpha.setX(i,growth*Math.sin(Math.PI*phase)*(smoke?.38:.85));
+    mesh.geometry.attributes.fireAlpha.setX(i,growth*Math.sin(Math.PI*phase)*(crashSmoke?.26*crashSmoke:smoke?.38:.85));
    }
    mesh.instanceMatrix.needsUpdate=true;mesh.geometry.attributes.fireAlpha.needsUpdate=true;
   });

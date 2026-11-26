@@ -67,3 +67,28 @@ assert.deepEqual(readJourney().route,checkpoint);
 assert.equal(store.size,1);
 delete globalThis.localStorage;
 console.log('Panel damage: directional contact, progressive latch failure, isolated panels, severity cap and saved wear passed.');
+
+const {DrivePhysics,RAPIER} = await import('./physics.mjs');
+const p = await DrivePhysics.create();
+try {
+  p.world.createCollider(RAPIER.ColliderDesc.cuboid(150,.1,150).setTranslation(0,-.1,0));
+  p.world.createCollider(RAPIER.ColliderDesc.cuboid(4,2,.5).setTranslation(0,2,-13));
+  p.reset(0,0,0);
+  for(let i=0;i<300;i++)p.step(1/120,{brake:true});
+  p.rb.setLinvel({x:0,y:0,z:-16},true);
+  const wreck=new VehicleDamage();
+  for(let i=0;i<220;i++){
+    p.step(1/120,{gas:true});
+    for(const event of p.damageEvents.splice(0))wreck.hit(event);
+  }
+  assert(wreck.peakCrush>=65,'A highway-speed physical impact can crush pristine bodywork in one hit');
+  assert.equal(wreck.stage('hood'),'unlatched');
+  assert(['leftFrontDoor','rightFrontDoor'].some(id=>wreck.stage(id)==='unlatched'));
+  const atWall=p.position().z;
+  for(let i=0;i<480;i++)p.step(1/120,{reverse:true});
+  assert(p.position().z>atWall+3,'The wreck backs away under its own power');
+  const restored=new VehicleDamage();restored.restore(JSON.parse(JSON.stringify(wreck.snapshot())));
+  assert.deepEqual(restored.snapshot(),wreck.snapshot());
+  restored.reset();assert.deepEqual(restored.snapshot(),{});
+  console.log('Physical wall strike, single-hit door release, saved crush and powered drive-away passed.',wreck.snapshot());
+} finally {p.dispose();}

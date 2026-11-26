@@ -96,6 +96,14 @@ for(let frame=0;frame<250;frame++){
   max=Math.max(max,-door.rotation.y);
 }
 assert(max>.107 && max<=.651,'A failed latch allows a larger, bounded swing');
+// Drive the existing hinge into its physical strap stop, then let it settle.
+const hingeState=view.panels.find(p=>p.id==='leftFrontDoor');
+hingeState.angle=.64;hingeState.angularSpeed=4;
+const knock=view.update(1/60,damage,moving);
+assert(knock?.side===-1 && knock.speed>1.15,'The driver door reports a knock at its actual stop');
+let parkedKnocks=0;
+for(let i=0;i<240;i++)if(view.update(1/60,damage,zero)&&i>120)parkedKnocks++;
+assert.equal(parkedKnocks,0,'A settled open door has no continuing rattle');
 damage.restore({hood:100,tailgate:100});
 view.reset();
 view.update(1/60,damage,zero);
@@ -114,3 +122,19 @@ assert(whole.visible && whole.geometry===closedGeometry);
 assert(!door.children.find(part=>part.material===paint).visible);
 view.dispose();
 console.log('Damage checks passed for per-panel batches, hinge placement, inertia, repair and reduced motion.');
+
+// The bent panel is reversible and never edits the source mesh shared by other parts.
+const rig=new Group(),shell=new Group(),nose=new Mesh(new BoxGeometry(1.8,.4,.8),paint);
+shell.name='Body';rig.add(shell);shell.add(nose);nose.position.set(0,.95,-1.85);
+const pristine=nose.geometry,original=pristine.attributes.position.array.slice();
+const crushed=new VehicleDamage(),dentView=new VehicleDamageView(rig);
+crushed.hit({severity:1,closing:16,impulse:22000,point:{x:-.7,z:-2},normal:{x:0,y:0,z:-1}});
+dentView.update(1/60,crushed,zero);
+assert.notEqual(nose.geometry,pristine);
+assert.deepEqual(pristine.attributes.position.array,original);
+assert(nose.geometry.attributes.position.getZ(0)>pristine.attributes.position.getZ(0)+.1);
+assert([...nose.geometry.attributes.normal.array].every(Number.isFinite));
+const deformed=nose.geometry;
+dentView.update(1/60,crushed,zero);assert.equal(nose.geometry,deformed);
+crushed.reset();dentView.update(1/60,crushed,zero);assert.equal(nose.geometry,pristine);
+dentView.dispose();

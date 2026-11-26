@@ -21,13 +21,13 @@ export function drivingMix({speed=0,tyres=[],range='HI',input={},engine=null,sho
  // volume; the narrow deadband keeps a parked truck from endlessly hissing.
  const velocity=clamp((moving-.15)/22.2,0,1),depth=clamp(waterDepth??.18,0,.8),immersion=.55+.55*Math.sqrt(depth/.8);
  const splash=ground.length?wet*velocity**.7*immersion:0,precipitation=clamp(Number(rain)||0,0,1);
- return {rpm,load,shifting:(engine?.shiftTime??0)>0,shiftMix:engine?.shiftMix??0,wet,grass:grass*clamp((moving-.1)/3,0,1)*.32,skid:wetRock*.22,skidRate:.85+clamp(slip/8,0,1)*.4,terrain,sand:terrain.sand.gain*.62,splash,splashRate:.85+velocity*.35,splashCutoff:750+velocity*3800,
+ return {rpm,load,shifting:(engine?.shiftTime??0)>0,shiftMix:engine?.shiftMix??0,wet,grass:grass*clamp((moving-.1)/3,0,1)*.32,skid:wetRock*.22,skidRate:.85+clamp(slip/8,0,1)*.4,terrain,sand:terrain.sand.gain*.48,splash,splashRate:.85+velocity*.35,splashCutoff:750+velocity*3800,
   splashEntry:(.22+velocity*.94)*Math.sqrt(wet)*immersion,splashDuration:.55+velocity*.65,
   rain:precipitation**.7*.24,rainCutoff:1400+precipitation*1800,surf:ocean.coast,ocean};
 }
 // Restrained contact foley; only real wheel/body events reach this voice.
 export function contactImpactMix(hit){
- if(hit.crash)return {kind:'crash',volume:.18+clamp(Number(hit.energy)||0,0,1)*.38,pan:clamp(Number(hit.pan)||0,-1,1),cutoff:1800};
+ if(hit.crash)return {kind:hit.crushed?'crush':'crash',volume:.18+clamp(Number(hit.energy)||0,0,1)*.38,pan:clamp(Number(hit.pan)||0,-1,1),cutoff:hit.crushed?2400:1800};
  const kind=['wood','rock','suspension'].includes(hit.kind)?hit.kind:'suspension';
  return {kind,volume:hit.source==='pebble'?.025+clamp(Number(hit.energy)||0,0,.35)*.20:.055+clamp(Number(hit.energy)||0,0,1)*.30,
   pan:clamp(Number(hit.pan)||0,-1,1),cutoff:kind==='rock'?850:kind==='wood'?620:420};
@@ -80,6 +80,13 @@ export function firePCM(sampleRate=48000){const data=new Float32Array(sampleRate
 function wetBank(ctx){
  const bank={};const fire=ctx.createBuffer(1,ctx.sampleRate*6,ctx.sampleRate);fire.getChannelData(0).set(firePCM(ctx.sampleRate));bank.fire=fire;for(const kind of ['rain','spray','river']){const buffer=ctx.createBuffer(2,Math.ceil(ctx.sampleRate*6),ctx.sampleRate);for(let channel=0;channel<2;channel++)buffer.getChannelData(channel).set(wetPCM(kind,ctx.sampleRate,9271+channel*731));bank[kind]=buffer}for(const kind of ['grass','skid']){const buffer=ctx.createBuffer(1,ctx.sampleRate*6,ctx.sampleRate);buffer.getChannelData(0).set(contactPCM(kind,ctx.sampleRate));bank[kind]=buffer}return bank;
 }
+const equipmentVoices={
+ range:{volume:.24,cutoff:1200,spacing:.20},
+ lock:{volume:.16,cutoff:1850,spacing:.18},
+ boardsDown:{volume:.34,cutoff:1450,spacing:.42},
+ boardsPacked:{volume:.26,cutoff:2000,spacing:.42},
+ panelStop:{volume:.27,cutoff:1150,spacing:.55}
+};
 export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocument){
  let ctx,master,compressor,buffers,loading,preparing,preparationFailed=false,on=true,paused=false,disposed=false,engineFilter,engine=[],sand,coast,coastFilter,surfBreaker,surfBreakerFilter,surfWash,surfWashFilter,splash,waterWash,waterSpray,waterFilter,rainBed,rainFilter,grassBed,skidBed,fireBed,riverBed,riverFilter;
  let surfClock=0,surfLast=null;
@@ -123,8 +130,8 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
   // gear loops, impact sounds, random detuning or repeating chug modulation.
   engine=[];const start=ctx.currentTime;
   for(const order of [1,2,3,4]){const source=ctx.createOscillator(),g=gain(0);source.type='sine';source.frequency.value=48*order;source.connect(g);g.connect(engineFilter);source.start(start);sources.add(source);engine.push({source,g,order})}
-  const sandFilter=ctx.createBiquadFilter();sandFilter.type='highpass';sandFilter.frequency.value=170;const gritLow=ctx.createBiquadFilter();gritLow.type='lowpass';gritLow.frequency.value=2500;sandFilter.connect(gritLow);gritLow.connect(master);sand=loop('sand',sandFilter);
-  for(const kind of TERRAIN_VOICES){const filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value={sand:2300,snow:3200,slush:1050,gravel:2400}[kind];filter.Q.value=.45;filter.connect(master);terrainBeds[kind]={...loop('terrain-'+kind,filter),filter};}
+  const sandFilter=ctx.createBiquadFilter();sandFilter.type='highpass';sandFilter.frequency.value=170;const gritLow=ctx.createBiquadFilter();gritLow.type='lowpass';gritLow.frequency.value=1150;gritLow.Q.value=.5;sandFilter.connect(gritLow);gritLow.connect(master);sand=loop('sand',sandFilter);
+  for(const kind of TERRAIN_VOICES){const filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value={sand:1050,snow:3200,slush:1050,gravel:2400}[kind];filter.Q.value=.45;filter.connect(master);terrainBeds[kind]={...loop('terrain-'+kind,filter),filter};}
   fireBed=loop('fire',master);grassBed=loop('grass',master);skidBed=loop('skid',master);
   coastFilter=ctx.createBiquadFilter();coastFilter.type='lowpass';coastFilter.frequency.value=2000;coastFilter.Q.value=.45;coastFilter.connect(master);coast=loop('coast',coastFilter);
   const washFilter=ctx.createBiquadFilter();washFilter.type='lowpass';washFilter.frequency.value=1700;washFilter.Q.value=.4;washFilter.connect(master);waterWash=loop('wave2',washFilter);
@@ -141,6 +148,15 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
  function shot(name,volume,pan=0,rate=1,duration=0,cutoff=0){const s=ctx.createBufferSource(),g=gain(volume),p=ctx.createStereoPanner(),filter=cutoff?ctx.createBiquadFilter():null;s.buffer=buffers[name];s.playbackRate.value=rate;p.pan.value=pan;s.connect(g);if(filter){filter.type='lowpass';filter.frequency.value=cutoff;filter.Q.value=.45;g.connect(filter);filter.connect(p)}else g.connect(p);p.connect(master);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();g.disconnect();filter?.disconnect();p.disconnect();if(splash?.source===s)splash=null;};
   if(duration){const now=ctx.currentTime;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.035);g.gain.setValueAtTime(volume,now+duration*.55);g.gain.linearRampToValueAtTime(0,now+duration);s.start(now,.25,duration*rate);s.stop(now+duration+.02);}else s.start();
   return {source:s,g};
+ }
+ const nextEquipmentAt=new Map();
+ function mechanical(kind,{pan=0,rate=1,strength=1}={}){
+  const voice=equipmentVoices[kind];
+  if(!voice||!buffers||!engine.length||!on||paused||disposed||ctx.state==='suspended')return;
+  const now=ctx.currentTime;
+  if(now<(nextEquipmentAt.get(kind)??0))return;
+  nextEquipmentAt.set(kind,now+voice.spacing);
+  shot(kind,voice.volume*clamp(strength,0,1),clamp(pan,-.8,.8),clamp(rate,.8,1.2),0,voice.cutoff);
  }
  // Enabled by default; the first in-game gesture unlocks browser audio.
  // A deliberate mute is never undone by subsequent driving input.
@@ -166,7 +182,7 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
  for(const type of ['pointerdown','click','keydown'])gestures.addEventListener(type,activate);
  label();
  return {
-  prepare,
+  prepare,mechanical,
   pause(value){paused=value;apply();},
   update(state){
    if(!buffers||!engine.length||!on||paused||disposed)return;
@@ -191,9 +207,14 @@ export function createSound(button,focus,onMix=()=>{},gestures=button.ownerDocum
    if(!m.splash)stopSplash();
    else if(m.wet-lastWet>.18&&now>=nextSplash){stopSplash();splash=shot('wave1',m.splashEntry,(Math.random()-.5)*.45,m.splashRate,m.splashDuration);nextSplash=now+.65;}
    lastWet=m.wet;
+   let crash=state.crushImpact;
+   if(!crash)for(const hit of state.impacts||[])if(hit.crash&&(!crash||hit.energy>crash.energy))crash=hit;
+   if(crash&&now>=nextCrash){
+    const voice=contactImpactMix(crash);
+    shot(voice.kind+(impactVariant++%3),voice.volume,voice.pan,.97+Math.random()*.06,0,voice.cutoff);
+    nextCrash=now+.35;
+   }
    if(state.impacts?.length){
-    const crashes=state.impacts.filter(hit=>hit.crash);
-    if(crashes.length&&now>=nextCrash){const hit=crashes.reduce((a,b)=>a.energy>b.energy?a:b),voice=contactImpactMix(hit);shot(voice.kind+(impactVariant++%3),voice.volume,voice.pan,.97+Math.random()*.06,0,voice.cutoff);nextCrash=now+.35;}
     const contacts=state.impacts.filter(hit=>!hit.crash&&(hit.source!=='volcano'||hit.ground!==true));
     if(contacts.length&&now>=nextImpact){const hit=contacts.reduce((a,b)=>a.energy>b.energy?a:b);const voice=contactImpactMix(hit);shot(voice.kind+(impactVariant++%3),voice.volume,voice.pan,.97+Math.random()*.06,0,voice.cutoff);nextImpact=now+.07;}
     // Landings have their own short throttle, so a rockfall cannot suppress the

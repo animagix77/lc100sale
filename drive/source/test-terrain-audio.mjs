@@ -19,7 +19,7 @@ silent(mix(four('gravel',{audioLoad:0,audioSpeed:9,audioSlip:4})),'An unloaded t
 silent(mix(four('sand',{audioSurface:zero,audioSpeed:7,audioSlip:4})),'Boards and solid decks suppress loose material beneath their contacts');
 
 const sand=mix(four()),snow=mix(four('snow')),mud=mix(four('mud')),gravel=mix(four('gravel'));
-assert(sand.sand.gain>.15&&sand.sand.gain<.5,'Normal sand travel has an audible, bounded shuffle bed');
+assert(sand.sand.gain>.15&&sand.sand.gain<.20,'Normal sand travel has an audible, bounded shuffle bed');
 assert(snow.snow.gain>0&&snow.slush.gain>0,'Snow carries a crunch with a smaller compressed body');
 assert(snow.slush.gain<snow.snow.gain*.3,'Dry snow remains predominantly crunchy');
 assert.equal(snow.sand.gain,0,'Soft snow never inherits the sand voice');
@@ -29,6 +29,7 @@ for(const kind of ['snow','slush','gravel'])assert.equal(sand[kind].gain,0,'Pure
 
 const fast=mix(four('sand',{audioSpeed:9,omega:9/VEHICLE_SETUP.rollingRadius}));
 const light=mix(four('sand',{audioLoad:1500})),heavy=mix(four('sand',{audioLoad:10000}));
+assert(sand.sand.cutoff<1200&&fast.sand.cutoff<=1400,'Even at speed the sand texture stays muffled');
 assert(fast.sand.gain>sand.sand.gain&&fast.sand.rate>sand.sand.rate,'Faster travel increases texture activity without discrete gear thresholds');
 assert(light.sand.gain<sand.sand.gain&&heavy.sand.gain>sand.sand.gain,'Real contact load changes material intensity');
 assert(mix(four('sand',{audioSurface:{compaction:1}})).sand.gain<sand.sand.gain,'Compacted wheel tracks shuffle less than loose shoulders');

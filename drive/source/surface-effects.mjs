@@ -16,7 +16,7 @@ function sprayFanGeometry(){
 }
 export class SurfaceEffects{
  constructor(scene,field,{mobile=false,random=Math.random,waterHeight=waterSurfaceHeight}={}){
-  this.scene=scene;this.field=field;this.waterHeight=waterHeight;this.random=random;this.dummy=new THREE.Object3D();this.stats={sand:0,dust:0,powder:0,splash:0,sheet:0,wake:0};this.wakeStep=[0,0,0,0];this.dustStep=[0,0,0,0];this.powderStep=[0,0,0,0];this.lastEmission=[-Infinity,-Infinity,-Infinity,-Infinity];this.emissionInterval=1/(mobile?20:28);this.looseEmissionInterval=1/(mobile?16:22);this.looseBurstLimit=mobile?8:10;
+  this.scene=scene;this.field=field;this.waterHeight=waterHeight;this.random=random;this.dummy=new THREE.Object3D();this.stats={sand:0,dust:0,powder:0,splash:0,sheet:0,wake:0};this.wakeStep=[0,0,0,0];this.nextDustAt=[0,0,0,0];this.powderStep=[0,0,0,0];this.lastEmission=[-Infinity,-Infinity,-Infinity,-Infinity];this.emissionInterval=1/(mobile?20:28);this.looseEmissionInterval=1/(mobile?16:22);this.looseBurstLimit=mobile?8:10;
   const pixels=new Uint8Array(64*64*4);
   for(let y=0;y<64;y++)for(let x=0;x<64;x++){const r=Math.hypot((x-31.5)/31.5,(y-31.5)/31.5),i=(y*64+x)*4;pixels[i]=pixels[i+1]=pixels[i+2]=255;pixels[i+3]=Math.round(Math.pow(Math.max(0,1-r*r),2.2)*255)}
   this.sprite=new THREE.DataTexture(pixels,64,64,THREE.RGBAFormat);this.sprite.needsUpdate=true;this.sprite.magFilter=this.sprite.minFilter=THREE.LinearFilter;
@@ -37,7 +37,17 @@ export class SurfaceEffects{
   this.sand=make('sand',mobile?384:640,new THREE.OctahedronGeometry(.028,0),'#ffffff',.72);
   // Allocate tint before the preload compile, so the GPU includes instance color.
   this.sand.mesh.setColorAt(0,new THREE.Color('#e2af7b'));
-  this.dust=make('dust',mobile?28:48,new THREE.PlaneGeometry(1,1),'#cfa174',.13,true);
+  this.dust=make('dust',mobile?28:48,new THREE.PlaneGeometry(1,1),'#f0d8b5',.48,true);
+  // Bake a few overlapping, soft lobes once. Rotating the wisps breaks up the twin tire trails.
+  const dustPixels=pixels.slice();
+  for(let y=0;y<64;y++)for(let x=0;x<64;x++){
+   const u=(x-31.5)/31.5,v=(y-31.5)/31.5;
+   const lobe=(dx,dy,rx,ry)=>Math.max(0,1-((u-dx)/rx)**2-((v-dy)/ry)**2)**2;
+   dustPixels[(y*64+x)*4+3]=255*Math.min(1,.78*lobe(-.15,.08,.85,.65)+.60*lobe(.35,-.15,.64,.55)+.35*lobe(-.38,-.32,.46,.48));
+  }
+  this.dustSprite=new THREE.DataTexture(dustPixels,64,64,THREE.RGBAFormat);
+  this.dustSprite.magFilter=this.dustSprite.minFilter=THREE.LinearFilter;this.dustSprite.needsUpdate=true;
+  this.dust.mesh.material.opacityNode=texture(this.dustSprite).a.mul(attribute('effectAlpha','float'));
   this.powder=make('powder',mobile?48:64,new THREE.PlaneGeometry(1,1),'#edf5fc',.44,true);
   this.wake=make('wake',mobile?64:110,new THREE.RingGeometry(.70,1,32),'#d9eee6',.18);
   this.splash=make('splash',mobile?360:576,new THREE.SphereGeometry(1,6,4),'#d6eee8',.56);
@@ -46,7 +56,7 @@ export class SurfaceEffects{
   this.splashStep=[0,0,0,0];this.up=new THREE.Vector3(0,1,0);this.dropDirection=new THREE.Vector3();this.particleColor=new THREE.Color();
  }
  spawn(pool,values){const p=pool.particles[pool.cursor++%pool.particles.length];Object.assign(p,values,{life:values.ttl});this.stats[pool.kind]++;return p}
- emit(mark,heading,speed,time){
+ emit(mark,heading,speed,time,rain=0){
   const surface=surfaceAt(mark.x,mark.z),ground=Number.isFinite(mark.y)?mark.y:this.field.height(mark.x,mark.z),profile=surfaceProfile(mark,speed,ground,time,this.waterHeight(mark.x,mark.z,time));
   if(!profile.emit)return profile.wet;
   // Physics can stamp the same wheel several times in one rendered frame.
@@ -108,8 +118,16 @@ export class SurfaceEffects{
      vy:.60+snow*.24+loosePace*.055+slip*.055,size:(.56+loosePace*.042+slip*.025)*(.6+snow*.4),
      width:1.32,height:.82,ttl:.83+rand()*.17,angle:rand()*6.28});
    }
-   if(profile.dust&&surface.snow<.15&&surface.mud<.15&&mark.wheel>=2&&++this.dustStep[mark.wheel]%2===0){
-    this.spawn(this.dust,{x:mark.x,z:mark.z,y:ground+.14,vx:-fx*dir*(.5+pace*.15)+.3,vz:-fz*dir*(.5+pace*.15),vy:.06+rand()*.08,size:.20+pace*.035+mark.soft*.1+slip*.025,ttl:.65+rand()*.35,angle:rand()*6.28});
+   const travelDir=Math.sign(speed),trailingAxle=travelDir<0?mark.wheel<2:mark.wheel>=2;
+   const speedMix=clamp((Math.abs(speed)-1.6)/7,0,1);
+   const dustLift=speedMix*(mark.drySand??0)*(1-clamp(rain,0,1))*(1-.35*(surface.compaction||0));
+   if(profile.dust&&trailingAxle&&dustLift>.025&&time>=this.nextDustAt[mark.wheel]){
+    this.nextDustAt[mark.wheel]=time+1/(4+6*dustLift);
+    const back=(.45+1.7*dustLift)*travelDir,outward=sideSign*(.24+rand()*.42+dustLift*.5);
+    this.spawn(this.dust,{x:mark.x-fx*travelDir*.28,z:mark.z-fz*travelDir*.28,y:ground+.16,
+     vx:-fx*back+Math.cos(heading)*outward,vz:-fz*back-Math.sin(heading)*outward,
+     vy:.18+dustLift*(.91+rand()*.38),size:(.45+dustLift*1.65)*(.9+rand()*.2),
+     width:1.25,height:.92,opacity:.13+.87*dustLift,ttl:.62+dustLift*.62+rand()*.14,angle:rand()*Math.PI*2});
    }
   }
   return profile.wet;
@@ -149,6 +167,6 @@ export class SurfaceEffects{
    pool.mesh.instanceMatrix.needsUpdate=true;if(pool.mesh.instanceColor)pool.mesh.instanceColor.needsUpdate=true;pool.alpha.needsUpdate=true;
   }
  }
- clear(){for(const pool of this.pools)for(const p of pool.particles)p.life=0;this.lastEmission.fill(-Infinity);this.wakeStep.fill(0);this.dustStep.fill(0);this.powderStep.fill(0);this.splashStep.fill(0)}
- dispose(){for(const pool of this.pools){this.scene.remove(pool.mesh);pool.mesh.geometry.dispose();pool.mesh.material.dispose()}this.sprite.dispose()}
+ clear(){for(const pool of this.pools)for(const p of pool.particles)p.life=0;this.lastEmission.fill(-Infinity);this.wakeStep.fill(0);this.nextDustAt.fill(0);this.powderStep.fill(0);this.splashStep.fill(0)}
+ dispose(){for(const pool of this.pools){this.scene.remove(pool.mesh);pool.mesh.geometry.dispose();pool.mesh.material.dispose()}this.sprite.dispose();this.dustSprite.dispose()}
 }

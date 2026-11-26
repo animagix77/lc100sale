@@ -53,4 +53,53 @@ export function impactPCM(kind,sampleRate=48000,variant=0){
   data[i]=Math.tanh((pulse+texture*fall)*attack)*Math.max(0,edge);
  }return data;
 }
-export function impactBank(ctx){const bank={};for(const kind of ['wood','rock','suspension','volcano','crash'])for(let i=0;i<3;i++){const data=impactPCM(kind,ctx.sampleRate,i),buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);buffer.getChannelData(0).set(data);bank[`${kind}${i}`]=buffer}return bank}
+// Each stroke excites two damped modes and a band of material noise.
+// Timing separates a lever detent, a relay engaging, and two boards settling.
+const gestures = {
+ panelStop: {length:.19, pitch:134, overtone:2.34, decay:.030, grit:860, texture:.20, strokes:[[0,.82],[.027,.21]]},
+ range: {length:.27, pitch:112, overtone:2.75, decay:.038, grit:720, texture:.16, strokes:[[0,.4],[.082,1]]},
+ lock: {length:.18, pitch:312, overtone:2.1, decay:.015, grit:1650, texture:.20, strokes:[[0,.54],[.052,.8]]},
+ boardsDown: {length:.38, pitch:157, overtone:1.73, decay:.058, grit:1100, texture:.40, strokes:[[0,.86],[.097,.62],[.141,.20]]},
+ boardsPacked: {length:.32, pitch:238, overtone:2.86, decay:.024, grit:1750, texture:.30, strokes:[[0,.38],[.062,.25],[.171,.98]]},
+ crush: {length:.72, pitch:177, overtone:1.48, decay:.065, grit:1850, texture:.92, strokes:[[.052,.84],[.136,1],[.245,.64]]}
+};
+
+export function mechanicalPCM(kind,sampleRate=48000,variant=0){
+ const voice=gestures[kind];
+ const data=kind==='crush'?crashPCM(sampleRate,variant):new Float32Array(Math.ceil(sampleRate*voice.length));
+ const blend=1-Math.exp(-2*Math.PI*voice.grit/sampleRate);
+ let seed=31721+variant*779;
+ for(const [offset,weight] of voice.strokes){
+  const start=Math.round(offset*sampleRate),end=Math.min(data.length,start+Math.ceil(voice.decay*8*sampleRate));
+  let noiseBand=0,phase=0;
+  for(let i=start;i<end;i++){
+   const t=(i-start)/sampleRate;
+   seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+   noiseBand+=((seed/2147483648-1)-noiseBand)*blend;
+   const decay=Math.exp(-t/voice.decay);
+   // Bent steel drops in pitch as the sheet gives way. Small fittings die out quickly.
+   phase+=2*Math.PI*voice.pitch*(.96+weight*.06+variant*.018)*(1+(kind==='crush'?.56:.09)*decay)/sampleRate;
+   const body=.34*Math.sin(phase)+.21*Math.sin(phase*voice.overtone)*decay;
+   const attack=Math.min(1,t/.0035), edge=Math.min(1,(end-1-i)/(.008*sampleRate));
+   data[i]+=weight*attack*edge*decay*(body+noiseBand*voice.texture);
+  }
+ }
+ for(let i=0;i<data.length;i++)data[i]=Math.tanh(data[i]);
+ return data;
+}
+
+export function impactBank(ctx){
+ const bank={};
+ function store(name,data){
+  const buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);
+  buffer.getChannelData(0).set(data);bank[name]=buffer;
+ }
+ for(const kind of ['wood','rock','suspension','volcano','crash']){
+  for(let i=0;i<3;i++)store(kind+i,impactPCM(kind,ctx.sampleRate,i));
+ }
+ for(const kind of Object.keys(gestures)){
+  if(kind==='crush'){for(let i=0;i<3;i++)store(kind+i,mechanicalPCM(kind,ctx.sampleRate,i));}
+  else store(kind,mechanicalPCM(kind,ctx.sampleRate));
+ }
+ return bank;
+}

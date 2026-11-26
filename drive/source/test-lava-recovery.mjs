@@ -26,6 +26,9 @@ assert.equal(r.update(.04,false),'respawn');assert.equal(r.rescues,1);assert.equ
 for(const mobile of [false,true]){
  const fire=new VehicleFire(scene,{mobile}),camera=new THREE.PerspectiveCamera();
  fire.update(1.5,physics,camera);for(const mesh of fire.meshes){assert(mesh.visible);assert(mesh.count>0&&mesh.count<=44);assert([...mesh.instanceMatrix.array].every(Number.isFinite));}
+ physics.rb.linvel=()=>({x:5,y:0,z:-10});
+ fire.update(2,physics,camera,1);assert(!fire.meshes[0].visible&&fire.meshes[1].visible,'Collision smoke has no lava flames');
+ assert([...fire.meshes[1].instanceMatrix.array].every(Number.isFinite));
  fire.update(null,physics,camera);assert(fire.meshes.every(m=>!m.visible&&m.count===0),'Respawn clears all fire and smoke');fire.dispose();
 }
 crossing.dispose();volcano.dispose();assert.equal(scene.children.length,0);

@@ -6,10 +6,10 @@ import {SandField,shore} from './terrain.mjs';
 import {riverZ,COASTAL_WATER_EXTENT} from './expedition.mjs';
 const field=new SandField(),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(),fx=new SurfaceEffects(scene,field,{random:()=>.5});
 assert(fx.sand.mesh.instanceColor,'Material-specific tint must exist before the preload shader compilation');
-const dry={x:shore(0)+22,z:0,soft:.1,slip:0,dir:1,wheel:0};
+const dry={x:shore(0)+22,z:0,soft:.1,drySand:1,slip:0,dir:1,wheel:0};
 fx.emit(dry,0,0,0);assert.deepEqual(fx.stats,{sand:0,dust:0,powder:0,splash:0,sheet:0,wake:0},'Idle tires do not emit effects');
 for(let i=0;i<4;i++)fx.emit({...dry,wheel:2},0,3,(i+1)*.1);assert(fx.stats.sand>0&&fx.stats.dust>0,'Normal firm-sand driving emits grains and dust without wheelspin');
-assert.equal(fx.stats.dust,2,'Rear tyres emit dust only every other mark');assert(fx.dust.opacity<=.13,'Dust remains translucent');assert(fx.dust.particles.filter(p=>p.life>0).every(p=>p.ttl<=1&&p.size<.6),'Short-lived, compact dust stays near the tyres');const before=fx.stats.sand;fx.emit({...dry,soft:.9,slip:4},0,0,0);assert(fx.stats.sand-before>5,'Stationary wheelspin still throws a strong sand plume');
+assert(fx.dust.particles.filter(p=>p.life>0).every(p=>p.ttl<=1&&p.size<.8&&p.opacity*fx.dust.opacity<.15),'Slow driving leaves a faint, compact trace');const before=fx.stats.sand;fx.emit({...dry,soft:.9,slip:4},0,0,0);assert(fx.stats.sand-before>5,'Stationary wheelspin still throws a strong sand plume');
 const wet={...dry,x:shore(0)+2,wheel:2};const prior={...fx.stats};assert(fx.emit(wet,0,3,.6),'Shallow contact is classified as wet');fx.emit(wet,0,3,.7);assert(fx.stats.splash>0&&fx.stats.wake>0);assert.equal(fx.splash.mesh.geometry.type,'SphereGeometry','Spray uses small 3D droplets, not cloudy sprites');assert.equal(fx.stats.dust,prior.dust);assert.equal(fx.stats.sand,prior.sand);
 const sample=(speed,dir=1,wheel=2,heading=0)=>{const e=new SurfaceEffects(new THREE.Scene(),field,{random:()=>.5});for(let i=0;i<8;i++)e.emit({...wet,dir,wheel},heading,speed,i*.1);const drops=e.splash.particles.filter(p=>p.life>0).map(p=>({...p})),count=e.stats.splash;e.dispose();return {drops,count}};
 const slow=sample(1),fast=sample(10),reverse=sample(-10,-1),right=sample(10,1,3);
@@ -151,3 +151,27 @@ for(const mobile of [false,true])for(const fps of [30,60])for(const point of [mu
 }
 for(const e of [normalMud,normalSnow,normalSand])e.dispose();
 console.log('Strong mud/snow: substantial fragments, dense material fans, early visibility, idle suppression and four-wheel 30/60fps pool lifetime passed');
+
+// Follow actual tire-mark cadence. Run the whole trail for long enough to recycle the mobile pool.
+function dryRun(speed,{drySand=1,rain=0,mobile=false,fps=60}={}){
+ const effects=new SurfaceEffects(new THREE.Scene(),{height:()=>0},{mobile,random:()=>.5,waterHeight:()=>-Infinity});
+ let peak=0;
+ for(let i=0;i<fps*3;i++){
+  const t=i/fps;
+  for(let wheel=0;wheel<4;wheel++)effects.emit({...dry,wheel,y:0,drySand},0,speed,t,rain);
+  effects.update(1/fps,camera,zeroOrigin(),t);
+  peak=Math.max(peak,...effects.dust.alpha.array);
+ }
+ const p=effects.dust.particles.find(p=>p.life>0),result={p,count:effects.stats.dust,peak};
+ effects.dispose();return result;
+}
+for(const mobile of [false,true])for(const fps of [30,60]){
+ const creep=dryRun(1,{mobile,fps}),roll=dryRun(3,{mobile,fps}),run=dryRun(9,{mobile,fps}),reverse=dryRun(-9,{mobile,fps});
+ assert.equal(creep.count,0);
+ assert(run.count>roll.count&&run.p.size>roll.p.size*1.8&&run.peak>roll.peak*2,'Speed builds a larger and denser trail without wheelspin');
+ assert(run.p.vy>roll.p.vy*2&&run.p.ttl>roll.p.ttl*1.4,'Fast dust rises and lingers behind the vehicle');
+ assert(run.p.vz>0&&reverse.p.vz<0,'Dust trails actual travel even if wheel rotation disagrees during braking');
+ assert.equal(dryRun(9,{drySand:0,mobile,fps}).count,0,'Solid and wet contacts cannot raise sand dust');
+ assert.equal(dryRun(9,{rain:1,mobile,fps}).count,0,'Heavy rain suppresses airborne sand');
+}
+console.log('Dry sand dust: forward and reverse, speed-dependent visibility and lifetime, wet ground, rain, mobile and desktop passed');

@@ -19,7 +19,7 @@ export function terrainContactMix({speed=0,tyres=[],rain=0,waterDepth=0,waterCon
   const underwater=immersed?clamp((waterDepth||.18)/.35)*.92:0;
   const exposed=1-underwater,loose=1-clamp(surface.compaction||0)*.32;
   const sand=clamp(surface.sand||0),snow=clamp(surface.snow||0),mud=clamp(surface.mud||0),gravel=clamp(surface.gravel||0);
-  result.sand.gain+=contact*sand*.45*loose*(1-wet*.28)*exposed;
+  result.sand.gain+=contact*sand*.24*loose*(1-wet*.28)*exposed;
   result.snow.gain+=contact*snow*.66*(1-wet*.62)*exposed;
   result.slush.gain+=contact*(snow*(.12+wet*.72)+mud*(.72+wet*.28))*.58*exposed;
   result.gravel.gain+=contact*gravel*.42*(1-wet*.36)*exposed;
@@ -29,7 +29,7 @@ export function terrainContactMix({speed=0,tyres=[],rain=0,waterDepth=0,waterCon
  for(const [kind,v] of Object.entries(result)){
   v.gain=clamp(v.gain,0,.68);
   v.rate=(kind==='slush'?.76:.82)+Math.sqrt(activity)*(kind==='slush'?.26:.42);
-  v.cutoff=({sand:2300,snow:3200,slush:1050,gravel:2400})[kind]+activity*({sand:600,snow:700,slush:650,gravel:500})[kind];
+  v.cutoff=({sand:1050,snow:3200,slush:1050,gravel:2400})[kind]+activity*({sand:350,snow:700,slush:650,gravel:500})[kind];
  }
  return result;
 }

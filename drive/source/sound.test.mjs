@@ -3,7 +3,7 @@ import {drivingMix,createSound,engineVoice,wetPCM,volcanicImpactMix,contactPCM} 
 import {volcanicThudPCM} from './impact-audio.mjs';
 const tyre={contact:true,omega:6,slip:0,soft:.7};
 const dry=drivingMix({speed:3,tyres:[tyre],input:{gas:true},shoreDistance:35});
-assert(dry.sand>.05&&dry.sand<.15,'One loaded tyre has an audible but bounded sand shuffle');
+assert(dry.sand>.015&&dry.sand<.03,'One loaded tyre has an audible but bounded sand shuffle');
 const gentle=drivingMix({speed:3,tyres:[tyre],input:{gas:.25}});
 assert(gentle.load<dry.load&&gentle.rpm<dry.rpm,'The engine follows proportional joystick throttle');
 assert.equal(drivingMix({input:{gas:1,handbrake:true}}).load,0,'Holding the handbrake cuts engine load');
@@ -145,13 +145,30 @@ assert.equal(crashFilter.frequency.value,1800);assert.equal(crashPan.pan.value,.
 sound.update({speed:0,impacts:[crashEvent]});assert.equal(crashShots().length,1,'Same instant cannot allocate repeated crash voices');
 context.currentTime+=.4;sound.update({speed:0,impacts:[{...crashEvent,energy:.2}]});assert.equal(crashShots().length,2);assert(crashShots()[1].connections[0].gain.value<crashGain.gain.value,'Impact strength controls crash loudness');
 crashShot.onended();assert(crashShot.disconnected&&crashGain.disconnected&&crashFilter.disconnected&&crashPan.disconnected,'Crash completion releases transient nodes');
+context.currentTime+=.4;
+const crushImpact={...crashEvent,crushed:true};
+sound.update({crushImpact,impacts:[crashEvent],shoreDistance:500});
+assert.equal(crashShots().length,3,'A crushed body plays one composite impact');
+assert.equal(crashShots().at(-1).connections[0].connections[0].frequency.value,2400);
+context.currentTime+=.4;sound.update({crushImpact,shoreDistance:500});
+assert.equal(crashShots().length,4,'A falling rock can fold bodywork without a generic chassis sound');
+for(const [cue,duration] of [['boardsDown',.38],['boardsPacked',.32],['panelStop',.19],['range',.27],['lock',.18]]){
+ const before=context.nodes.length;sound.mechanical(cue,{pan:-.6});sound.mechanical(cue);
+ const shots=context.nodes.slice(before).filter(n=>n.started);
+ assert.equal(shots.length,1,'Repeated '+cue+' is limited');
+ assert.equal(shots[0].buffer.duration,duration);
+ const pan=shots[0].connections[0].connections[0].connections[0];
+ assert.equal(pan.pan.value,-.6);assert.equal(pan.connections[0],context.nodes[0]);
+ const samples=shots[0].buffer.getChannelData(0);assert.equal(Math.abs(samples[0]),0);
+ assert.equal(Math.abs(samples.at(-1)),0);assert(samples.some(x=>Math.abs(x)>.2));assert(samples.every(x=>Number.isFinite(x)&&Math.abs(x)<1));
+}
 const beforeImpact=context.nodes.length;sound.update({speed:3,tyres:[tyre],impacts:[{kind:'wood',energy:.8,pan:-.6}]});assert(context.nodes.length>beforeImpact,'Obstacle contact plays its own one-shot');sound.update({speed:0,canyonRiver:.22,shoreDistance:500});sound.pause(true);assert.equal(rapidsGain.value,0,'Pause clears canyon ambience');assert.equal(context.nodes[0].gain.value,0);assert.deepEqual(mix,[false,0]);
 assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);assert.equal(rainGain.value,0,'Pause also clears weather gains');
-const voicesBeforePause=context.nodes.length;sound.update({...river,rain:1,impacts:[landing,crashEvent]});assert.equal(context.nodes.length,voicesBeforePause,'Paused updates do not play water or volcanic impacts');assert.equal(rainGain.value,0);
+const voicesBeforePause=context.nodes.length;sound.mechanical('range');sound.update({...river,rain:1,impacts:[landing,crashEvent]});assert.equal(context.nodes.length,voicesBeforePause,'Paused updates do not play water or volcanic impacts');assert.equal(rainGain.value,0);
 sound.pause(false);assert.equal(context.nodes[0].gain.value,.72);assert.equal(rainGain.value,0,'Resume waits for current weather instead of replaying stale rain');
 context.currentTime=10;sound.update({speed:3,tyres:[tyre],shoreDistance:2,input:{gas:true},rain:1});
 assert(context.nodes.filter(n=>n.started).length>=7,'Gull and splash one-shots play');
-await button.click();assert.equal(context.nodes[0].gain.value,0);assert.equal(button.attrs['aria-pressed'],'false');assert.equal(rainGain.value,0);assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);const mutedVoices=context.nodes.length;sound.update({...river,rain:1,impacts:[landing,crashEvent]});assert.equal(context.nodes.length,mutedVoices,'Muted rockfalls allocate no voices');assert.equal(rainGain.value,0,'Live rain never overrides mute');
+await button.click();assert.equal(context.nodes[0].gain.value,0);assert.equal(button.attrs['aria-pressed'],'false');assert.equal(rainGain.value,0);assert.equal(washGain.value,0);assert.equal(sprayGain.value,0);const mutedVoices=context.nodes.length;sound.mechanical('lock');sound.update({...river,rain:1,impacts:[landing,crashEvent]});assert.equal(context.nodes.length,mutedVoices,'Muted rockfalls allocate no voices');assert.equal(rainGain.value,0,'Live rain never overrides mute');
 await gestures.emit('keydown');assert.equal(context.nodes[0].gain.value,0,'Driving never overrides mute');
 await button.click();assert.equal(requests,6,'Re-enable reuses decoded audio');sound.dispose();assert.equal(gestures.handlers.size,0);assert.equal(button.handlers.size,0);assert(context.closed);assert(context.nodes.filter(n=>n.started).every(n=>n.stopped||n.disconnected));
 // Muting before the first drive gesture must neither fetch nor create a context.

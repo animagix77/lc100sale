@@ -108,7 +108,7 @@ function setPanelOpen(id,open){
 function closeDrivingPanels(){panelPause.clear();for(const close of drivingPanelClosers.values())close({focus:false,notify:false});}
 const soundtrack=previewMode?{pause(){},dispose(){}}:createMusic($('music'),()=>canvas.focus({preventScroll:true}),{onPanelChange:open=>setPanelOpen('radio',open),onPower:on=>{antenna?.power(on,{speed:physics?.speed??0,recovering:!!recovery?.pending||recovery?.state!=='roof'});if(on)say('Rusty: Raising the antenna. A three-second flex from 2004.',{mobile:'quiet'})}});
 drivingPanelClosers.set('radio',options=>soundtrack.closePanel?.(options));
-const audio=previewMode?{pause(){},update(){},dispose(){}}:createSound($('sound'),()=>canvas.focus({preventScroll:true}),(on,load)=>soundtrack.setEffectsMix(on,load));
+const audio=previewMode?{pause(){},update(){},mechanical(){},dispose(){}}:createSound($('sound'),()=>canvas.focus({preventScroll:true}),(on,load)=>soundtrack.setEffectsMix(on,load));
 if(!previewMode)audio.pause(true);
 function openingFinished(){keys.clear();touchControls.reset();touchCamera.reset();respawnBrake=.55;accumulator=0;cameraOrbit.reset();weatherView.resetMotion(camera);last=performance.now();canvas.focus({preventScroll:true});say(continuingJourney?route.complete?`Welcome back to ${route.camp.name}. Your shelter and route choices are saved.`:'Welcome back. Continuing from '+route.checkpoint().name+'.':$('quip').textContent,{mobile:'quiet'});showRouteChoice(true);if(route.complete&&campNear())journeyUI?.open();}
 const opening=previewMode?null:new OpeningCinematic({camera,onFinish:openingFinished});
@@ -147,19 +147,27 @@ const panelNames={
 };
 function applyPanelImpacts(){
  if(!physics.damageEvents.length)return;
- let changed=false,notice;
+ let changed=false,notice,crushImpact;
  if(!previewMode)for(const event of physics.damageEvents){
   const hit=damage.hit(event);
   if(!hit)continue;
   changed=true;
-  if(hit.changedStage&&notice?.stage!=='unlatched')notice=hit;
+  if(hit.crushed){
+   notice=hit;
+   if(!crushImpact||event.severity>crushImpact.energy)crushImpact={crash:true,crushed:true,energy:event.severity,pan:clamp(event.point.x*.65,-.7,.7)};
+   continue;
+  }
+  if(!notice?.crushed&&hit.changedStage&&notice?.stage!=='unlatched')notice=hit;
  }
  physics.damageEvents.length=0;
  if(changed)persistJourney();
- if(notice){
+ if(notice?.crushed){
+  say(damage.peakCrush>=65?'Rusty: Body shop says totaled. Land Cruiser says what’s next?':'Rusty: That panel used to be straight. Still drives.');
+ }else if(notice){
   const condition=notice.stage==='loose'?'latch is loose':'came unlatched';
   say(`${panelNames[notice.panel]} ${condition}. Stop and secure it in Pause.`);
  }
+ return crushImpact;
 }
 function parkedForPanelRepair(){
  const velocity=physics.rb.linvel();
@@ -167,18 +175,20 @@ function parkedForPanelRepair(){
 }
 function showPanelRepair(){
  const affected=DAMAGE_PANELS.filter(id=>damage.stage(id)!=='secure');
- $('panel-repair').hidden=!affected.length;
- if(!affected.length)return;
+ $('panel-repair').hidden=!affected.length&&!damage.peakCrush;
+ if(!affected.length&&!damage.peakCrush)return;
+ $('secure-panels').textContent=damage.peakCrush?'Straighten body and secure panels':'Secure panels';
  const parked=parkedForPanelRepair();
- const summary=affected.map(id=>`${panelNames[id]} (${damage.stage(id)})`).join(', ');
+ const summary=(damage.peakCrush?'Crushed bodywork. Engine still running. ':'')+affected.map(id=>`${panelNames[id]} (${damage.stage(id)})`).join(', ');
  $('panel-condition').textContent=parked?summary:summary+'. Stop the truck on the ground to secure the panels.';
  $('secure-panels').disabled=!parked;
 }
 $('secure-panels').addEventListener('click',()=>{
  if(!$('paused').open||!damage.hasDamage||!parkedForPanelRepair())return;
- damage.reset();damageView.reset();persistJourney();showPanelRepair();
+ const hadCrush=damage.peakCrush>0;
+ damage.reset();damageView.reset();vehicleFire.clear();persistJourney();showPanelRepair();
  renderPipeline.render();$('resume').focus({preventScroll:true});
- say('Panels secured. Back on the trail.');
+ say(hadCrush?'Body straightened. Doors latched. Back on the trail.':'Panels secured. Back on the trail.');
 });
 camp.setSite(route.camp);if(savedJourney)camp.restore(savedJourney.camp);
 const intro=previewMode?null:createDriveIntro($('drive-intro'),$('intro-start'),{savedCheckpoint:savedJourney?route.checkpoint().name:null,onStart:startNewExpedition,onContinue:()=>playOpening(true),onExit:exit});
@@ -271,12 +281,13 @@ function updateTrailHint(dt,p,f,contacts,maxSlip,region){
  showTrailHint(trailHintDisplay.update(candidate,dt,{blocked,range:physics.range,centerLocked:physics.centerLocked,recoveryState:recovery?.pending?'deploying':recovery?.state}));
 }
 
-function chooseRange(range){if(!loaded||paused||previewMode)return;if(!physics.setRange(range,shiftInput())){say('Rusty: Lift off the gas and turn off cruise to change range. Gravity can keep doing its thing.');return}cancelCruise();document.querySelectorAll('button[data-range]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.range===range)));$('range-note').textContent=range==='LO'?'LOW SPEED · MORE TORQUE':'HIGH RANGE · CRUISING';$('cruise').title=range==='LO'?'Gentle crawl at about 3 mph':'Gentle cruise at about 8 mph';say(range==='LO'?'Rusty: Low range. More grunt. Less hurry. Soft sand still gets a vote.':'Rusty: High range. Back to beach speed.',{mobile:'quiet'});canvas.focus({preventScroll:true})}
+function chooseRange(range){if(!loaded||paused||previewMode)return;const previous=physics.range;if(!physics.setRange(range,shiftInput())){say('Rusty: Lift off the gas and turn off cruise to change range. Gravity can keep doing its thing.');return}if(range!==previous)audio.mechanical('range',{rate:range==='LO'?.88:1.10});cancelCruise();document.querySelectorAll('button[data-range]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.range===range)));$('range-note').textContent=range==='LO'?'LOW SPEED · MORE TORQUE':'HIGH RANGE · CRUISING';$('cruise').title=range==='LO'?'Gentle crawl at about 3 mph':'Gentle cruise at about 8 mph';say(range==='LO'?'Rusty: Low range. More grunt. Less hurry. Soft sand still gets a vote.':'Rusty: High range. Back to beach speed.',{mobile:'quiet'});canvas.focus({preventScroll:true})}
 for(const b of document.querySelectorAll('button[data-range]'))b.addEventListener('click',()=>chooseRange(b.dataset.range));
 function toggleCenterLock(){
  if(!loaded||paused||previewMode)return;
  const locked=!physics.centerLocked;
  if(!physics.setCenterLock(locked,shiftInput())){say('Rusty: Lift off the gas and turn off cruise to switch the center lock. Rolling is fine.');canvas.focus({preventScroll:true});return;}
+ audio.mechanical('lock',{rate:locked?.92:1.12});
  cancelCruise();$('center-lock').setAttribute('aria-pressed',String(locked));$('center-lock').textContent=locked?'CENTER LOCK · ON':'CENTER LOCK · OFF';
  say(locked?'Rusty: Front and rear now working together. Someone in this vehicle should.':'Rusty: Center unlocked. A little less argument in the corners.',{mobile:'quiet'});canvas.focus({preventScroll:true});
 }
@@ -285,7 +296,10 @@ let recoveryNoticeUntil=0,recoveryNoticeKey='';
 function syncRecoveryNotice(){
  const key=recovery?.result||'',panel=$('recovery-status');
  const text={bridge:'Boards need firm ground. Cross to a bank, or return to the last checkpoint.',braking:'Braking to place boards…',ok:'Placing four boards…',placing:'Placing four boards…',ready:'Boards down. Select 4LO and ease forward.',tilted:'Truck too tilted. Return to your checkpoint.',unsettled:'Couldn’t settle. Brake or reposition, then tap Boards.',packing:'Packing the boards…',packed:'Boards back on the roof.',already:'Boards are being placed or packed.'}[key]||'';
- if(key!==recoveryNoticeKey){recoveryNoticeKey=key;recoveryNoticeUntil=elapsed+30;setMessageText(panel,text);}
+ if(key!==recoveryNoticeKey){
+  if(key==='ready')audio.mechanical('boardsDown');
+  if(key==='packed')audio.mechanical('boardsPacked');
+  recoveryNoticeKey=key;recoveryNoticeUntil=elapsed+30;setMessageText(panel,text);}
  panel.hidden=!text||(!recovery?.pending&&recovery?.state!=='deploying'&&elapsed>=recoveryNoticeUntil);
 }
 function deployBoards(){
@@ -365,7 +379,8 @@ function reset(announce=true,customPose=null){
 function maybeRebase(){const p=physics.rb.translation();if(Math.abs(p.x)<512&&Math.abs(p.z)<512)return;const x=Math.round(p.x/32)*32,z=Math.round(p.z/32)*32;physics.rebase(x,z);camera.position.x-=x;camera.position.z-=z;weatherView.rebase(x,z);terrain.rebase();updateCampCollider();beachLife.rebase(physics.origin);mountainDetails.rebase(physics.origin);lavaCrossing.update(elapsed,physics.origin);obstacles.refresh(beachLife,{budgeted:true});trackCount=trackMesh.count=0;}
 function syncVehiclePose(){const local=physics.rb.translation(),rot=physics.rb.rotation();q.set(rot.x,rot.y,rot.z,rot.w);syncVehicleTransform(truck,local,rot);const rearCamber=rearAxle?.update(physics.vehicle.wheelSuspensionLength(2)??.5,physics.vehicle.wheelSuspensionLength(3)??.5)||0;wheels.forEach((w,i)=>{if(i>=2)w.steer.rotation.z=rearCamber;const length=physics.vehicle.wheelSuspensionLength(i)??.50;w.susp.position.y=.70+.06-length;w.steer.rotation.y=wheelLayout[i].front?physics.steer:0;w.roll.rotation.x=-physics.tyres[i].angle;});return {local,rot};}
 function sync(dt){mobileFrame.restore(camera);bridgeView?.update(elapsed,camera);if(frameCount%30===0&&physics.bridge){const poses=physics.bridge.poses();canvas.dataset.bridgeMaxTilt=String(Math.max(...poses.map(p=>Math.acos(Math.min(1,Math.max(-1,1-2*(p.rotation.x*p.rotation.x+p.rotation.z*p.rotation.z)))))));canvas.dataset.bridgeDeckY=poses.map(p=>p.position.y.toFixed(2)).join(',');}impactShake.restore(camera);antenna?.restore(camera);const p=physics.position(),{local,rot}=syncVehiclePose(),f=physics.forward(),heading=Math.atan2(-f.x,-f.z);
- damageView?.update(dt,damage,physics.rb.linvel());
+ const stop=damageView?.update(dt,damage,physics.rb.linvel());
+ if(stop)audio.mechanical('panelStop',{pan:stop.side*.6,strength:clamp(stop.speed/4,.35,1)});
  expeditionWeather(p);if(loaded)vehicleSnow?.update(dt,weatherView.state);vehicleLights?.update(dt,weatherView.state.altitude,physics.lighting,weatherView.state);ocean.updateVehicleLights(vehicleLights);if(vehicleLights)Object.assign(canvas.dataset,{headlights:String(vehicleLights.state.dark),brakeLights:String(vehicleLights.state.braking),reverseLights:String(vehicleLights.state.reversing)});
  recoveryView?.update();syncRecoveryNotice();
  // Keep the button and its label stable between pointer-down and pointer-up.
@@ -376,7 +391,7 @@ function sync(dt){mobileFrame.restore(camera);bridgeView?.update(elapsed,camera)
  if($('recover').getAttribute('aria-disabled')!==recoveryBusy)$('recover').setAttribute('aria-disabled',recoveryBusy);
  for(const mark of physics.marks.splice(0)){
   if(sampleWaterHeight(mark.x,mark.z,elapsed)>field.height(mark.x,mark.z)+.025)continue;
-  effects.emit(mark,heading,physics.speed,elapsed);printAt(mark,heading);
+  effects.emit(mark,heading,physics.speed,elapsed,weatherView.state.rain);printAt(mark,heading);
  }
  sampleWheelWater(physics,sampleWaterHeight,elapsed,waterContactState);
  vehicleWetness?.soilUpdate(dt,physics.tyres,waterContactState);
@@ -438,7 +453,7 @@ function frame(now){if(dead)return;const rawInterval=(now-last)/1000,dt=Math.min
 // Alternate the two scenery queues so one cannot starve the other at tile boundaries.
 const streamPlants=()=>streamBudget.run(2,ms=>beachLife.stream(p,physics.origin,ms),{reserve:.9});
 const streamRocks=()=>streamBudget.run(.9,ms=>mountainDetails.stream(p,physics.origin,ms),{reserve:.9});
-if(frameCount%2){streamPlants();streamRocks();}else{streamRocks();streamPlants();}obstacles.refresh(beachLife,{budgeted:true,lookahead});pebbles.stream(p);accumulator+=dt;let steps=0;while(accumulator>=1/120&&steps++<8){physics.step(1/120,input);accumulator-=1/120}applyPanelImpacts();const safety=physics.roadsideSafety;canvas.dataset.proximityBrake=String(safety.active);canvas.dataset.proximityScene=safety.scene||'';if(safety.active){cancelCruise();input.gas=0;input.reverse=0;input.cruise=false;input.handbrake=false;input.brake=true;if(!previewMode&&elapsed>roadsideBrakeNotice){say('Rusty: Auto brake. They already have car trouble. They don’t need you. Reverse or steer around.');roadsideBrakeNotice=elapsed+18;}}const afterStep=physics.position();
+if(frameCount%2){streamPlants();streamRocks();}else{streamRocks();streamPlants();}obstacles.refresh(beachLife,{budgeted:true,lookahead});pebbles.stream(p);accumulator+=dt;let steps=0;while(accumulator>=1/120&&steps++<8){physics.step(1/120,input);accumulator-=1/120}const crushImpact=applyPanelImpacts();const safety=physics.roadsideSafety;canvas.dataset.proximityBrake=String(safety.active);canvas.dataset.proximityScene=safety.scene||'';if(safety.active){cancelCruise();input.gas=0;input.reverse=0;input.cruise=false;input.handbrake=false;input.brake=true;if(!previewMode&&elapsed>roadsideBrakeNotice){say('Rusty: Auto brake. They already have car trouble. They don’t need you. Reverse or steer around.');roadsideBrakeNotice=elapsed+18;}}const afterStep=physics.position();
  if(!previewMode&&Math.abs(afterStep.x-665)<28&&Math.abs(afterStep.z+470)<37&&afterStep.y<66){reset(false);say('Recovered to the last bank checkpoint. Use 4LO and hold a steady line across the bridge.');}
  if(!previewMode&&physics.fording.rescueAge>=3){reset(false);say('Engine flooded. Recovered to the last checkpoint. Follow the marked shallow ford.');}
  if(!previewMode){
@@ -446,6 +461,7 @@ if(frameCount%2){streamPlants();streamRocks();}else{streamRocks();streamPlants()
   if(event==='ignite'){cancelCruise();keys.clear();touchControls.reset();recovery.clear();unstuck.dismiss();showUnstuck(false);$('lava-warning').hidden=false;say('Rusty: That was lava. Returning to the last checkpoint…');}
   if(event==='respawn'){reset(false);Object.assign(input,{gas:false,reverse:false,cruise:false,brake:true});say('Rusty: Fire out. Back at '+route.checkpoint().name+'. Let’s stay on the basalt this time.');}
  }
- if(!previewMode&&oceanRecovery.update(dt,{position:afterStep,waterHeight:ocean.height(afterStep.x,afterStep.z,elapsed),groundHeight:field.height(afterStep.x,afterStep.z)})){const pose=expeditionRecoveryPose(afterStep,(x,z)=>field.height(x,z),route),quip=oceanRecovery.message();reset(false,pose);Object.assign(input,{gas:false,reverse:false,turn:0,cruise:false,handbrake:false,brake:true});say(quip);canvas.dataset.oceanRescues=String(oceanRecovery.rescues);}if(!previewMode&&!lavaRecovery.burning&&rollover.update(dt,physics.rb.rotation())){rolloverResets++;reset(false);Object.assign(input,{gas:false,reverse:false,turn:0,cruise:false,handbrake:false,brake:true});say('Rusty: That was the roof. Back to '+route.checkpoint().name+'. Rubber side down.');}if(!previewMode)showUnstuck(unstuck.update(dt,{position:physics.position(),velocity:physics.rb.linvel(),input,blocked:lavaRecovery.burning||physics.roadsideSafety.active||recovery?.pending||recovery?.state==='deploying'||recovery?.state==='stowing'||antenna?.holding}));maybeRebase();const pos=sync(dt);streamBudget.measure(()=>terrain.refresh({budgeted:true}));waterUpdate(pos,elapsed,true);ocean.updateWheelFoam(dt,physics,elapsed);terrain.animate(elapsed);clouds.update(camera,elapsed);if(!previewMode)weatherView.update(dt,camera,physics.rb.translation(),renderer);sunScattering?.update(weatherView.state,dt);environmentLighting?.update(weatherView.state,dt);if(frameCount%5===0)mapDraw(pos);effects.update(dt,camera,physics.origin,elapsed);const impacts=[...physics.soundEvents.splice(0),...(hazards?.drainImpacts()||[])];if(!previewMode){const observation=trailNarrator.update(dt,{biome:surfaceAt(pos.x,pos.z).biome,stuck:physics.stuck||unstuck.visible,waterContact:waterContactState.contact,speed:physics.speed,rain:weatherView.state.rain,impacts,canSpeak:!trailHint&&elapsed>messages.until});if(observation)say(observation,{mobile:'quiet'});}audio.update({oceanTime:elapsed,worldZ:physics.position().z,waveScale:ocean.waveScale.value,surfDistance:ocean.surfDistance,surfPhase:ocean.surfPhase,canyonRiver:canyonAmbience(pos),campfire:camp.fire?1-smooth(3,25,Math.hypot(pos.x-(route.camp.x-10),pos.z-route.camp.z)):0,engine:physics.powertrain,impacts,speed:physics.speed,tyres:physics.tyres,range:physics.range,input,shoreDistance:pos.x-shore(pos.z),waterContact:waterContactState.contact,waterDepth:waterContactState.depth,rain:weatherView.state.rain});impactShake.update(dt,campCamera.active?[]:impacts);if(!campCamera.active)impactShake.apply(camera);canvas.dataset.cameraShake=impactShake.strength.toFixed(3);vehicleFire.update(lavaRecovery.burning?lavaRecovery.age:null,physics,camera);canvas.dataset.lavaRecovery=lavaRecovery.burning?'burning':'ready';canvas.dataset.lavaRescues=String(lavaRecovery.rescues);renderPipeline.render()}
+ if(!previewMode&&oceanRecovery.update(dt,{position:afterStep,waterHeight:ocean.height(afterStep.x,afterStep.z,elapsed),groundHeight:field.height(afterStep.x,afterStep.z)})){const pose=expeditionRecoveryPose(afterStep,(x,z)=>field.height(x,z),route),quip=oceanRecovery.message();reset(false,pose);Object.assign(input,{gas:false,reverse:false,turn:0,cruise:false,handbrake:false,brake:true});say(quip);canvas.dataset.oceanRescues=String(oceanRecovery.rescues);}if(!previewMode&&!lavaRecovery.burning&&rollover.update(dt,physics.rb.rotation())){rolloverResets++;reset(false);Object.assign(input,{gas:false,reverse:false,turn:0,cruise:false,handbrake:false,brake:true});say('Rusty: That was the roof. Back to '+route.checkpoint().name+'. Rubber side down.');}if(!previewMode)showUnstuck(unstuck.update(dt,{position:physics.position(),velocity:physics.rb.linvel(),input,blocked:lavaRecovery.burning||physics.roadsideSafety.active||recovery?.pending||recovery?.state==='deploying'||recovery?.state==='stowing'||antenna?.holding}));maybeRebase();const pos=sync(dt);streamBudget.measure(()=>terrain.refresh({budgeted:true}));waterUpdate(pos,elapsed,true);ocean.updateWheelFoam(dt,physics,elapsed);terrain.animate(elapsed);clouds.update(camera,elapsed);if(!previewMode)weatherView.update(dt,camera,physics.rb.translation(),renderer);sunScattering?.update(weatherView.state,dt);environmentLighting?.update(weatherView.state,dt);if(frameCount%5===0)mapDraw(pos);effects.update(dt,camera,physics.origin,elapsed);const impacts=[...physics.soundEvents.splice(0),...(hazards?.drainImpacts()||[])];if(!previewMode){const observation=trailNarrator.update(dt,{biome:surfaceAt(pos.x,pos.z).biome,stuck:physics.stuck||unstuck.visible,waterContact:waterContactState.contact,speed:physics.speed,rain:weatherView.state.rain,impacts,canSpeak:!trailHint&&elapsed>messages.until});if(observation)say(observation,{mobile:'quiet'});}audio.update({oceanTime:elapsed,worldZ:physics.position().z,waveScale:ocean.waveScale.value,surfDistance:ocean.surfDistance,surfPhase:ocean.surfPhase,canyonRiver:canyonAmbience(pos),campfire:camp.fire?1-smooth(3,25,Math.hypot(pos.x-(route.camp.x-10),pos.z-route.camp.z)):0,engine:physics.powertrain,impacts,speed:physics.speed,tyres:physics.tyres,range:physics.range,input,crushImpact,shoreDistance:pos.x-shore(pos.z),waterContact:waterContactState.contact,waterDepth:waterContactState.depth,rain:weatherView.state.rain});impactShake.update(dt,campCamera.active?[]:impacts);if(!campCamera.active)impactShake.apply(camera);canvas.dataset.cameraShake=impactShake.strength.toFixed(3);const crashSmoke=lavaRecovery.burning?0:damage.peakCrush/100;
+ vehicleFire.update(lavaRecovery.burning?lavaRecovery.age:crashSmoke?elapsed:null,physics,camera,crashSmoke);canvas.dataset.lavaRecovery=lavaRecovery.burning?'burning':'ready';canvas.dataset.lavaRescues=String(lavaRecovery.rescues);renderPipeline.render()}
 addEventListener('message',event=>{if(!previewMode||event.source!==parent||event.origin!==location.origin||event.data?.type!=='lc100:preview-active')return;previewActive=event.data.active===true&&!document.hidden;setPaused(!previewActive)});
 addEventListener('pagehide',()=>{dead=true;opening?.dispose();journeyUI?.dispose();drivingPreferences?.dispose();adviceReader?.dispose();campView.dispose();damageView?.dispose();rearAxle?.dispose();fordMarkers.dispose();hudMenu.dispose();touchControls.dispose();touchCamera.dispose();mobileWindow?.dispose();intro?.dispose();vehicleSnow?.dispose();vehicleWetness?.dispose();vehicleLights?.dispose();weatherUI?.dispose();weatherView.dispose();atmosphere.dispose();soundtrack.dispose();renderer?.setAnimationLoop(null);hazards?.dispose();vehicleFire.dispose();pebbles?.dispose();wildlife.dispose();obstacles?.dispose();terrain?.dispose();groundTextures?.dispose();bridgeView?.dispose();physics?.dispose();clouds.dispose();lavaAtmosphere.dispose();lavaBloom?.dispose();lavaCrossing.dispose();volcano.dispose();river.dispose();puddles.dispose();ocean.dispose();effects.dispose();roadside.dispose();mountainDetails.dispose();beachLife.dispose();islands.dispose();waypointView.dispose();environmentLighting?.dispose();sunScattering?.dispose();contactShade?.dispose();plainPipeline?.dispose();glowPipeline?.dispose();scenePass?.dispose();renderer?.dispose();audio.dispose()},{once:true});init();
